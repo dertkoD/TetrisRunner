@@ -38,6 +38,9 @@ public sealed class PlayerConfigSO : ScriptableObject
     [Tooltip("Сколько секунд игнорируется горизонтальный инпут после wall-jump, " +
              "чтобы нельзя было сразу прилипнуть обратно к той же стене.")]
     [SerializeField, Min(0f)] private float wallJumpLockoutTime = 0.18f;
+    [Tooltip("Сколько wall-jump'ов доступно за один полёт. Восполняется при приземлении. " +
+             "По умолчанию 1 — отпрыгнуть от стены можно только один раз, потом нужно коснуться земли.")]
+    [SerializeField, Min(0)] private int wallJumpCount = 1;
 
     [Header("Double Jump")]
     [Tooltip("Включает способность доп. прыжков в воздухе.")]
@@ -73,6 +76,7 @@ public sealed class PlayerConfigSO : ScriptableObject
     public float WallJumpVelocity => wallJumpVelocity;
     public float WallJumpHorizontalVelocity => wallJumpHorizontalVelocity;
     public float WallJumpLockoutTime => wallJumpLockoutTime;
+    public int WallJumpCount => wallJumpCount;
 
     public bool DoubleJumpEnabled => doubleJumpEnabled;
     public int AirJumpCount => airJumpCount;

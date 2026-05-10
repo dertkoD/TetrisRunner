@@ -119,6 +119,9 @@ public class PlayerStateMachine : MonoBehaviour
 
         if (doubleJump != null)
             doubleJump.Refill(config);
+
+        if (wallJump != null)
+            wallJump.Refill(config);
     }
 
     private void EnableInput()
@@ -179,9 +182,16 @@ public class PlayerStateMachine : MonoBehaviour
         if (grounded)
             coyoteTimer = config.CoyoteTime;
 
-        // На земле восполняем воздушные прыжки (для PlayerDoubleJumper).
-        if (grounded && !wasGrounded && doubleJump != null)
-            doubleJump.Refill(config);
+        // На земле восполняем доступные способности: воздушные прыжки
+        // (для PlayerDoubleJumper) и wall-jump'ы (для PlayerWallJumper).
+        if (grounded && !wasGrounded)
+        {
+            if (doubleJump != null)
+                doubleJump.Refill(config);
+
+            if (wallJump != null)
+                wallJump.Refill(config);
+        }
 
         wasGrounded = grounded;
     }
