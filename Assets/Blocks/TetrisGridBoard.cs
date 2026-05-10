@@ -19,41 +19,42 @@ public class TetrisGridBoard : MonoBehaviour
     [Header("Origin")]
     [SerializeField] private Transform origin;
 
-    [Header("Placed Cells")]
-    [Tooltip("Куда складываются отдельные ячейки залоченных блоков. " +
-             "Если не задано, будет создан дочерний объект 'PlacedCells' автоматически.")]
-    [SerializeField] private Transform placedCellsParent;
+    [Header("Placed Blocks")]
+    [Tooltip("Куда складываются залоченные блоки. Если не задано, будет создан " +
+             "дочерний объект 'PlacedBlocks' автоматически.")]
+    [SerializeField] private Transform placedBlocksParent;
 
-    private readonly Dictionary<Vector2Int, TetrisPlacedCell> cells = new Dictionary<Vector2Int, TetrisPlacedCell>();
+    /// <summary>cell -> блок, который занимает эту клетку.</summary>
+    private readonly Dictionary<Vector2Int, TetrisPlacedBlock> cellsToBlock = new Dictionary<Vector2Int, TetrisPlacedBlock>();
 
     private static int nextBlockId;
 
-    /// <summary>Возвращает уникальный идентификатор блока (используется при спавне/локе).</summary>
+    public float CellSize => cellSize;
+    public int Width => width;
+    public int Height => height;
+
+    /// <summary>Возвращает уникальный идентификатор блока (используется при локе).</summary>
     public static int AllocateBlockId()
     {
         nextBlockId++;
         return nextBlockId;
     }
 
-    public float CellSize => cellSize;
-    public int Width => width;
-    public int Height => height;
-
-    public Transform PlacedCellsParent
+    public Transform PlacedBlocksParent
     {
         get
         {
-            if (placedCellsParent == null)
+            if (placedBlocksParent == null)
             {
-                GameObject host = new GameObject("PlacedCells");
+                GameObject host = new GameObject("PlacedBlocks");
                 host.transform.SetParent(transform, false);
                 host.transform.localPosition = Vector3.zero;
                 host.transform.localRotation = Quaternion.identity;
                 host.transform.localScale = Vector3.one;
-                placedCellsParent = host.transform;
+                placedBlocksParent = host.transform;
             }
 
-            return placedCellsParent;
+            return placedBlocksParent;
         }
     }
 
@@ -97,7 +98,7 @@ public class TetrisGridBoard : MonoBehaviour
 
     public bool IsOccupied(Vector2Int cell)
     {
-        return cells.ContainsKey(cell);
+        return cellsToBlock.ContainsKey(cell);
     }
 
     public bool CanPlaceOffsets(Vector2Int pivotCell, Vector2Int[] offsets)
@@ -119,150 +120,221 @@ public class TetrisGridBoard : MonoBehaviour
         return true;
     }
 
-    /// <summary>
-    /// Регистрирует уже существующую ячейку в указанной клетке сетки.
-    /// Если клетка занята другой — старая ячейка будет уничтожена и заменена.
-    /// </summary>
-    public void RegisterCell(Vector2Int cell, TetrisPlacedCell placedCell)
+    /// <summary>Регистрирует уже расположенный блок: записывает все его клетки в карту.</summary>
+    public void RegisterBlock(TetrisPlacedBlock block)
     {
-        if (placedCell == null)
+        if (block == null)
             return;
 
-        if (!IsInside(cell))
+        Vector2Int[] offsets = block.CellOffsets;
+        if (offsets == null)
             return;
 
-        if (cells.TryGetValue(cell, out TetrisPlacedCell existing) && existing != null && existing != placedCell)
-            Destroy(existing.gameObject);
+        Vector2Int pivot = block.PivotCell;
 
-        cells[cell] = placedCell;
-        placedCell.transform.position = CellToWorld(cell);
+        for (int i = 0; i < offsets.Length; i++)
+        {
+            Vector2Int cell = pivot + offsets[i];
+
+            if (!IsInside(cell))
+                continue;
+
+            cellsToBlock[cell] = block;
+        }
+    }
+
+    /// <summary>Снимает блок с карты сетки (но сам объект не уничтожает).</summary>
+    public void UnregisterBlock(TetrisPlacedBlock block)
+    {
+        if (block == null)
+            return;
+
+        // Удаляем все клетки, которые принадлежат именно этому блоку (а не просто
+        // совпадают по позициям) — это надёжно даже если кто-то переехал поверх.
+        List<Vector2Int> toRemove = null;
+
+        foreach (KeyValuePair<Vector2Int, TetrisPlacedBlock> kvp in cellsToBlock)
+        {
+            if (kvp.Value != block)
+                continue;
+
+            if (toRemove == null)
+                toRemove = new List<Vector2Int>(8);
+
+            toRemove.Add(kvp.Key);
+        }
+
+        if (toRemove == null)
+            return;
+
+        for (int i = 0; i < toRemove.Count; i++)
+            cellsToBlock.Remove(toRemove[i]);
     }
 
     /// <summary>
-    /// Прогоняет схлопывание одинаковых соседних цветов до полной стабилизации,
-    /// с применением «гравитации» после каждого прохода.
+    /// Прогоняет цикл "схлопнули блоки → уронили висящие → проверили снова" до
+    /// полной стабилизации. Схлопывание срабатывает только между разными блоками
+    /// одного цвета; внутри блока его собственные ячейки друг друга не уничтожают.
+    /// Блоки сохраняют свою форму, гравитация перемещает их целиком.
     /// </summary>
     public void ResolveMatches()
     {
         const int safetyLimit = 64;
-
         int iterations = 0;
 
         while (iterations < safetyLimit)
         {
             iterations++;
 
-            HashSet<Vector2Int> toRemove = FindCellsToRemove();
+            HashSet<TetrisPlacedBlock> blocksToRemove = FindMatchingBlocks();
 
-            if (toRemove == null || toRemove.Count == 0)
+            if (blocksToRemove == null || blocksToRemove.Count == 0)
                 break;
 
-            foreach (Vector2Int cell in toRemove)
+            foreach (TetrisPlacedBlock block in blocksToRemove)
             {
-                if (!cells.TryGetValue(cell, out TetrisPlacedCell placed))
+                if (block == null)
                     continue;
 
-                if (placed != null)
-                    Destroy(placed.gameObject);
-
-                cells.Remove(cell);
+                UnregisterBlock(block);
+                Destroy(block.gameObject);
             }
 
             ApplyGravity();
         }
     }
 
-    private HashSet<Vector2Int> FindCellsToRemove()
+    private HashSet<TetrisPlacedBlock> FindMatchingBlocks()
     {
-        // Сначала ищем пары "ячейка из блока A соприкасается с ячейкой из блока B,
-        // оба одного цвета, но это разные блоки" — такие два блока полностью
-        // исчезают целиком. Ячейки внутри одного блока (общий BlockId) друг
-        // друга не уничтожают, поэтому свежепоставленный блок просто стоит,
-        // когда касается пола или блоков чужих цветов.
-        HashSet<int> blocksToRemove = null;
+        HashSet<TetrisPlacedBlock> blocksToRemove = null;
 
-        foreach (KeyValuePair<Vector2Int, TetrisPlacedCell> kvp in cells)
+        foreach (KeyValuePair<Vector2Int, TetrisPlacedBlock> kvp in cellsToBlock)
         {
-            TetrisPlacedCell cell = kvp.Value;
+            TetrisPlacedBlock block = kvp.Value;
 
-            if (cell == null)
+            if (block == null)
                 continue;
-
-            int colorIndex = cell.ColorIndex;
-            int blockId = cell.BlockId;
 
             for (int n = 0; n < FourNeighbors.Length; n++)
             {
                 Vector2Int neighborPos = kvp.Key + FourNeighbors[n];
 
-                if (!cells.TryGetValue(neighborPos, out TetrisPlacedCell neighbor))
+                if (!cellsToBlock.TryGetValue(neighborPos, out TetrisPlacedBlock neighbor))
                     continue;
 
                 if (neighbor == null)
                     continue;
 
-                if (neighbor.ColorIndex != colorIndex)
+                if (neighbor.BlockId == block.BlockId)
                     continue;
 
-                if (neighbor.BlockId == blockId)
+                if (neighbor.ColorIndex != block.ColorIndex)
                     continue;
 
                 if (blocksToRemove == null)
-                    blocksToRemove = new HashSet<int>();
+                    blocksToRemove = new HashSet<TetrisPlacedBlock>();
 
-                blocksToRemove.Add(blockId);
-                blocksToRemove.Add(neighbor.BlockId);
+                blocksToRemove.Add(block);
+                blocksToRemove.Add(neighbor);
             }
         }
 
-        if (blocksToRemove == null || blocksToRemove.Count == 0)
-            return null;
-
-        HashSet<Vector2Int> toRemove = new HashSet<Vector2Int>();
-
-        foreach (KeyValuePair<Vector2Int, TetrisPlacedCell> kvp in cells)
-        {
-            TetrisPlacedCell cell = kvp.Value;
-
-            if (cell == null)
-                continue;
-
-            if (blocksToRemove.Contains(cell.BlockId))
-                toRemove.Add(kvp.Key);
-        }
-
-        return toRemove;
+        return blocksToRemove;
     }
 
     /// <summary>
-    /// Поячеечная гравитация: каждая колонка сжимается вниз так, чтобы
-    /// «висящие в воздухе» ячейки упали на самый низ или на ячейки под ними.
+    /// Гравитация на уровне БЛОКОВ: каждый блок пытается опуститься на одну клетку
+    /// вниз, но только если все его клетки в новой позиции свободны и в пределах
+    /// сетки. Повторяем, пока хоть кто-то двигается. Форма блоков не нарушается.
     /// </summary>
     public void ApplyGravity()
     {
-        for (int x = 0; x < width; x++)
+        int safety = (width + 1) * (height + 1);
+
+        while (safety-- > 0)
         {
-            List<TetrisPlacedCell> column = new List<TetrisPlacedCell>(height);
+            List<TetrisPlacedBlock> blocks = CollectUniqueBlocksOrderedByLowestCell();
 
-            for (int y = 0; y < height; y++)
+            bool anyMoved = false;
+
+            for (int i = 0; i < blocks.Count; i++)
             {
-                Vector2Int pos = new Vector2Int(x, y);
-
-                if (!cells.TryGetValue(pos, out TetrisPlacedCell placed))
-                    continue;
-
-                column.Add(placed);
-                cells.Remove(pos);
+                if (TryDropBlockOneStep(blocks[i]))
+                    anyMoved = true;
             }
 
-            for (int i = 0; i < column.Count; i++)
-            {
-                Vector2Int newPos = new Vector2Int(x, i);
-                cells[newPos] = column[i];
+            if (!anyMoved)
+                break;
+        }
+    }
 
-                if (column[i] != null)
-                    column[i].transform.position = CellToWorld(newPos);
+    private List<TetrisPlacedBlock> CollectUniqueBlocksOrderedByLowestCell()
+    {
+        HashSet<TetrisPlacedBlock> seen = new HashSet<TetrisPlacedBlock>();
+        List<TetrisPlacedBlock> blocks = new List<TetrisPlacedBlock>();
+
+        foreach (TetrisPlacedBlock block in cellsToBlock.Values)
+        {
+            if (block == null)
+                continue;
+
+            if (!seen.Add(block))
+                continue;
+
+            blocks.Add(block);
+        }
+
+        // Сортируем "снизу вверх", чтобы нижние блоки падали первыми
+        // и освобождали место для тех, кто над ними.
+        blocks.Sort((a, b) => GetLowestCellY(a).CompareTo(GetLowestCellY(b)));
+        return blocks;
+    }
+
+    private static int GetLowestCellY(TetrisPlacedBlock block)
+    {
+        int min = int.MaxValue;
+        Vector2Int[] offsets = block.CellOffsets;
+
+        if (offsets == null)
+            return 0;
+
+        Vector2Int pivot = block.PivotCell;
+
+        for (int i = 0; i < offsets.Length; i++)
+        {
+            int y = pivot.y + offsets[i].y;
+            if (y < min) min = y;
+        }
+
+        return min == int.MaxValue ? 0 : min;
+    }
+
+    private bool TryDropBlockOneStep(TetrisPlacedBlock block)
+    {
+        Vector2Int[] offsets = block.CellOffsets;
+        if (offsets == null || offsets.Length == 0)
+            return false;
+
+        Vector2Int newPivot = block.PivotCell + Vector2Int.down;
+
+        for (int i = 0; i < offsets.Length; i++)
+        {
+            Vector2Int newCell = newPivot + offsets[i];
+
+            if (!IsInside(newCell))
+                return false;
+
+            if (cellsToBlock.TryGetValue(newCell, out TetrisPlacedBlock occupant)
+                && occupant != null
+                && occupant != block)
+            {
+                return false;
             }
         }
+
+        UnregisterBlock(block);
+        block.MoveToCell(newPivot, CellToWorld(newPivot));
+        RegisterBlock(block);
+        return true;
     }
 }

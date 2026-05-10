@@ -174,61 +174,48 @@ public class TetrisBlockController : MonoBehaviour
         body.position = board.CellToWorld(pivotCell);
         body.rotation = 0f;
 
-        // Распиливаем блок на отдельные ячейки и кладём каждую в сетку
-        // как самостоятельный объект — чтобы они могли по одной исчезать
-        // от совпадений по цвету и независимо падать вниз.
-        Vector2Int[] offsets = blockCells.CurrentOffsets;
-        Transform[] visuals = blockCells.CellVisuals;
+        // НИЧЕГО не делим: блок остаётся одним GameObject со своим
+        // PolygonCollider2D и формой. Просто превращаем его в TetrisPlacedBlock,
+        // регистрируем в сетке и уходим.
+        int blockId = TetrisGridBoard.AllocateBlockId();
+        int colorIndex = blockCells != null ? blockCells.GetColorIndex(0) : 0;
+        Vector2Int[] offsets = blockCells != null ? blockCells.CurrentOffsets : null;
 
-        if (offsets != null && visuals != null)
-        {
-            Transform cellsParent = board.PlacedCellsParent;
+        // Тело блока теперь стоит на месте, но остаётся Kinematic — нам ещё
+        // могут двигать его сеточной гравитацией. FreezeAll специально не
+        // ставим, иначе нельзя будет аккуратно переставить блок ниже.
+        body.linearVelocity = Vector2.zero;
+        body.angularVelocity = 0f;
+        body.gravityScale = 0f;
+        body.bodyType = RigidbodyType2D.Kinematic;
+        body.constraints = RigidbodyConstraints2D.FreezeRotation;
 
-            // Уникальный id блока: ячейки одного блока им помечаются и не могут
-            // схлопнуть друг друга. Схлопывание возможно только между ячейками
-            // РАЗНЫХ блоков, у которых совпадает цвет.
-            int blockId = TetrisGridBoard.AllocateBlockId();
+        // Контроллер больше не должен ни тикать, ни реагировать на повторные
+        // контакты — блок уже залочен.
+        if (contactReporter != null)
+            contactReporter.enabled = false;
 
-            for (int i = 0; i < visuals.Length; i++)
-            {
-                if (visuals[i] == null)
-                    continue;
+        // Перенесём блок под общий контейнер залоченных блоков (для порядка
+        // в иерархии). Это сохраняет мировую позицию.
+        Transform parent = board.PlacedBlocksParent;
+        if (parent != null)
+            transform.SetParent(parent, true);
 
-                if (i >= offsets.Length)
-                    continue;
+        TetrisPlacedBlock placedBlock = GetComponent<TetrisPlacedBlock>();
+        if (placedBlock == null)
+            placedBlock = gameObject.AddComponent<TetrisPlacedBlock>();
 
-                Vector2Int cellPos = pivotCell + offsets[i];
+        placedBlock.Initialize(blockId, colorIndex, pivotCell, offsets);
 
-                if (!board.IsInside(cellPos))
-                    continue;
+        board.RegisterBlock(placedBlock);
 
-                Transform visual = visuals[i];
-                int colorIndex = blockCells.GetColorIndex(i);
-                Color color = blockCells.GetColor(i);
-                SpriteRenderer renderer = blockCells.GetRenderer(i);
-
-                visual.SetParent(cellsParent, true);
-                visual.position = board.CellToWorld(cellPos);
-                visual.rotation = Quaternion.identity;
-                visual.localScale = new Vector3(board.CellSize, board.CellSize, 1f);
-
-                TetrisPlacedCell placedCell = visual.gameObject.GetComponent<TetrisPlacedCell>();
-
-                if (placedCell == null)
-                    placedCell = visual.gameObject.AddComponent<TetrisPlacedCell>();
-
-                placedCell.Setup(blockId, colorIndex, color, renderer);
-
-                board.RegisterCell(cellPos, placedCell);
-            }
-        }
-
-        // Запускаем разрешение совпадений: пары соседних ячеек одного цвета исчезают,
-        // а оставшиеся ячейки осыпаются вниз по сетке.
+        // Проверяем совпадения: если рядом стоит блок такого же цвета — оба
+        // полностью исчезнут, висящие сверху осыпятся целиком, не теряя формы.
         board.ResolveMatches();
 
-        // Сам корень блока больше не нужен — все его ячейки уже отдельно живут в сетке.
-        Destroy(gameObject);
+        // Контроллеру больше делать нечего — отключаем его компонент
+        // (но сам объект, его коллайдер и визуал остаются жить).
+        enabled = false;
     }
 
     private void StopMotion()
