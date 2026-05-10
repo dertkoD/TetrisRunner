@@ -121,24 +121,24 @@ public class TetrisBlockMovement : MonoBehaviour
 
         return 0;
     }
-    
+
     public bool MoveOnGrid(
         Rigidbody2D body,
         TetrisBlockConfigSO config,
         TetrisGridBoard board,
         TetrisBlockCells blockCells,
-        float horizontalInput)
+        Vector2 moveInput)
     {
         if (body == null || board == null || blockCells == null)
             return false;
 
-        if (blockCells.CurrentOffsets == null)
+        if (blockCells.CurrentOffsets == null || blockCells.CurrentOffsets.Length == 0)
             return false;
 
         Vector2Int pivotCell = board.WorldToCell(body.position);
         Vector2Int nextPivotCell = pivotCell;
 
-        int direction = GetStepDirection(horizontalInput);
+        int direction = GetStepDirection(moveInput.x);
 
         if (direction == 0)
         {
@@ -169,9 +169,14 @@ public class TetrisBlockMovement : MonoBehaviour
             }
         }
 
-        bool blockedDown = false;
+        // Soft-drop: при удержании "вниз" блок падает быстрее.
+        bool softDropping = moveInput.y < -0.1f;
+        float softDropMultiplier = Mathf.Max(1f, config != null ? config.SoftDropMultiplier : 1f);
+        float fallStepTickSpeed = softDropping ? softDropMultiplier : 1f;
 
-        fallStepTimer -= Time.fixedDeltaTime;
+        fallStepTimer -= Time.fixedDeltaTime * fallStepTickSpeed;
+
+        bool blockedDown = false;
 
         if (fallStepTimer <= 0f)
         {

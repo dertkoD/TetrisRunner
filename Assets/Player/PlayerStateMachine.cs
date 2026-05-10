@@ -15,6 +15,11 @@ public class PlayerStateMachine : MonoBehaviour
     private PlayerJump jump;
     private PlayerGroundChecker groundChecker;
 
+    // Опциональные способности — могут быть null для базового Player.
+    private PlayerWallChecker wallChecker;
+    private PlayerWallJump wallJump;
+    private PlayerDoubleJump doubleJump;
+
     private InputAction moveAction;
     private InputAction jumpAction;
 
@@ -24,6 +29,7 @@ public class PlayerStateMachine : MonoBehaviour
 
     private bool jumpReleased;
     private bool initialized;
+    private bool wasGrounded;
 
     private void Awake()
     {
@@ -78,6 +84,11 @@ public class PlayerStateMachine : MonoBehaviour
         jump = facade.Jump;
         groundChecker = facade.GroundChecker;
 
+        // Optional — может отсутствовать.
+        wallChecker = facade.WallChecker;
+        wallJump = facade.WallJump;
+        doubleJump = facade.DoubleJump;
+
         if (config == null || body == null || bodyTransform == null || movement == null || jump == null || groundChecker == null)
         {
             Debug.LogError($"{nameof(PlayerStateMachine)}: One or more references are missing in PlayerFacade.", this);
@@ -105,6 +116,12 @@ public class PlayerStateMachine : MonoBehaviour
 
         body.gravityScale = config.GravityScale;
         CurrentState = PlayerState.Falling;
+
+        if (doubleJump != null)
+            doubleJump.Refill(config);
+
+        if (wallJump != null)
+            wallJump.Refill(config);
     }
 
     private void EnableInput()
@@ -160,8 +177,23 @@ public class PlayerStateMachine : MonoBehaviour
 
     private void ReadState()
     {
-        if (groundChecker.IsGrounded && body.linearVelocity.y <= 0.01f)
+        bool grounded = groundChecker.IsGrounded && body.linearVelocity.y <= 0.01f;
+
+        if (grounded)
             coyoteTimer = config.CoyoteTime;
+
+        // На земле восполняем доступные способности: воздушные прыжки
+        // (для PlayerDoubleJumper) и wall-jump'ы (для PlayerWallJumper).
+        if (grounded && !wasGrounded)
+        {
+            if (doubleJump != null)
+                doubleJump.Refill(config);
+
+            if (wallJump != null)
+                wallJump.Refill(config);
+        }
+
+        wasGrounded = grounded;
     }
 
     private void ReadTimers()
@@ -173,22 +205,49 @@ public class PlayerStateMachine : MonoBehaviour
 
         if (jumpBufferTimer > 0f)
             jumpBufferTimer -= deltaTime;
+
+        if (wallJump != null)
+            wallJump.Tick(deltaTime);
     }
 
     private void DecideJump()
     {
         bool hasBufferedJump = jumpBufferTimer > 0f;
-        bool canJump = coyoteTimer > 0f;
 
-        if (!hasBufferedJump || !canJump)
+        if (!hasBufferedJump)
             return;
 
-        jump.PerformJump(body, config);
+        // 1) Обычный прыжок с земли (с поддержкой coyote-time).
+        if (coyoteTimer > 0f)
+        {
+            jump.PerformJump(body, config);
 
-        jumpBufferTimer = 0f;
-        coyoteTimer = 0f;
+            jumpBufferTimer = 0f;
+            coyoteTimer = 0f;
 
-        CurrentState = PlayerState.Rising;
+            // На земле двойной прыжок восполняется (если есть способность).
+            if (doubleJump != null)
+                doubleJump.Refill(config);
+
+            CurrentState = PlayerState.Rising;
+            return;
+        }
+
+        // 2) Wall-jump (если есть и игрок прижат к стене).
+        if (wallJump != null && wallChecker != null
+            && wallJump.TryJump(body, config, wallChecker))
+        {
+            jumpBufferTimer = 0f;
+            CurrentState = PlayerState.Rising;
+            return;
+        }
+
+        // 3) Воздушный прыжок (double jump).
+        if (doubleJump != null && doubleJump.TryJump(body, config))
+        {
+            jumpBufferTimer = 0f;
+            CurrentState = PlayerState.Rising;
+        }
     }
 
     private void DecideJumpCut()
@@ -202,11 +261,18 @@ public class PlayerStateMachine : MonoBehaviour
 
     private void DecideMovement()
     {
+        // Во время лок-аута wall-jump игнорируем горизонтальный инпут — иначе
+        // игрок сразу прилипнет обратно к той же стене.
+        float effectiveInputX = moveInputX;
+
+        if (wallJump != null && wallJump.IsLockedOut)
+            effectiveInputX = 0f;
+
         movement.Move(
             body,
             bodyTransform,
             config,
-            moveInputX,
+            effectiveInputX,
             groundChecker.IsGrounded
         );
     }

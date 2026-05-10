@@ -382,7 +382,11 @@ MonoBehaviour:
   - {fileID: 956657576789676125}
   - {fileID: 2605340402388308300}
   - {fileID: 80422423945853802}
-  startOffsets: []
+  startOffsets:
+  - {x: 0, y: 1}
+  - {x: 1, y: 1}
+  - {x: 1, y: 0}
+  - {x: 0, y: 0}
   canRotate: 0
 --- !u!1 &5405869858410571285
 GameObject:
