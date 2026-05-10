@@ -13,7 +13,7 @@ public class TetrisBlockController : MonoBehaviour
     private TetrisBlockContactReporter contactReporter;
     private TetrisBlockCells blockCells;
 
-    private float horizontalInput;
+    private Vector2 moveInput;
 
     private bool initialized;
     private bool controlled;
@@ -45,6 +45,15 @@ public class TetrisBlockController : MonoBehaviour
             return;
         }
 
+        // Сначала готовим тело (кинематика, без гравитации) — иначе физика может
+        // успеть «уронить» блок до того, как мы выставим его в нужную клетку.
+        body.bodyType = RigidbodyType2D.Kinematic;
+        body.gravityScale = 0f;
+        body.linearVelocity = Vector2.zero;
+        body.angularVelocity = 0f;
+        body.constraints = RigidbodyConstraints2D.FreezeRotation;
+        body.rotation = 0f;
+
         movement.Initialize();
         blockCells.Initialize(board.CellSize);
 
@@ -53,7 +62,7 @@ public class TetrisBlockController : MonoBehaviour
 
         locked = false;
         controlled = false;
-        horizontalInput = 0f;
+        moveInput = Vector2.zero;
         initialized = true;
     }
 
@@ -67,7 +76,7 @@ public class TetrisBlockController : MonoBehaviour
             config,
             board,
             blockCells,
-            horizontalInput
+            moveInput
         );
 
         if (blockedDown)
@@ -76,12 +85,21 @@ public class TetrisBlockController : MonoBehaviour
         }
     }
 
-    public void SetHorizontalInput(float value)
+    public void SetMoveInput(Vector2 value)
     {
         if (!initialized || locked || !controlled)
             return;
 
-        horizontalInput = Mathf.Clamp(value, -1f, 1f);
+        moveInput = new Vector2(
+            Mathf.Clamp(value.x, -1f, 1f),
+            Mathf.Clamp(value.y, -1f, 1f)
+        );
+    }
+
+    // Обратная совместимость со старым API (на случай если кто-то ещё вызывает).
+    public void SetHorizontalInput(float value)
+    {
+        SetMoveInput(new Vector2(value, moveInput.y));
     }
 
     public void Rotate(int direction)
@@ -111,7 +129,7 @@ public class TetrisBlockController : MonoBehaviour
             return;
 
         controlled = false;
-        horizontalInput = 0f;
+        moveInput = Vector2.zero;
 
         StopMotion();
 
@@ -134,7 +152,7 @@ public class TetrisBlockController : MonoBehaviour
 
         controlled = false;
         locked = true;
-        horizontalInput = 0f;
+        moveInput = Vector2.zero;
 
         StackBlock();
     }
