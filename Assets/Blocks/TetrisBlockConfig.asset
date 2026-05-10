@@ -1,0 +1,51 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6cf5cbaa101441a40bb730201985496a, type: 3}
+  m_Name: TetrisBlockConfig
+  m_EditorClassIdentifier: Assembly-CSharp::TetrisBlockConfigSO
+  toggleSpawnAction: {fileID: -6200087281928572079, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
+  moveAction: {fileID: 7329743444415074453, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
+  rotateLeftAction: {fileID: -4684518472287713469, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
+  rotateRightAction: {fileID: 7723348945565235230, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
+  blockPrefabs:
+  - {fileID: 3092340227535929987, guid: fd78f1a4f3c81ec45a35d1fa6e7dc237, type: 3}
+  - {fileID: 1973468500140566148, guid: 948f0f29f09e6674e9e1796d60fb7583, type: 3}
+  - {fileID: 8728981169166942628, guid: 2beb2fc002480c643aba186cbacfc614, type: 3}
+  - {fileID: 3603334595476509150, guid: f1d09cfe15b02814b888053d24d9d34a, type: 3}
+  - {fileID: 1093901546526259396, guid: 70e2569109ad6ba40bed7d736f2a39e3, type: 3}
+  - {fileID: 4714977706633055889, guid: 6c78957ecba295e439020622f0215927, type: 3}
+  - {fileID: 7618780904533301972, guid: 68c869ee770a67b44ba8118c497dc3fa, type: 3}
+  - {fileID: 3248146488557248093, guid: 8003fe88d1bd000408ec02f2636f6530, type: 3}
+  freeFall: 0
+  stackBlocks: 1
+  groundLayers:
+    serializedVersion: 2
+    m_Bits: 64
+  blockLayers:
+    serializedVersion: 2
+    m_Bits: 128
+  requireBottomContactToLock: 1
+  minLockNormalY: 0.45
+  freeFallGravityScale: 1
+  freeFallHorizontalSpeed: 5
+  freeFallHorizontalAcceleration: 40
+  maxFallSpeed: 4.5
+  horizontalStepDistance: 1
+  horizontalStepRepeatTime: 0.12
+  fallStepDistance: 1
+  fallStepInterval: 0.5
+  rotationStepDegrees: 90
+  freezeRotationWhileControlled: 1
+  releasedGravityScale: 1
+  snapPositionWhenStacking: 1
+  snapRotationWhenStacking: 1
+  gridCellSize: 1
