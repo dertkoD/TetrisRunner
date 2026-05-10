@@ -14,6 +14,8 @@ public class TetrisGridBoard : MonoBehaviour
     private readonly HashSet<Vector2Int> occupiedCells = new HashSet<Vector2Int>();
 
     public float CellSize => cellSize;
+    public int Width => width;
+    public int Height => height;
 
     private Vector3 OriginPosition
     {
