@@ -202,8 +202,13 @@ public class TetrisBlockCells : MonoBehaviour
 
         int paletteLength = activePalette != null ? activePalette.Length : 0;
 
+        // Один цвет на весь блок: выбираем его один раз и красим в него все ячейки.
+        // Так каждая фигура получается монохромной (например, целиком красная или
+        // целиком зелёная), а уже разные блоки могут быть разных цветов.
+        int blockColor = paletteLength > 0 ? Random.Range(0, paletteLength) : 0;
+
         for (int i = 0; i < cellColorIndices.Length; i++)
-            cellColorIndices[i] = paletteLength > 0 ? Random.Range(0, paletteLength) : 0;
+            cellColorIndices[i] = blockColor;
     }
 
     private void ApplyColors()
