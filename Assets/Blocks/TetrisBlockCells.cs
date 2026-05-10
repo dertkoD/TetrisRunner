@@ -23,25 +23,62 @@ public class TetrisBlockCells : MonoBehaviour
     [SerializeField] private bool disableLegacyBoxColliders = true;
 
     private Vector2Int[] currentOffsets;
+    private int[] cellColorIndices;
+    private SpriteRenderer[] cellRenderers;
+    private Color[] activePalette;
 
     public bool CanRotate => canRotate;
     public Vector2Int[] CurrentOffsets => currentOffsets;
+    public Transform[] CellVisuals => cellVisuals;
 
-    public void Initialize(float cellSize)
+    /// <summary>Цветовой индекс для i-й ячейки (соответствует cellVisuals[i] и CurrentOffsets[i]).</summary>
+    public int GetColorIndex(int index)
+    {
+        if (cellColorIndices == null || index < 0 || index >= cellColorIndices.Length)
+            return -1;
+
+        return cellColorIndices[index];
+    }
+
+    public Color GetColor(int index)
+    {
+        if (activePalette == null || activePalette.Length == 0)
+            return Color.white;
+
+        int colorIndex = GetColorIndex(index);
+
+        if (colorIndex < 0)
+            return Color.white;
+
+        return activePalette[colorIndex % activePalette.Length];
+    }
+
+    public SpriteRenderer GetRenderer(int index)
+    {
+        if (cellRenderers == null || index < 0 || index >= cellRenderers.Length)
+            return null;
+
+        return cellRenderers[index];
+    }
+
+    public void Initialize(float cellSize, Color[] palette)
     {
         ResetParentTransform();
         EnsureColliderSetup();
+
+        activePalette = (palette != null && palette.Length > 0) ? palette : new[] { Color.white };
 
         Vector2Int[] effectiveOffsets = ResolveStartOffsets();
 
         currentOffsets = new Vector2Int[effectiveOffsets.Length];
 
         for (int i = 0; i < effectiveOffsets.Length; i++)
-        {
             currentOffsets[i] = effectiveOffsets[i];
-        }
 
+        CacheCellRenderers();
+        AssignRandomColors();
         ApplyShape(cellSize);
+        ApplyColors();
     }
 
     public Vector2Int[] GetRotatedOffsets(int direction)
@@ -72,9 +109,7 @@ public class TetrisBlockCells : MonoBehaviour
         currentOffsets = new Vector2Int[newOffsets.Length];
 
         for (int i = 0; i < newOffsets.Length; i++)
-        {
             currentOffsets[i] = newOffsets[i];
-        }
 
         ApplyShape(cellSize);
     }
@@ -135,6 +170,54 @@ public class TetrisBlockCells : MonoBehaviour
         }
 
         return fallback;
+    }
+
+    private void CacheCellRenderers()
+    {
+        int count = cellVisuals != null ? cellVisuals.Length : 0;
+
+        cellRenderers = new SpriteRenderer[count];
+
+        for (int i = 0; i < count; i++)
+        {
+            if (cellVisuals[i] == null)
+                continue;
+
+            cellRenderers[i] = cellVisuals[i].GetComponent<SpriteRenderer>();
+
+            if (cellRenderers[i] == null)
+                cellRenderers[i] = cellVisuals[i].GetComponentInChildren<SpriteRenderer>();
+        }
+    }
+
+    private void AssignRandomColors()
+    {
+        if (currentOffsets == null)
+        {
+            cellColorIndices = new int[0];
+            return;
+        }
+
+        cellColorIndices = new int[currentOffsets.Length];
+
+        int paletteLength = activePalette != null ? activePalette.Length : 0;
+
+        for (int i = 0; i < cellColorIndices.Length; i++)
+            cellColorIndices[i] = paletteLength > 0 ? Random.Range(0, paletteLength) : 0;
+    }
+
+    private void ApplyColors()
+    {
+        if (cellRenderers == null || activePalette == null || activePalette.Length == 0)
+            return;
+
+        for (int i = 0; i < cellRenderers.Length; i++)
+        {
+            if (cellRenderers[i] == null)
+                continue;
+
+            cellRenderers[i].color = GetColor(i);
+        }
     }
 
     private void ApplyShape(float cellSize)
