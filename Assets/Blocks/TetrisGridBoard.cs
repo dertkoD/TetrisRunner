@@ -143,6 +143,38 @@ public class TetrisGridBoard : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Регистрирует набор клеток как статическое препятствие (платформа и т.п.).
+    /// Создаёт служебный TetrisPlacedBlock, который занимает клетки, но не
+    /// падает по гравитации и не участвует в схлопывании по цвету.
+    /// Возвращает созданный объект, чтобы при необходимости его можно было
+    /// убрать обратно через UnregisterBlock + Destroy.
+    /// </summary>
+    public TetrisPlacedBlock RegisterStaticCells(IList<Vector2Int> cells, string name = "StaticBlock")
+    {
+        if (cells == null || cells.Count == 0)
+            return null;
+
+        Vector2Int pivot = cells[0];
+        Vector2Int[] offsets = new Vector2Int[cells.Count];
+
+        for (int i = 0; i < cells.Count; i++)
+            offsets[i] = cells[i] - pivot;
+
+        GameObject host = new GameObject(name);
+        host.transform.SetParent(PlacedBlocksParent, false);
+        host.transform.position = CellToWorld(pivot);
+
+        TetrisPlacedBlock placedBlock = host.AddComponent<TetrisPlacedBlock>();
+        // colorIndex = -1 — не совпадёт ни с одним цветом из палитры.
+        placedBlock.Initialize(AllocateBlockId(), -1, pivot, offsets);
+        placedBlock.MarkAsStatic();
+
+        RegisterBlock(placedBlock);
+
+        return placedBlock;
+    }
+
     /// <summary>Снимает блок с карты сетки (но сам объект не уничтожает).</summary>
     public void UnregisterBlock(TetrisPlacedBlock block)
     {
@@ -215,6 +247,11 @@ public class TetrisGridBoard : MonoBehaviour
             if (block == null)
                 continue;
 
+            // Статические блоки (платформы и т.п.) в матчинге не участвуют:
+            // они не имеют цвета и должны просто служить препятствием.
+            if (block.IsStatic)
+                continue;
+
             for (int n = 0; n < FourNeighbors.Length; n++)
             {
                 Vector2Int neighborPos = kvp.Key + FourNeighbors[n];
@@ -223,6 +260,9 @@ public class TetrisGridBoard : MonoBehaviour
                     continue;
 
                 if (neighbor == null)
+                    continue;
+
+                if (neighbor.IsStatic)
                     continue;
 
                 if (neighbor.BlockId == block.BlockId)
@@ -311,6 +351,10 @@ public class TetrisGridBoard : MonoBehaviour
 
     private bool TryDropBlockOneStep(TetrisPlacedBlock block)
     {
+        // Статические блоки (платформы из сцены) висят там, где их поставили.
+        if (block.IsStatic)
+            return false;
+
         Vector2Int[] offsets = block.CellOffsets;
         if (offsets == null || offsets.Length == 0)
             return false;

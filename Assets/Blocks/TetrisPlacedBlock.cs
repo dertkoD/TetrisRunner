@@ -13,11 +13,17 @@ public class TetrisPlacedBlock : MonoBehaviour
     private Vector2Int pivotCell;
     private Vector2Int[] cellOffsets;
     private Rigidbody2D body;
+    private bool isStatic;
 
     public int BlockId => blockId;
     public int ColorIndex => colorIndex;
     public Vector2Int PivotCell => pivotCell;
     public Vector2Int[] CellOffsets => cellOffsets;
+    /// <summary>
+    /// Статические блоки (например, платформы из сцены) занимают клетки сетки,
+    /// но не падают по гравитации и не участвуют в схлопывании по цвету.
+    /// </summary>
+    public bool IsStatic => isStatic;
 
     public void Initialize(int blockId, int colorIndex, Vector2Int pivotCell, Vector2Int[] offsets)
     {
@@ -37,6 +43,12 @@ public class TetrisPlacedBlock : MonoBehaviour
         }
 
         body = GetComponent<Rigidbody2D>();
+    }
+
+    /// <summary>Помечает блок как статический — гравитация и матчинг будут его игнорировать.</summary>
+    public void MarkAsStatic()
+    {
+        isStatic = true;
     }
 
     /// <summary>Перемещает блок в новую клетку-пивот целиком, не разбирая на части.</summary>
