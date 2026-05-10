@@ -1,19 +1,26 @@
-using System.Collections.Generic;
 using UnityEngine;
 
+[DisallowMultipleComponent]
 public class TetrisBlockCells : MonoBehaviour
 {
     [Header("Visual Cells")]
     [SerializeField] private Transform[] cellVisuals;
 
     [Header("Shape")]
+    [Tooltip("Координаты ячеек блока относительно его пивота (в клетках сетки).")]
     [SerializeField] private Vector2Int[] startOffsets;
 
     [Header("Rotation")]
     [SerializeField] private bool canRotate = true;
 
     [Header("Parent Collider")]
+    [Tooltip("PolygonCollider2D, которым описываются клетки блока. " +
+             "Если оставить пустым, он будет найден или создан автоматически.")]
     [SerializeField] private PolygonCollider2D polygonCollider;
+
+    [Tooltip("Если true, любые BoxCollider2D на этом GameObject будут отключены при инициализации " +
+             "(чтобы не возникали лишние коллизии от старых коллайдеров из префаба).")]
+    [SerializeField] private bool disableLegacyBoxColliders = true;
 
     private Vector2Int[] currentOffsets;
 
@@ -22,11 +29,16 @@ public class TetrisBlockCells : MonoBehaviour
 
     public void Initialize(float cellSize)
     {
-        currentOffsets = new Vector2Int[startOffsets.Length];
+        ResetParentTransform();
+        EnsureColliderSetup();
 
-        for (int i = 0; i < startOffsets.Length; i++)
+        Vector2Int[] effectiveOffsets = ResolveStartOffsets();
+
+        currentOffsets = new Vector2Int[effectiveOffsets.Length];
+
+        for (int i = 0; i < effectiveOffsets.Length; i++)
         {
-            currentOffsets[i] = startOffsets[i];
+            currentOffsets[i] = effectiveOffsets[i];
         }
 
         ApplyShape(cellSize);
@@ -67,6 +79,64 @@ public class TetrisBlockCells : MonoBehaviour
         ApplyShape(cellSize);
     }
 
+    private void ResetParentTransform()
+    {
+        // В исходных префабах у корня блока стоят произвольные scale/position,
+        // из-за чего клетки растягиваются и перестают совпадать с сеткой.
+        transform.localScale = Vector3.one;
+        transform.localRotation = Quaternion.identity;
+    }
+
+    private void EnsureColliderSetup()
+    {
+        if (polygonCollider == null)
+            polygonCollider = GetComponent<PolygonCollider2D>();
+
+        if (polygonCollider == null)
+            polygonCollider = gameObject.AddComponent<PolygonCollider2D>();
+
+        polygonCollider.isTrigger = false;
+
+        if (!disableLegacyBoxColliders)
+            return;
+
+        BoxCollider2D[] boxColliders = GetComponents<BoxCollider2D>();
+
+        for (int i = 0; i < boxColliders.Length; i++)
+        {
+            if (boxColliders[i] == null)
+                continue;
+
+            boxColliders[i].enabled = false;
+        }
+    }
+
+    private Vector2Int[] ResolveStartOffsets()
+    {
+        if (startOffsets != null && startOffsets.Length > 0)
+            return startOffsets;
+
+        // Защита от неконфигурированных префабов: строим сетку из доступных визуалов.
+        int count = cellVisuals != null ? cellVisuals.Length : 0;
+
+        if (count <= 0)
+            return new Vector2Int[0];
+
+        Vector2Int[] fallback = new Vector2Int[count];
+
+        // Авто-раскладка по строкам, чтобы блок не "терялся" в одной точке.
+        int side = Mathf.CeilToInt(Mathf.Sqrt(count));
+
+        for (int i = 0; i < count; i++)
+        {
+            int x = i % side;
+            int y = -(i / side);
+            fallback[i] = new Vector2Int(x, y);
+        }
+
+        return fallback;
+    }
+
     private void ApplyShape(float cellSize)
     {
         ApplyVisualPositions(cellSize);
@@ -84,7 +154,12 @@ public class TetrisBlockCells : MonoBehaviour
                 continue;
 
             if (i >= currentOffsets.Length)
+            {
+                cellVisuals[i].gameObject.SetActive(false);
                 continue;
+            }
+
+            cellVisuals[i].gameObject.SetActive(true);
 
             Vector2Int offset = currentOffsets[i];
 
@@ -96,7 +171,7 @@ public class TetrisBlockCells : MonoBehaviour
 
             cellVisuals[i].localRotation = Quaternion.identity;
 
-            // Важно: каждая визуальная ячейка должна быть квадратом.
+            // Каждая визуальная ячейка должна занимать ровно одну клетку сетки.
             cellVisuals[i].localScale = new Vector3(cellSize, cellSize, 1f);
         }
     }
