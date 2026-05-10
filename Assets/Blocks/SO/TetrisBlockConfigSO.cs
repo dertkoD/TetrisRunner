@@ -33,9 +33,19 @@ public sealed class TetrisBlockConfigSO : ScriptableObject
 
     [Header("Classic Step Movement")]
     [SerializeField, Min(0.01f)] private float horizontalStepDistance = 1f;
+    [Tooltip("Как часто блок может смещаться вбок при удержании клавиши (секунд между шагами).")]
     [SerializeField, Min(0.01f)] private float horizontalStepRepeatTime = 0.12f;
     [SerializeField, Min(0.01f)] private float fallStepDistance = 1f;
+    [Tooltip("Скорость падения блоков: сколько секунд проходит между шагами вниз на одну клетку. " +
+             "Меньше = быстрее. Например 0.5 — один шаг в полсекунды, 0.1 — очень быстро.")]
     [SerializeField, Min(0.01f)] private float fallStepInterval = 0.5f;
+    [Tooltip("Во сколько раз ускоряется падение при soft-drop (S / стрелка вниз).")]
+    [SerializeField, Min(1f)] private float softDropMultiplier = 8f;
+
+    [Header("Spawn")]
+    [Tooltip("Пауза в секундах между тем, как один блок залочился, и появлением следующего. " +
+             "0 — без паузы (как в классическом тетрисе), >0 — даёт игроку немного отдышаться.")]
+    [SerializeField, Min(0f)] private float spawnDelay = 0.25f;
 
     [Header("Rotation")]
     [SerializeField] private float rotationStepDegrees = 90f;
@@ -90,6 +100,9 @@ public sealed class TetrisBlockConfigSO : ScriptableObject
     public float HorizontalStepRepeatTime => horizontalStepRepeatTime;
     public float FallStepDistance => fallStepDistance;
     public float FallStepInterval => fallStepInterval;
+    public float SoftDropMultiplier => softDropMultiplier;
+
+    public float SpawnDelay => spawnDelay;
 
     public float RotationStepDegrees => rotationStepDegrees;
 

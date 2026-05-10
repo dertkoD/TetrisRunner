@@ -28,6 +28,8 @@ public class TetrisBlockSpawnManager : MonoBehaviour
     private InputAction rotateRightAction;
 
     private bool isRunning;
+    private float spawnDelayTimer;
+    private bool spawnPending;
 
     private void Awake()
     {
@@ -96,8 +98,22 @@ public class TetrisBlockSpawnManager : MonoBehaviour
         if (!isRunning)
             return;
 
+        // Если блока ещё нет, но включён таймер задержки — ждём, потом спавним.
         if (activeBlock == null)
+        {
+            if (!spawnPending)
+                return;
+
+            spawnDelayTimer -= Time.fixedDeltaTime;
+
+            if (spawnDelayTimer <= 0f)
+            {
+                spawnPending = false;
+                SpawnNextBlock();
+            }
+
             return;
+        }
 
         activeBlock.FixedTick();
     }
@@ -114,8 +130,12 @@ public class TetrisBlockSpawnManager : MonoBehaviour
 
         activeBlock = null;
 
-        if (isRunning)
-            SpawnNextBlock();
+        if (!isRunning)
+            return;
+
+        // Запускаем задержку перед появлением следующего блока. Если задержка
+        // нулевая, спавним сразу — поведение остаётся как раньше.
+        ScheduleNextSpawn();
     }
 
     private void OnToggleSpawnPerformed(InputAction.CallbackContext context)
@@ -168,12 +188,36 @@ public class TetrisBlockSpawnManager : MonoBehaviour
                 return;
             }
 
+            // Первый блок появляется без задержки — иначе после нажатия P
+            // будет неприятная пауза.
+            spawnPending = false;
+            spawnDelayTimer = 0f;
             SpawnNextBlock();
             return;
         }
 
+        // Останавливая, отменяем и отложенный спавн.
+        spawnPending = false;
+        spawnDelayTimer = 0f;
+
         if (activeBlock != null && !activeBlock.IsLocked)
             activeBlock.FreezeInAir();
+    }
+
+    private void ScheduleNextSpawn()
+    {
+        float delay = config != null ? Mathf.Max(0f, config.SpawnDelay) : 0f;
+
+        if (delay <= 0f)
+        {
+            spawnPending = false;
+            spawnDelayTimer = 0f;
+            SpawnNextBlock();
+            return;
+        }
+
+        spawnPending = true;
+        spawnDelayTimer = delay;
     }
 
     private void SpawnNextBlock()

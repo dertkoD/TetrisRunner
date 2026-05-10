@@ -2,8 +2,6 @@ using UnityEngine;
 
 public class TetrisBlockMovement : MonoBehaviour
 {
-    private const float SoftDropMultiplier = 8f;
-
     private float horizontalStepTimer;
     private float fallStepTimer;
     private int previousStepDirection;
@@ -173,7 +171,8 @@ public class TetrisBlockMovement : MonoBehaviour
 
         // Soft-drop: при удержании "вниз" блок падает быстрее.
         bool softDropping = moveInput.y < -0.1f;
-        float fallStepTickSpeed = softDropping ? SoftDropMultiplier : 1f;
+        float softDropMultiplier = Mathf.Max(1f, config != null ? config.SoftDropMultiplier : 1f);
+        float fallStepTickSpeed = softDropping ? softDropMultiplier : 1f;
 
         fallStepTimer -= Time.fixedDeltaTime * fallStepTickSpeed;
 
