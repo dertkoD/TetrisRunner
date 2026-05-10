@@ -10,9 +10,15 @@ public class TetrisBlockSpawnManager : MonoBehaviour
     [SerializeField] private Transform spawnPoint;
     [SerializeField] private Transform blocksParent;
     [SerializeField] private TetrisGridBoard board;
-    
+
     [Header("Spawn Cell")]
+    [Tooltip("Желаемая координата (X) пивота нового блока в клетках сетки. " +
+             "Y будет автоматически подобран так, чтобы блок целиком влезал в сетку сверху.")]
     [SerializeField] private Vector2Int spawnCell = new Vector2Int(5, 18);
+
+    [Tooltip("Если true, блок всегда спавнится в верхней части поля как в классическом тетрисе. " +
+             "Если false, используется ровно spawnCell (только клампится по X).")]
+    [SerializeField] private bool spawnAtTopOfBoard = true;
 
     private TetrisBlockController activeBlock;
 
@@ -123,7 +129,7 @@ public class TetrisBlockSpawnManager : MonoBehaviour
             return;
 
         Vector2 input = context.ReadValue<Vector2>();
-        activeBlock.SetHorizontalInput(input.x);
+        activeBlock.SetMoveInput(input);
     }
 
     private void OnMoveCanceled(InputAction.CallbackContext context)
@@ -131,7 +137,7 @@ public class TetrisBlockSpawnManager : MonoBehaviour
         if (activeBlock == null)
             return;
 
-        activeBlock.SetHorizontalInput(0f);
+        activeBlock.SetMoveInput(Vector2.zero);
     }
 
     private void OnRotateLeftPerformed(InputAction.CallbackContext context)
@@ -191,17 +197,77 @@ public class TetrisBlockSpawnManager : MonoBehaviour
             return;
         }
 
-        Vector3 spawnPosition = board.CellToWorld(spawnCell);
-
         TetrisBlockFacade newBlock = Instantiate(
             prefab,
-            spawnPosition,
+            Vector3.zero,
             Quaternion.identity,
             blocksParent
         );
 
-        activeBlock = newBlock.Controller;
-        activeBlock.Initialize(config, newBlock, this, board);
+        // Префабы сделаны с произвольным масштабом и позицией — приводим к единичному
+        // состоянию ещё до Initialize, чтобы клетки точно совпали с сеткой.
+        newBlock.transform.localScale = Vector3.one;
+        newBlock.transform.localRotation = Quaternion.identity;
+
+        TetrisBlockController controller = newBlock.Controller;
+        controller.Initialize(config, newBlock, this, board);
+
+        Vector2Int targetCell = ResolveSpawnCell(newBlock.BlockCells);
+        Vector3 spawnPosition = board.CellToWorld(targetCell);
+
+        if (newBlock.Body != null)
+            newBlock.Body.position = spawnPosition;
+
+        newBlock.transform.position = spawnPosition;
+
+        activeBlock = controller;
         activeBlock.SetControlled(true);
+    }
+
+    private Vector2Int ResolveSpawnCell(TetrisBlockCells blockCells)
+    {
+        Vector2Int desired = spawnCell;
+
+        Vector2Int[] offsets = blockCells != null ? blockCells.CurrentOffsets : null;
+
+        if (offsets == null || offsets.Length == 0)
+            return desired;
+
+        int minX = int.MaxValue;
+        int maxX = int.MinValue;
+        int minY = int.MaxValue;
+        int maxY = int.MinValue;
+
+        for (int i = 0; i < offsets.Length; i++)
+        {
+            Vector2Int o = offsets[i];
+
+            if (o.x < minX) minX = o.x;
+            if (o.x > maxX) maxX = o.x;
+            if (o.y < minY) minY = o.y;
+            if (o.y > maxY) maxY = o.y;
+        }
+
+        int boardWidth = board.Width;
+        int boardHeight = board.Height;
+
+        int x = desired.x;
+        int y = spawnAtTopOfBoard ? (boardHeight - 1 - maxY) : desired.y;
+
+        // Клампим по X так, чтобы все клетки фигуры влезали в поле по горизонтали.
+        if (x + minX < 0)
+            x = -minX;
+
+        if (x + maxX > boardWidth - 1)
+            x = boardWidth - 1 - maxX;
+
+        // Клампим по Y, чтобы фигура не вылетела сверху/снизу.
+        if (y + maxY > boardHeight - 1)
+            y = boardHeight - 1 - maxY;
+
+        if (y + minY < 0)
+            y = -minY;
+
+        return new Vector2Int(x, y);
     }
 }

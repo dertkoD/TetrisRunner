@@ -51,6 +51,20 @@ public sealed class TetrisBlockConfigSO : ScriptableObject
     [SerializeField] private bool snapRotationWhenStacking = true;
     [SerializeField, Min(0.01f)] private float gridCellSize = 1f;
 
+    [Header("Cell Colors")]
+    [Tooltip("Палитра цветов, из которой случайно выбирается цвет каждой ячейки спавнящегося блока. " +
+             "Если массив пуст, будут использованы дефолтные цвета.")]
+    [SerializeField]
+    private Color[] cellColorPalette =
+    {
+        new Color(0.95f, 0.30f, 0.30f, 1f), // красный
+        new Color(0.30f, 0.75f, 0.95f, 1f), // голубой
+        new Color(0.95f, 0.85f, 0.30f, 1f), // жёлтый
+        new Color(0.40f, 0.85f, 0.40f, 1f), // зелёный
+        new Color(0.75f, 0.45f, 0.95f, 1f), // фиолетовый
+        new Color(0.95f, 0.65f, 0.30f, 1f), // оранжевый
+    };
+
     public InputActionReference ToggleSpawnAction => toggleSpawnAction;
     public InputActionReference MoveAction => moveAction;
     public InputActionReference RotateLeftAction => rotateLeftAction;
@@ -86,4 +100,6 @@ public sealed class TetrisBlockConfigSO : ScriptableObject
     public bool SnapPositionWhenStacking => snapPositionWhenStacking;
     public bool SnapRotationWhenStacking => snapRotationWhenStacking;
     public float GridCellSize => gridCellSize;
+
+    public Color[] CellColorPalette => cellColorPalette;
 }

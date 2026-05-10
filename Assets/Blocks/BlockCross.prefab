@@ -397,7 +397,12 @@ MonoBehaviour:
   - {fileID: 3090989295987767162}
   - {fileID: 3343340153023529683}
   - {fileID: 8503452041626556193}
-  startOffsets: []
+  startOffsets:
+  - {x: 0, y: 0}
+  - {x: 0, y: 1}
+  - {x: 1, y: 0}
+  - {x: 0, y: -1}
+  - {x: -1, y: 0}
   canRotate: 0
   polygonCollider: {fileID: 192885709587759307}
 --- !u!1 &6143051428252958483
