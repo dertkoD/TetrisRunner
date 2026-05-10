@@ -3,6 +3,14 @@ using UnityEngine;
 
 public class TetrisGridBoard : MonoBehaviour
 {
+    private static readonly Vector2Int[] FourNeighbors =
+    {
+        new Vector2Int( 1,  0),
+        new Vector2Int(-1,  0),
+        new Vector2Int( 0,  1),
+        new Vector2Int( 0, -1),
+    };
+
     [Header("Grid")]
     [SerializeField] private int width = 10;
     [SerializeField] private int height = 20;
@@ -11,11 +19,34 @@ public class TetrisGridBoard : MonoBehaviour
     [Header("Origin")]
     [SerializeField] private Transform origin;
 
-    private readonly HashSet<Vector2Int> occupiedCells = new HashSet<Vector2Int>();
+    [Header("Placed Cells")]
+    [Tooltip("Куда складываются отдельные ячейки залоченных блоков. " +
+             "Если не задано, будет создан дочерний объект 'PlacedCells' автоматически.")]
+    [SerializeField] private Transform placedCellsParent;
+
+    private readonly Dictionary<Vector2Int, TetrisPlacedCell> cells = new Dictionary<Vector2Int, TetrisPlacedCell>();
 
     public float CellSize => cellSize;
     public int Width => width;
     public int Height => height;
+
+    public Transform PlacedCellsParent
+    {
+        get
+        {
+            if (placedCellsParent == null)
+            {
+                GameObject host = new GameObject("PlacedCells");
+                host.transform.SetParent(transform, false);
+                host.transform.localPosition = Vector3.zero;
+                host.transform.localRotation = Quaternion.identity;
+                host.transform.localScale = Vector3.one;
+                placedCellsParent = host.transform;
+            }
+
+            return placedCellsParent;
+        }
+    }
 
     private Vector3 OriginPosition
     {
@@ -57,7 +88,7 @@ public class TetrisGridBoard : MonoBehaviour
 
     public bool IsOccupied(Vector2Int cell)
     {
-        return occupiedCells.Contains(cell);
+        return cells.ContainsKey(cell);
     }
 
     public bool CanPlaceOffsets(Vector2Int pivotCell, Vector2Int[] offsets)
@@ -65,9 +96,9 @@ public class TetrisGridBoard : MonoBehaviour
         if (offsets == null)
             return false;
 
-        foreach (Vector2Int offset in offsets)
+        for (int i = 0; i < offsets.Length; i++)
         {
-            Vector2Int cell = pivotCell + offset;
+            Vector2Int cell = pivotCell + offsets[i];
 
             if (!IsInside(cell))
                 return false;
@@ -79,19 +110,125 @@ public class TetrisGridBoard : MonoBehaviour
         return true;
     }
 
-    public void RegisterBlock(Vector2Int pivotCell, Vector2Int[] offsets)
+    /// <summary>
+    /// Регистрирует уже существующую ячейку в указанной клетке сетки.
+    /// Если клетка занята другой — старая ячейка будет уничтожена и заменена.
+    /// </summary>
+    public void RegisterCell(Vector2Int cell, TetrisPlacedCell placedCell)
     {
-        if (offsets == null)
+        if (placedCell == null)
             return;
 
-        foreach (Vector2Int offset in offsets)
-        {
-            Vector2Int cell = pivotCell + offset;
+        if (!IsInside(cell))
+            return;
 
-            if (!IsInside(cell))
+        if (cells.TryGetValue(cell, out TetrisPlacedCell existing) && existing != null && existing != placedCell)
+            Destroy(existing.gameObject);
+
+        cells[cell] = placedCell;
+        placedCell.transform.position = CellToWorld(cell);
+    }
+
+    /// <summary>
+    /// Прогоняет схлопывание одинаковых соседних цветов до полной стабилизации,
+    /// с применением «гравитации» после каждого прохода.
+    /// </summary>
+    public void ResolveMatches()
+    {
+        const int safetyLimit = 64;
+
+        int iterations = 0;
+
+        while (iterations < safetyLimit)
+        {
+            iterations++;
+
+            HashSet<Vector2Int> toRemove = FindCellsToRemove();
+
+            if (toRemove == null || toRemove.Count == 0)
+                break;
+
+            foreach (Vector2Int cell in toRemove)
+            {
+                if (!cells.TryGetValue(cell, out TetrisPlacedCell placed))
+                    continue;
+
+                if (placed != null)
+                    Destroy(placed.gameObject);
+
+                cells.Remove(cell);
+            }
+
+            ApplyGravity();
+        }
+    }
+
+    private HashSet<Vector2Int> FindCellsToRemove()
+    {
+        HashSet<Vector2Int> toRemove = null;
+
+        foreach (KeyValuePair<Vector2Int, TetrisPlacedCell> kvp in cells)
+        {
+            TetrisPlacedCell cell = kvp.Value;
+
+            if (cell == null)
                 continue;
 
-            occupiedCells.Add(cell);
+            int colorIndex = cell.ColorIndex;
+
+            for (int n = 0; n < FourNeighbors.Length; n++)
+            {
+                Vector2Int neighborPos = kvp.Key + FourNeighbors[n];
+
+                if (!cells.TryGetValue(neighborPos, out TetrisPlacedCell neighbor))
+                    continue;
+
+                if (neighbor == null)
+                    continue;
+
+                if (neighbor.ColorIndex != colorIndex)
+                    continue;
+
+                if (toRemove == null)
+                    toRemove = new HashSet<Vector2Int>();
+
+                toRemove.Add(kvp.Key);
+                toRemove.Add(neighborPos);
+            }
+        }
+
+        return toRemove;
+    }
+
+    /// <summary>
+    /// Поячеечная гравитация: каждая колонка сжимается вниз так, чтобы
+    /// «висящие в воздухе» ячейки упали на самый низ или на ячейки под ними.
+    /// </summary>
+    public void ApplyGravity()
+    {
+        for (int x = 0; x < width; x++)
+        {
+            List<TetrisPlacedCell> column = new List<TetrisPlacedCell>(height);
+
+            for (int y = 0; y < height; y++)
+            {
+                Vector2Int pos = new Vector2Int(x, y);
+
+                if (!cells.TryGetValue(pos, out TetrisPlacedCell placed))
+                    continue;
+
+                column.Add(placed);
+                cells.Remove(pos);
+            }
+
+            for (int i = 0; i < column.Count; i++)
+            {
+                Vector2Int newPos = new Vector2Int(x, i);
+                cells[newPos] = column[i];
+
+                if (column[i] != null)
+                    column[i].transform.position = CellToWorld(newPos);
+            }
         }
     }
 }

@@ -55,7 +55,7 @@ public class TetrisBlockController : MonoBehaviour
         body.rotation = 0f;
 
         movement.Initialize();
-        blockCells.Initialize(board.CellSize);
+        blockCells.Initialize(board.CellSize, config != null ? config.CellColorPalette : null);
 
         if (contactReporter != null)
             contactReporter.Initialize(config, this);
@@ -174,11 +174,56 @@ public class TetrisBlockController : MonoBehaviour
         body.position = board.CellToWorld(pivotCell);
         body.rotation = 0f;
 
-        board.RegisterBlock(pivotCell, blockCells.CurrentOffsets);
+        // Распиливаем блок на отдельные ячейки и кладём каждую в сетку
+        // как самостоятельный объект — чтобы они могли по одной исчезать
+        // от совпадений по цвету и независимо падать вниз.
+        Vector2Int[] offsets = blockCells.CurrentOffsets;
+        Transform[] visuals = blockCells.CellVisuals;
 
-        body.gravityScale = 0f;
-        body.bodyType = RigidbodyType2D.Static;
-        body.constraints = RigidbodyConstraints2D.FreezeAll;
+        if (offsets != null && visuals != null)
+        {
+            Transform cellsParent = board.PlacedCellsParent;
+
+            for (int i = 0; i < visuals.Length; i++)
+            {
+                if (visuals[i] == null)
+                    continue;
+
+                if (i >= offsets.Length)
+                    continue;
+
+                Vector2Int cellPos = pivotCell + offsets[i];
+
+                if (!board.IsInside(cellPos))
+                    continue;
+
+                Transform visual = visuals[i];
+                int colorIndex = blockCells.GetColorIndex(i);
+                Color color = blockCells.GetColor(i);
+                SpriteRenderer renderer = blockCells.GetRenderer(i);
+
+                visual.SetParent(cellsParent, true);
+                visual.position = board.CellToWorld(cellPos);
+                visual.rotation = Quaternion.identity;
+                visual.localScale = new Vector3(board.CellSize, board.CellSize, 1f);
+
+                TetrisPlacedCell placedCell = visual.gameObject.GetComponent<TetrisPlacedCell>();
+
+                if (placedCell == null)
+                    placedCell = visual.gameObject.AddComponent<TetrisPlacedCell>();
+
+                placedCell.Setup(colorIndex, color, renderer);
+
+                board.RegisterCell(cellPos, placedCell);
+            }
+        }
+
+        // Запускаем разрешение совпадений: пары соседних ячеек одного цвета исчезают,
+        // а оставшиеся ячейки осыпаются вниз по сетке.
+        board.ResolveMatches();
+
+        // Сам корень блока больше не нужен — все его ячейки уже отдельно живут в сетке.
+        Destroy(gameObject);
     }
 
     private void StopMotion()
