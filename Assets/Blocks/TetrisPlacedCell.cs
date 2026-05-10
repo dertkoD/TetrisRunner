@@ -10,13 +10,16 @@ public class TetrisPlacedCell : MonoBehaviour
     [SerializeField] private SpriteRenderer spriteRenderer;
 
     private int colorIndex = -1;
+    private int blockId = -1;
 
     public int ColorIndex => colorIndex;
+    public int BlockId => blockId;
     public SpriteRenderer SpriteRenderer => spriteRenderer;
 
-    public void Setup(int index, Color color, SpriteRenderer renderer)
+    public void Setup(int blockId, int colorIndex, Color color, SpriteRenderer renderer)
     {
-        colorIndex = index;
+        this.blockId = blockId;
+        this.colorIndex = colorIndex;
         spriteRenderer = renderer != null ? renderer : GetComponentInChildren<SpriteRenderer>();
 
         if (spriteRenderer != null)

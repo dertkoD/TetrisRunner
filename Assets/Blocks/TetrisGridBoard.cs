@@ -26,6 +26,15 @@ public class TetrisGridBoard : MonoBehaviour
 
     private readonly Dictionary<Vector2Int, TetrisPlacedCell> cells = new Dictionary<Vector2Int, TetrisPlacedCell>();
 
+    private static int nextBlockId;
+
+    /// <summary>Возвращает уникальный идентификатор блока (используется при спавне/локе).</summary>
+    public static int AllocateBlockId()
+    {
+        nextBlockId++;
+        return nextBlockId;
+    }
+
     public float CellSize => cellSize;
     public int Width => width;
     public int Height => height;
@@ -165,7 +174,12 @@ public class TetrisGridBoard : MonoBehaviour
 
     private HashSet<Vector2Int> FindCellsToRemove()
     {
-        HashSet<Vector2Int> toRemove = null;
+        // Сначала ищем пары "ячейка из блока A соприкасается с ячейкой из блока B,
+        // оба одного цвета, но это разные блоки" — такие два блока полностью
+        // исчезают целиком. Ячейки внутри одного блока (общий BlockId) друг
+        // друга не уничтожают, поэтому свежепоставленный блок просто стоит,
+        // когда касается пола или блоков чужих цветов.
+        HashSet<int> blocksToRemove = null;
 
         foreach (KeyValuePair<Vector2Int, TetrisPlacedCell> kvp in cells)
         {
@@ -175,6 +189,7 @@ public class TetrisGridBoard : MonoBehaviour
                 continue;
 
             int colorIndex = cell.ColorIndex;
+            int blockId = cell.BlockId;
 
             for (int n = 0; n < FourNeighbors.Length; n++)
             {
@@ -189,12 +204,31 @@ public class TetrisGridBoard : MonoBehaviour
                 if (neighbor.ColorIndex != colorIndex)
                     continue;
 
-                if (toRemove == null)
-                    toRemove = new HashSet<Vector2Int>();
+                if (neighbor.BlockId == blockId)
+                    continue;
 
-                toRemove.Add(kvp.Key);
-                toRemove.Add(neighborPos);
+                if (blocksToRemove == null)
+                    blocksToRemove = new HashSet<int>();
+
+                blocksToRemove.Add(blockId);
+                blocksToRemove.Add(neighbor.BlockId);
             }
+        }
+
+        if (blocksToRemove == null || blocksToRemove.Count == 0)
+            return null;
+
+        HashSet<Vector2Int> toRemove = new HashSet<Vector2Int>();
+
+        foreach (KeyValuePair<Vector2Int, TetrisPlacedCell> kvp in cells)
+        {
+            TetrisPlacedCell cell = kvp.Value;
+
+            if (cell == null)
+                continue;
+
+            if (blocksToRemove.Contains(cell.BlockId))
+                toRemove.Add(kvp.Key);
         }
 
         return toRemove;

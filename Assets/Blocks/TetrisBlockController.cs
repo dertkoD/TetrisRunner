@@ -184,6 +184,11 @@ public class TetrisBlockController : MonoBehaviour
         {
             Transform cellsParent = board.PlacedCellsParent;
 
+            // Уникальный id блока: ячейки одного блока им помечаются и не могут
+            // схлопнуть друг друга. Схлопывание возможно только между ячейками
+            // РАЗНЫХ блоков, у которых совпадает цвет.
+            int blockId = TetrisGridBoard.AllocateBlockId();
+
             for (int i = 0; i < visuals.Length; i++)
             {
                 if (visuals[i] == null)
@@ -212,7 +217,7 @@ public class TetrisBlockController : MonoBehaviour
                 if (placedCell == null)
                     placedCell = visual.gameObject.AddComponent<TetrisPlacedCell>();
 
-                placedCell.Setup(colorIndex, color, renderer);
+                placedCell.Setup(blockId, colorIndex, color, renderer);
 
                 board.RegisterCell(cellPos, placedCell);
             }
