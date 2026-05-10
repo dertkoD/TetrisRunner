@@ -42,10 +42,19 @@ MonoBehaviour:
   horizontalStepDistance: 1
   horizontalStepRepeatTime: 0.12
   fallStepDistance: 1
-  fallStepInterval: 0.5
+  fallStepInterval: 0.83
+  softDropMultiplier: 4
+  spawnDelay: 1.04
   rotationStepDegrees: 90
   freezeRotationWhileControlled: 1
   releasedGravityScale: 1
   snapPositionWhenStacking: 1
   snapRotationWhenStacking: 1
   gridCellSize: 1
+  cellColorPalette:
+  - {r: 0.95, g: 0.3, b: 0.3, a: 1}
+  - {r: 0.3, g: 0.75, b: 0.95, a: 1}
+  - {r: 0.95, g: 0.85, b: 0.3, a: 1}
+  - {r: 0.4, g: 0.85, b: 0.4, a: 1}
+  - {r: 0.75, g: 0.45, b: 0.95, a: 1}
+  - {r: 0.95, g: 0.65, b: 0.3, a: 1}
