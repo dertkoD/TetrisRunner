@@ -61,6 +61,15 @@ public class GridVisualizer : MonoBehaviour
     private void CreateLine(Vector3 start, Vector3 end, string lineName)
     {
         GameObject lineObject = new GameObject(lineName);
+
+        // Линии — чисто визуальная вспомогательная штука: не сохраняем их
+        // ни в сцене, ни в билде, ни в префабе. Раньше они утекали в
+        // m_AddedGameObjects префаб-инстанса и со временем накапливались
+        // (визуально это выглядело как 'сетка дублируется').
+        lineObject.hideFlags = HideFlags.DontSaveInEditor
+                              | HideFlags.DontSaveInBuild
+                              | HideFlags.NotEditable;
+
         lineObject.transform.SetParent(transform);
         lineObject.transform.localPosition = Vector3.zero;
 
