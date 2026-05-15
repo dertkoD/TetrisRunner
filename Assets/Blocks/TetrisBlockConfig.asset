@@ -26,7 +26,7 @@ MonoBehaviour:
   - {fileID: 7618780904533301972, guid: 68c869ee770a67b44ba8118c497dc3fa, type: 3}
   - {fileID: 3248146488557248093, guid: 8003fe88d1bd000408ec02f2636f6530, type: 3}
   freeFall: 0
-  stackBlocks: 1
+  stackBlocks: 0
   groundLayers:
     serializedVersion: 2
     m_Bits: 64
