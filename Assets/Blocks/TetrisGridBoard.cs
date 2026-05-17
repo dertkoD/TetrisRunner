@@ -175,6 +175,118 @@ public class TetrisGridBoard : MonoBehaviour
         return placedBlock;
     }
 
+    /// <summary>
+    /// Пробует сдвинуть статический блок (например, движущуюся платформу) на delta клеток,
+    /// захватив с собой стопку блоков, опирающихся на него (или друг на друга, и в итоге на него).
+    ///
+    /// Возвращает true, если перемещение удалось. Если на пути есть препятствие или
+    /// край сетки — возвращает false и сетка остаётся в исходном состоянии.
+    /// </summary>
+    public bool TryMovePlacedBlockWithStack(TetrisPlacedBlock platform, Vector2Int delta)
+    {
+        if (platform == null)
+            return false;
+
+        if (delta == Vector2Int.zero)
+            return true;
+
+        HashSet<TetrisPlacedBlock> moving = CollectCarryStack(platform);
+
+        if (moving == null || moving.Count == 0)
+            return false;
+
+        // Проверка валидности: каждая клетка набора в новой позиции должна
+        // быть внутри сетки и либо пуста, либо занята другим перемещаемым блоком.
+        foreach (TetrisPlacedBlock block in moving)
+        {
+            Vector2Int[] offsets = block.CellOffsets;
+            if (offsets == null) continue;
+
+            Vector2Int newPivot = block.PivotCell + delta;
+
+            for (int i = 0; i < offsets.Length; i++)
+            {
+                Vector2Int newCell = newPivot + offsets[i];
+
+                if (!IsInside(newCell))
+                    return false;
+
+                if (cellsToBlock.TryGetValue(newCell, out TetrisPlacedBlock occupant)
+                    && occupant != null
+                    && !moving.Contains(occupant))
+                {
+                    return false;
+                }
+            }
+        }
+
+        // Атомарно: сначала снимаем со всех клеток, потом перемещаем и
+        // регистрируем заново — иначе соседние блоки внутри moving могли бы
+        // самозаблокироваться.
+        foreach (TetrisPlacedBlock block in moving)
+            UnregisterBlock(block);
+
+        foreach (TetrisPlacedBlock block in moving)
+        {
+            Vector2Int newPivot = block.PivotCell + delta;
+            block.MoveToCell(newPivot, CellToWorld(newPivot));
+            RegisterBlock(block);
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Собирает блок и всё, что на нём (рекурсивно). "Опирается" = у блока есть
+    /// клетка, прямо под которой стоит клетка из текущего набора.
+    /// </summary>
+    private HashSet<TetrisPlacedBlock> CollectCarryStack(TetrisPlacedBlock root)
+    {
+        HashSet<TetrisPlacedBlock> set = new HashSet<TetrisPlacedBlock>();
+        if (root == null) return set;
+
+        set.Add(root);
+
+        bool changed = true;
+        List<TetrisPlacedBlock> snapshot = new List<TetrisPlacedBlock>();
+
+        while (changed)
+        {
+            changed = false;
+            snapshot.Clear();
+            snapshot.AddRange(set);
+
+            for (int s = 0; s < snapshot.Count; s++)
+            {
+                TetrisPlacedBlock baseBlock = snapshot[s];
+                Vector2Int[] offsets = baseBlock.CellOffsets;
+                if (offsets == null) continue;
+
+                for (int i = 0; i < offsets.Length; i++)
+                {
+                    Vector2Int aboveCell = baseBlock.PivotCell + offsets[i] + Vector2Int.up;
+
+                    if (!cellsToBlock.TryGetValue(aboveCell, out TetrisPlacedBlock aboveBlock))
+                        continue;
+
+                    if (aboveBlock == null || aboveBlock == baseBlock)
+                        continue;
+
+                    // Другие статические блоки (другие платформы, стены и т.п.)
+                    // не подцепляем: они либо вообще не двигаются, либо двигаются
+                    // своей собственной логикой.
+                    if (aboveBlock.IsStatic)
+                        continue;
+
+                    if (set.Add(aboveBlock))
+                        changed = true;
+                }
+            }
+        }
+
+        return set;
+    }
+
     /// <summary>Снимает блок с карты сетки (но сам объект не уничтожает).</summary>
     public void UnregisterBlock(TetrisPlacedBlock block)
     {
