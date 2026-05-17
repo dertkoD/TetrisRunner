@@ -1252,7 +1252,7 @@ GameObject:
   - component: {fileID: 859501015}
   - component: {fileID: 859501017}
   - component: {fileID: 859501016}
-  m_Layer: 6
+  m_Layer: 7
   m_Name: KillBlock
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1268,7 +1268,7 @@ Transform:
   m_GameObject: {fileID: 859501014}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 4.48, y: 6.96, z: 0}
+  m_LocalPosition: {x: 4.38, y: 7.58, z: 0}
   m_LocalScale: {x: 6, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1406,7 +1406,7 @@ Transform:
   m_GameObject: {fileID: 1039330125}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 4.48, y: 8, z: 0}
+  m_LocalPosition: {x: 4.4, y: 8.58, z: 0}
   m_LocalScale: {x: 6, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1865,8 +1865,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 207ee8af9fd1b214e9490fa3df80b6a7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TetrisGridBoard
-  width: 35
-  height: 18
+  width: 44
+  height: 25
   cellSize: 1
   origin: {fileID: 0}
   placedBlocksParent: {fileID: 0}
@@ -1882,12 +1882,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 20cf52864f4b11a4c9d0bc0da2daaac7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GridVisualizer
-  width: 36
-  height: 18
+  width: 44
+  height: 25
   cellSize: 1
-  lineMaterial: {fileID: 0}
+  lineMaterial: {fileID: 2100000, guid: 2b86681ba76b1e14bb408e859d4242ea, type: 2}
   lineWidth: 0.03
-  lineColor: {r: 1, g: 1, b: 1, a: 1}
+  lineColor: {r: 0, g: 0, b: 0, a: 1}
 --- !u!4 &1285392920
 Transform:
   m_ObjectHideFlags: 0
@@ -1897,7 +1897,7 @@ Transform:
   m_GameObject: {fileID: 1285392917}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: -2.02, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2367,7 +2367,7 @@ Transform:
   m_GameObject: {fileID: 1723231517}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 4.4800005, y: 2.6199994, z: 0}
+  m_LocalPosition: {x: 4.36, y: 2.6, z: 0}
   m_LocalScale: {x: 6, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
