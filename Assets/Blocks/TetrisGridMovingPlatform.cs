@@ -88,7 +88,9 @@ public class TetrisGridMovingPlatform : MonoBehaviour
     [SerializeField] private bool retryWhenBlocked = true;
 
     [Header("Debug")]
-    [SerializeField] private bool verboseLogs = false;
+    [Tooltip("По умолчанию включено — в консоль пишутся стартовая регистрация клеток, " +
+             "каждый шаг и причина блокировки шага. Когда всё работает, можно отключить.")]
+    [SerializeField] private bool verboseLogs = true;
 
     private TetrisPlacedBlock platformBlock;
     private Vector3 visualOffset;
@@ -238,27 +240,45 @@ public class TetrisGridMovingPlatform : MonoBehaviour
         // В плавном режиме после анимации сразу начинаем следующий шаг —
         // никакой дополнительной паузы нет.
 
-        if (!TryResolveCurrentWaypointCell(out Vector2Int targetCell))
+        // Можем «прокрутить» подряд несколько waypoint'ов, если они уже совпадают
+        // с текущей клеткой или невалидны — иначе платформа тратит целый
+        // moveInterval только на детектирование «я уже на месте».
+        int safety = (waypoints?.Length ?? 0) + 2;
+
+        while (safety-- > 0)
         {
-            AdvanceWaypoint();
+            if (!TryResolveCurrentWaypointCell(out Vector2Int targetCell))
+            {
+                if (verboseLogs)
+                    Debug.Log($"{nameof(TetrisGridMovingPlatform)} '{name}': waypoint[{currentWaypointIndex}] невалиден, пропускаю.", this);
+                AdvanceWaypoint();
+                if (finished) return;
+                continue;
+            }
+
+            Vector2Int currentPivot = platformBlock.PivotCell;
+            Vector2Int delta = targetCell - currentPivot;
+
+            if (delta.x == 0 && delta.y == 0)
+            {
+                if (verboseLogs)
+                    Debug.Log($"{nameof(TetrisGridMovingPlatform)} '{name}': достигнут waypoint[{currentWaypointIndex}] = {targetCell}, переключаюсь дальше.", this);
+                AdvanceWaypoint();
+                if (finished) return;
+                continue;
+            }
+
+            Vector2Int step = ComputeStep(delta);
+
+            if (step == Vector2Int.zero)
+                return;
+
+            if (verboseLogs)
+                Debug.Log($"{nameof(TetrisGridMovingPlatform)} '{name}': шаг {step} к waypoint[{currentWaypointIndex}] = {targetCell} (текущая клетка {currentPivot}, delta {delta}).", this);
+
+            PerformStep(step);
             return;
         }
-
-        Vector2Int currentPivot = platformBlock.PivotCell;
-        Vector2Int delta = targetCell - currentPivot;
-
-        if (delta.x == 0 && delta.y == 0)
-        {
-            AdvanceWaypoint();
-            return;
-        }
-
-        Vector2Int step = ComputeStep(delta);
-
-        if (step == Vector2Int.zero)
-            return;
-
-        PerformStep(step);
     }
 
     private void PerformStep(Vector2Int step)
@@ -282,6 +302,19 @@ public class TetrisGridMovingPlatform : MonoBehaviour
 
         if (!moved)
         {
+            if (verboseLogs)
+            {
+                Vector2Int newPivot = platformBlock.PivotCell + step;
+                string blockedBy = DescribeBlocker(newPivot);
+                Debug.LogWarning(
+                    $"{nameof(TetrisGridMovingPlatform)} '{name}': шаг {step} не удался. Целевая клетка пивота {newPivot}. " +
+                    $"Препятствие: {blockedBy}. " +
+                    (retryWhenBlocked
+                        ? "retryWhenBlocked=true — буду пытаться снова на следующем такте."
+                        : "retryWhenBlocked=false — пропускаю текущий waypoint."),
+                    this);
+            }
+
             if (!retryWhenBlocked)
                 AdvanceWaypoint();
             return;
@@ -362,6 +395,28 @@ public class TetrisGridMovingPlatform : MonoBehaviour
             return new Vector2Int(0, delta.y > 0 ? 1 : -1);
 
         return Vector2Int.zero;
+    }
+
+    private string DescribeBlocker(Vector2Int targetPivot)
+    {
+        if (platformBlock == null || board == null)
+            return "?";
+
+        Vector2Int[] offsets = platformBlock.CellOffsets;
+        if (offsets == null) return "нет offsets";
+
+        for (int i = 0; i < offsets.Length; i++)
+        {
+            Vector2Int newCell = targetPivot + offsets[i];
+
+            if (!board.IsInside(newCell))
+                return $"клетка {newCell} вне сетки";
+
+            if (board.IsOccupied(newCell))
+                return $"клетка {newCell} уже занята";
+        }
+
+        return "неизвестно (валидация считает место свободным)";
     }
 
     private List<Vector2Int> ResolveCells()
