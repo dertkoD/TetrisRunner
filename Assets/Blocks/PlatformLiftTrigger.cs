@@ -58,6 +58,8 @@ public class PlatformLiftTrigger : MonoBehaviour
     {
         if (GetComponent<Collider2D>() == null)
             gameObject.AddComponent<BoxCollider2D>();
+
+        EnsureKinematicRigidbody();
     }
 
     private void Awake()
@@ -75,11 +77,39 @@ public class PlatformLiftTrigger : MonoBehaviour
         if (!ownCollider.isTrigger)
             ownCollider.isTrigger = true;
 
+        // Чтобы OnTrigger2D срабатывал, когда «входящая платформа» — статический
+        // объект без Rigidbody2D, на самой зоне должен быть Rigidbody2D
+        // (kinematic). Добавим автоматически.
+        EnsureKinematicRigidbody();
+
         if (platformToLift != null)
         {
             originalPosition = platformToLift.position;
             hasOrigin = true;
         }
+    }
+
+    private void EnsureKinematicRigidbody()
+    {
+        Rigidbody2D rb = GetComponent<Rigidbody2D>();
+
+        if (rb == null)
+        {
+            rb = gameObject.AddComponent<Rigidbody2D>();
+            if (verboseLogs)
+                Debug.Log(
+                    $"{nameof(PlatformLiftTrigger)}: на '{name}' не было Rigidbody2D — добавлен Kinematic Rigidbody2D, чтобы " +
+                    "OnTrigger2D корректно срабатывал.",
+                    this);
+        }
+
+        rb.bodyType = RigidbodyType2D.Kinematic;
+        rb.simulated = true;
+        rb.gravityScale = 0f;
+        // Зона не должна двигаться от внешних сил.
+        rb.linearVelocity = Vector2.zero;
+        rb.angularVelocity = 0f;
+        rb.constraints = RigidbodyConstraints2D.FreezeAll;
     }
 
     private void Update()
