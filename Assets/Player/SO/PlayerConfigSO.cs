@@ -42,6 +42,10 @@ public sealed class PlayerConfigSO : ScriptableObject
              "По умолчанию 1 — отпрыгнуть от стены можно только один раз, потом нужно коснуться земли.")]
     [SerializeField, Min(0)] private int wallJumpCount = 1;
 
+    [Header("Health")]
+    [Tooltip("Стартовый уровень ХП игрока (он же максимум по умолчанию).")]
+    [SerializeField, Min(1)] private int maxHealth = 3;
+
     [Header("Double Jump")]
     [Tooltip("Включает способность доп. прыжков в воздухе.")]
     [SerializeField] private bool doubleJumpEnabled = false;
@@ -77,6 +81,8 @@ public sealed class PlayerConfigSO : ScriptableObject
     public float WallJumpHorizontalVelocity => wallJumpHorizontalVelocity;
     public float WallJumpLockoutTime => wallJumpLockoutTime;
     public int WallJumpCount => wallJumpCount;
+
+    public int MaxHealth => maxHealth;
 
     public bool DoubleJumpEnabled => doubleJumpEnabled;
     public int AirJumpCount => airJumpCount;
