@@ -19,6 +19,7 @@ public class PlayerStateMachine : MonoBehaviour
     private PlayerWallChecker wallChecker;
     private PlayerWallJump wallJump;
     private PlayerDoubleJump doubleJump;
+    private PlayerRespawnAnchor respawnAnchor;
 
     private InputAction moveAction;
     private InputAction jumpAction;
@@ -88,6 +89,7 @@ public class PlayerStateMachine : MonoBehaviour
         wallChecker = facade.WallChecker;
         wallJump = facade.WallJump;
         doubleJump = facade.DoubleJump;
+        respawnAnchor = facade.RespawnAnchor;
 
         if (config == null || body == null || bodyTransform == null || movement == null || jump == null || groundChecker == null)
         {
@@ -220,6 +222,7 @@ public class PlayerStateMachine : MonoBehaviour
         // 1) Обычный прыжок с земли (с поддержкой coyote-time).
         if (coyoteTimer > 0f)
         {
+            RememberJumpPosition();
             jump.PerformJump(body, config);
 
             jumpBufferTimer = 0f;
@@ -237,6 +240,7 @@ public class PlayerStateMachine : MonoBehaviour
         if (wallJump != null && wallChecker != null
             && wallJump.TryJump(body, config, wallChecker))
         {
+            RememberJumpPosition();
             jumpBufferTimer = 0f;
             CurrentState = PlayerState.Rising;
             return;
@@ -245,9 +249,18 @@ public class PlayerStateMachine : MonoBehaviour
         // 3) Воздушный прыжок (double jump).
         if (doubleJump != null && doubleJump.TryJump(body, config))
         {
+            RememberJumpPosition();
             jumpBufferTimer = 0f;
             CurrentState = PlayerState.Rising;
         }
+    }
+
+    private void RememberJumpPosition()
+    {
+        if (respawnAnchor == null)
+            return;
+
+        respawnAnchor.RecordCheckpoint(body.position);
     }
 
     private void DecideJumpCut()
