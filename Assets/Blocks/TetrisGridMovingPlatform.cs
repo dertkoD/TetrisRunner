@@ -3,18 +3,18 @@ using UnityEngine;
 
 /// <summary>
 /// Двигающаяся платформа, которую сетка тетриса «видит» как обычный занятый
-/// набор клеток (статический TetrisPlacedBlock). Платформа сдвигается на одну
-/// клетку в заданном направлении через равный интервал. Если на пути появляется
-/// препятствие — направление инвертируется. Все блоки, опирающиеся сверху на
-/// платформу (и сверху друг на друга), едут вместе с ней.
+/// набор клеток (статический TetrisPlacedBlock). Платформа двигается по точкам
+/// (waypoints) — каждой точкой считается мировой Transform, который сетка
+/// конвертирует в клетку через <see cref="TetrisGridBoard.WorldToCell"/>.
+/// На каждом такте интервала платформа делает один клеточный шаг в сторону
+/// текущей waypoint-клетки (по X, затем по Y). По достижении точки —
+/// переходит к следующей. Если включён <c>Loop</c>, после последней точки
+/// возвращается к первой; иначе останавливается.
 ///
-/// Источник клеток (как и у TetrisGridStaticPlatform):
+/// Источник стартовых клеток (форма платформы):
 /// * AutoFromCollider — берётся первый Collider2D на объекте.
 /// * AutoFromRenderer — берётся первый Renderer на объекте.
-/// * ExplicitCells   — список клеток, заданный вручную (мировые клетки сетки).
-///
-/// При старте платформа автоматически приклеивается к сетке: её Transform
-/// смещается так, чтобы пивот совпал с центром нужной клетки.
+/// * ExplicitCells   — список клеток, заданный вручную.
 /// </summary>
 [DisallowMultipleComponent]
 public class TetrisGridMovingPlatform : MonoBehaviour
@@ -30,7 +30,7 @@ public class TetrisGridMovingPlatform : MonoBehaviour
     [Tooltip("Сетка, в которой нужно занять клетки. Если пусто — найдём в сцене сами.")]
     [SerializeField] private TetrisGridBoard board;
 
-    [Header("Source")]
+    [Header("Source for initial cells")]
     [SerializeField] private Source source = Source.AutoFromCollider;
 
     [Tooltip("Если AABB слегка выходит за границу клетки на эту долю или меньше, " +
@@ -45,26 +45,37 @@ public class TetrisGridMovingPlatform : MonoBehaviour
              "визуал может «уехать» относительно зарегистрированных клеток.")]
     [SerializeField] private bool snapTransformToPivotOnStart = true;
 
+    [Header("Waypoints")]
+    [Tooltip("Точки в сцене, между которыми ходит платформа. Сетка определит " +
+             "клетку для каждой точки по её мировой позиции. Платформа едет так, " +
+             "чтобы её опорная клетка (pivot) пришла в клетку точки.")]
+    [SerializeField] private Transform[] waypoints;
+
+    [Tooltip("Если true — после последней точки платформа возвращается к первой и " +
+             "ходит по кругу. Если false — после прибытия в последнюю точку " +
+             "платформа останавливается.")]
+    [SerializeField] private bool loop = true;
+
     [Header("Movement")]
-    [Tooltip("Шаг платформы по сетке (в клетках) — например (1,0) для движения вправо.")]
-    [SerializeField] private Vector2Int stepDirection = new Vector2Int(1, 0);
-
-    [Tooltip("Сколько секунд между шагами. Шаг = сдвиг на 1 клетку по stepDirection.")]
+    [Tooltip("Сколько секунд между шагами. Шаг = сдвиг на 1 клетку.")]
     [SerializeField, Min(0.05f)] private float moveInterval = 0.5f;
-
-    [Tooltip("Если true — при невозможности сдвинуться (упор в препятствие или край сетки) " +
-             "направление меняется на противоположное (платформа курсирует вперёд-назад).")]
-    [SerializeField] private bool bounceOnObstacle = true;
 
     [Tooltip("Стартовая задержка перед первым шагом.")]
     [SerializeField, Min(0f)] private float startDelay = 0f;
 
+    [Tooltip("Если true — при упоре в препятствие платформа просто ждёт " +
+             "следующего такта и пробует снова. Если false — пропускает waypoint и " +
+             "идёт к следующему. По умолчанию true.")]
+    [SerializeField] private bool retryWhenBlocked = true;
+
     private TetrisPlacedBlock platformBlock;
-    private Vector2Int currentDirection;
     private float moveTimer;
+    private int currentWaypointIndex;
+    private bool finished;
     private bool initialized;
 
     public TetrisPlacedBlock PlatformBlock => platformBlock;
+    public bool IsFinished => finished;
 
     private void Start()
     {
@@ -102,8 +113,9 @@ public class TetrisGridMovingPlatform : MonoBehaviour
 
         board.RegisterBlock(platformBlock);
 
-        currentDirection = stepDirection;
         moveTimer = -startDelay;
+        currentWaypointIndex = 0;
+        finished = false;
         initialized = true;
     }
 
@@ -120,7 +132,10 @@ public class TetrisGridMovingPlatform : MonoBehaviour
         if (!initialized || platformBlock == null || board == null)
             return;
 
-        if (currentDirection == Vector2Int.zero)
+        if (finished)
+            return;
+
+        if (waypoints == null || waypoints.Length == 0)
             return;
 
         moveTimer += Time.fixedDeltaTime;
@@ -130,17 +145,81 @@ public class TetrisGridMovingPlatform : MonoBehaviour
 
         moveTimer = 0f;
 
-        if (board.TryMovePlacedBlockWithStack(platformBlock, currentDirection))
+        if (!TryResolveCurrentWaypointCell(out Vector2Int targetCell))
+        {
+            // У этой waypoint нет валидного Transform — переходим к следующей.
+            AdvanceWaypoint();
+            return;
+        }
+
+        Vector2Int currentPivot = platformBlock.PivotCell;
+        Vector2Int delta = targetCell - currentPivot;
+
+        if (delta.x == 0 && delta.y == 0)
+        {
+            // Достигли точки — следующий шаг будет уже в сторону следующей.
+            AdvanceWaypoint();
+            return;
+        }
+
+        Vector2Int step = ComputeStep(delta);
+
+        if (step == Vector2Int.zero)
             return;
 
-        if (!bounceOnObstacle)
+        if (board.TryMovePlacedBlockWithStack(platformBlock, step))
             return;
 
-        currentDirection = -currentDirection;
+        // Шаг не удался: либо упёрлись в препятствие, либо в границу сетки.
+        if (!retryWhenBlocked)
+            AdvanceWaypoint();
+    }
 
-        // Сразу пробуем сделать шаг в обратную сторону, чтобы не «зависать» на
-        // одном такте у стенки.
-        board.TryMovePlacedBlockWithStack(platformBlock, currentDirection);
+    private bool TryResolveCurrentWaypointCell(out Vector2Int cell)
+    {
+        cell = default;
+
+        if (waypoints == null || currentWaypointIndex < 0 || currentWaypointIndex >= waypoints.Length)
+            return false;
+
+        Transform wp = waypoints[currentWaypointIndex];
+        if (wp == null)
+            return false;
+
+        cell = board.WorldToCell(wp.position);
+        return true;
+    }
+
+    private void AdvanceWaypoint()
+    {
+        currentWaypointIndex++;
+
+        if (currentWaypointIndex < waypoints.Length)
+            return;
+
+        if (loop)
+        {
+            currentWaypointIndex = 0;
+            return;
+        }
+
+        // Не в цикле — фиксируемся на последней точке и больше не двигаемся.
+        currentWaypointIndex = waypoints.Length - 1;
+        finished = true;
+    }
+
+    private static Vector2Int ComputeStep(Vector2Int delta)
+    {
+        // Один клеточный шаг по одной оси за такт. Сначала добираем по X,
+        // затем по Y — так платформа не двигается по диагонали и не пытается
+        // прыгать через занятые клетки.
+        if (delta.x != 0)
+            return new Vector2Int(delta.x > 0 ? 1 : -1, 0);
+
+        if (delta.y != 0)
+            return new Vector2Int(0, delta.y > 0 ? 1 : -1);
+
+        return Vector2Int.zero;
     }
 
     private List<Vector2Int> ResolveCells()
