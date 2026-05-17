@@ -93,6 +93,7 @@ public class TetrisGridMovingPlatform : MonoBehaviour
     [SerializeField] private bool verboseLogs = true;
 
     private TetrisPlacedBlock platformBlock;
+    private Rigidbody2D platformBody;
     private Vector3 visualOffset;
     private float stepTimer;
     private int currentWaypointIndex;
@@ -112,6 +113,40 @@ public class TetrisGridMovingPlatform : MonoBehaviour
 
     public TetrisPlacedBlock PlatformBlock => platformBlock;
     public bool IsFinished => finished;
+
+    private void Reset()
+    {
+        EnsureKinematicRigidbody();
+    }
+
+    private void Awake()
+    {
+        // Unity 2D физика надёжно вызывает OnTriggerEnter/Exit на triggerах только
+        // когда движущийся коллайдер имеет Rigidbody2D. Без него платформа считается
+        // СТАТИКОЙ — перемещение через transform.position не всегда обновляет
+        // overlaps, и PlatformLiftTrigger «не видит», что платформа вышла из зоны.
+        // Поэтому подмешиваем Kinematic Rigidbody2D автоматически.
+        EnsureKinematicRigidbody();
+    }
+
+    private void EnsureKinematicRigidbody()
+    {
+        platformBody = GetComponent<Rigidbody2D>();
+
+        if (platformBody == null)
+            platformBody = gameObject.AddComponent<Rigidbody2D>();
+
+        platformBody.bodyType = RigidbodyType2D.Kinematic;
+        platformBody.simulated = true;
+        platformBody.gravityScale = 0f;
+        platformBody.linearVelocity = Vector2.zero;
+        platformBody.angularVelocity = 0f;
+        platformBody.constraints = RigidbodyConstraints2D.FreezeRotation;
+        // Интерполяция выключена: дискретные прыжки и плавная анимация
+        // обрабатываются сами в коде. Если позволить Unity интерполировать,
+        // визуал будет «отставать» на кадр.
+        platformBody.interpolation = RigidbodyInterpolation2D.None;
+    }
 
     private void Start()
     {

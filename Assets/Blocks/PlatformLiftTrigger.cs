@@ -46,7 +46,9 @@ public class PlatformLiftTrigger : MonoBehaviour
     [SerializeField, Min(0f)] private float moveSpeed = 5f;
 
     [Header("Debug")]
-    [SerializeField] private bool verboseLogs = false;
+    [Tooltip("Если true — в консоль пишется вход/выход триггера, причина срабатывания " +
+             "и кто остался внутри. По умолчанию включено для удобства отладки.")]
+    [SerializeField] private bool verboseLogs = true;
 
     private Collider2D ownCollider;
     private Vector3 originalPosition;
@@ -117,6 +119,12 @@ public class PlatformLiftTrigger : MonoBehaviour
         if (platformToLift == null || !hasOrigin)
             return;
 
+        // Защита от случая, когда триггерящий объект был уничтожен и OnTriggerExit2D
+        // не сработал — иначе activeTriggers навсегда останется непустым, и поднятая
+        // платформа никогда не вернётся.
+        if (activeTriggers.Count > 0)
+            activeTriggers.RemoveWhere(IsColliderInvalid);
+
         bool active = activeTriggers.Count > 0 && liftPoint != null;
         Vector3 target = active ? liftPoint.position : originalPosition;
 
@@ -131,6 +139,13 @@ public class PlatformLiftTrigger : MonoBehaviour
             target,
             moveSpeed * Time.deltaTime
         );
+    }
+
+    private static bool IsColliderInvalid(Collider2D c)
+    {
+        // Уничтоженный или выключенный коллайдер — UnityEngine.Object == null проверка
+        // (через оператор ==) корректно ловит destroyed objects.
+        return c == null || !c.gameObject.activeInHierarchy || !c.enabled;
     }
 
     private void OnTriggerEnter2D(Collider2D other)
@@ -153,11 +168,17 @@ public class PlatformLiftTrigger : MonoBehaviour
         if (other == null)
             return;
 
-        if (!activeTriggers.Remove(other))
-            return;
+        bool removed = activeTriggers.Remove(other);
 
         if (verboseLogs)
-            Debug.Log($"{nameof(PlatformLiftTrigger)}: '{other.name}' вышел из зоны — опускаю платформу.", this);
+        {
+            string state = activeTriggers.Count > 0
+                ? $"ещё кто-то внутри (осталось {activeTriggers.Count})"
+                : "зона пуста, опускаю платформу обратно";
+            Debug.Log(
+                $"{nameof(PlatformLiftTrigger)}: '{other.name}' вышел из зоны (removed={removed}); {state}.",
+                this);
+        }
     }
 
     private bool MatchesAsTriggeringPlatform(Collider2D other)
