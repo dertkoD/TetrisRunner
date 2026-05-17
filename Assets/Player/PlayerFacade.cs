@@ -39,6 +39,26 @@ public class PlayerFacade : MonoBehaviour
     public PlayerWallJump WallJump => wallJump;
     public PlayerDoubleJump DoubleJump => doubleJump;
 
-    public PlayerHealth Health => health;
-    public PlayerRespawnAnchor RespawnAnchor => respawnAnchor;
+    public PlayerHealth Health
+    {
+        get
+        {
+            // Если поле не назначили в инспекторе — попробуем найти компонент
+            // на этом же объекте. Так Deathzone и т.п. работают и без явной
+            // привязки в фасаде.
+            if (health == null)
+                health = GetComponent<PlayerHealth>();
+            return health;
+        }
+    }
+
+    public PlayerRespawnAnchor RespawnAnchor
+    {
+        get
+        {
+            if (respawnAnchor == null)
+                respawnAnchor = GetComponent<PlayerRespawnAnchor>();
+            return respawnAnchor;
+        }
+    }
 }
