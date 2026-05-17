@@ -71,7 +71,7 @@ public class TetrisBlockController : MonoBehaviour
         if (!initialized || locked || !controlled)
             return;
 
-        bool blockedDown = movement.MoveOnGrid(
+        TetrisBlockMoveResult result = movement.MoveOnGrid(
             body,
             config,
             board,
@@ -79,9 +79,13 @@ public class TetrisBlockController : MonoBehaviour
             moveInput
         );
 
-        if (blockedDown)
+        if (result == TetrisBlockMoveResult.BlockedDown)
         {
             spawnManager.NotifyActiveBlockLocked(this);
+        }
+        else if (result == TetrisBlockMoveResult.FellOffBoard)
+        {
+            spawnManager.NotifyActiveBlockFellOff(this);
         }
     }
 

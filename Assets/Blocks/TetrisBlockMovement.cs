@@ -1,5 +1,12 @@
 using UnityEngine;
 
+public enum TetrisBlockMoveResult
+{
+    Moving,
+    BlockedDown,
+    FellOffBoard,
+}
+
 public class TetrisBlockMovement : MonoBehaviour
 {
     private float horizontalStepTimer;
@@ -122,7 +129,7 @@ public class TetrisBlockMovement : MonoBehaviour
         return 0;
     }
 
-    public bool MoveOnGrid(
+    public TetrisBlockMoveResult MoveOnGrid(
         Rigidbody2D body,
         TetrisBlockConfigSO config,
         TetrisGridBoard board,
@@ -130,10 +137,10 @@ public class TetrisBlockMovement : MonoBehaviour
         Vector2 moveInput)
     {
         if (body == null || board == null || blockCells == null)
-            return false;
+            return TetrisBlockMoveResult.Moving;
 
         if (blockCells.CurrentOffsets == null || blockCells.CurrentOffsets.Length == 0)
-            return false;
+            return TetrisBlockMoveResult.Moving;
 
         Vector2Int pivotCell = board.WorldToCell(body.position);
         Vector2Int nextPivotCell = pivotCell;
@@ -177,6 +184,7 @@ public class TetrisBlockMovement : MonoBehaviour
         fallStepTimer -= Time.fixedDeltaTime * fallStepTickSpeed;
 
         bool blockedDown = false;
+        bool fellOff = false;
 
         if (fallStepTimer <= 0f)
         {
@@ -185,6 +193,12 @@ public class TetrisBlockMovement : MonoBehaviour
             if (board.CanPlaceOffsets(downTarget, blockCells.CurrentOffsets))
             {
                 nextPivotCell = downTarget;
+            }
+            else if (WouldFallOffBottom(board, downTarget, blockCells.CurrentOffsets))
+            {
+                // Все клетки в новой позиции либо ушли ниже сетки, либо
+                // пусты — значит под блоком нет ни ground, ни другого блока.
+                fellOff = true;
             }
             else
             {
@@ -201,6 +215,49 @@ public class TetrisBlockMovement : MonoBehaviour
 
         body.rotation = 0f;
 
-        return blockedDown;
+        if (fellOff)
+            return TetrisBlockMoveResult.FellOffBoard;
+
+        if (blockedDown)
+            return TetrisBlockMoveResult.BlockedDown;
+
+        return TetrisBlockMoveResult.Moving;
+    }
+
+    private static bool WouldFallOffBottom(
+        TetrisGridBoard board,
+        Vector2Int pivot,
+        Vector2Int[] offsets)
+    {
+        if (board == null || offsets == null || offsets.Length == 0)
+            return false;
+
+        bool hasCellBelowBoard = false;
+
+        for (int i = 0; i < offsets.Length; i++)
+        {
+            Vector2Int cell = pivot + offsets[i];
+
+            if (board.IsInside(cell))
+            {
+                // Если внутри сетки в этой позиции уже что-то есть — это
+                // обычный лок, а не падение вниз.
+                if (board.IsOccupied(cell))
+                    return false;
+
+                continue;
+            }
+
+            // Клетка вне сетки. Нас интересует только случай, когда фигура
+            // целиком/частично провалилась под нижнюю границу — выход вбок
+            // не должен считаться падением (этого и не должно случаться при
+            // спуске на одну клетку, но проверим на всякий случай).
+            if (cell.y >= 0)
+                return false;
+
+            hasCellBelowBoard = true;
+        }
+
+        return hasCellBelowBoard;
     }
 }
