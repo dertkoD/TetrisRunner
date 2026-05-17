@@ -3,18 +3,22 @@ using UnityEngine;
 
 /// <summary>
 /// Двигающаяся платформа, которую сетка тетриса «видит» как обычный занятый
-/// набор клеток (статический TetrisPlacedBlock). Платформа двигается по точкам
-/// (waypoints) — каждой точкой считается мировой Transform, который сетка
-/// конвертирует в клетку через <see cref="TetrisGridBoard.WorldToCell"/>.
-/// На каждом такте интервала платформа делает один клеточный шаг в сторону
-/// текущей waypoint-клетки (по X, затем по Y). По достижении точки —
-/// переходит к следующей. Если включён <c>Loop</c>, после последней точки
-/// возвращается к первой; иначе останавливается.
+/// набор клеток (статический TetrisPlacedBlock). Платформа умеет занимать
+/// СКОЛЬКО УГОДНО клеток (а не одну) — её форма берётся либо из коллайдера,
+/// либо из явных размеров в клетках, либо из явного списка клеток.
 ///
-/// Источник стартовых клеток (форма платформы):
-/// * AutoFromCollider — берётся первый Collider2D на объекте.
-/// * AutoFromRenderer — берётся первый Renderer на объекте.
-/// * ExplicitCells   — список клеток, заданный вручную.
+/// Платформа двигается по точкам (waypoints) в сцене. Сетка определит клетку
+/// каждой точки через <see cref="TetrisGridBoard.WorldToCell"/>.
+///
+/// Режим движения управляется флагом <see cref="tetrisMoving"/>:
+/// * <b>TetrisMoving = true</b>  — классическое тетрисное движение: один
+///   клеточный шаг за <see cref="moveInterval"/> секунд (мгновенный «прыжок»).
+/// * <b>TetrisMoving = false</b> — плавное движение: между клетками платформа
+///   (и стопка блоков на ней) визуально интерполируется. Длительность одного
+///   шага по-прежнему задаётся <see cref="moveInterval"/>.
+///
+/// Все блоки, опирающиеся сверху на платформу (и друг на друга),
+/// двигаются вместе с ней.
 /// </summary>
 [DisallowMultipleComponent]
 public class TetrisGridMovingPlatform : MonoBehaviour
@@ -23,6 +27,7 @@ public class TetrisGridMovingPlatform : MonoBehaviour
     {
         AutoFromCollider,
         AutoFromRenderer,
+        ManualSize,
         ExplicitCells,
     }
 
@@ -30,20 +35,27 @@ public class TetrisGridMovingPlatform : MonoBehaviour
     [Tooltip("Сетка, в которой нужно занять клетки. Если пусто — найдём в сцене сами.")]
     [SerializeField] private TetrisGridBoard board;
 
-    [Header("Source for initial cells")]
-    [SerializeField] private Source source = Source.AutoFromCollider;
+    [Header("Shape source")]
+    [Tooltip("Откуда брать форму платформы (какие клетки она занимает).")]
+    [SerializeField] private Source source = Source.ManualSize;
 
-    [Tooltip("Если AABB слегка выходит за границу клетки на эту долю или меньше, " +
-             "клетка всё равно НЕ считается занятой. Помогает игнорировать суб-пиксельные перехлёсты.")]
+    [Tooltip("AutoFromCollider/Renderer: если AABB слегка выходит за границу клетки " +
+             "на эту долю или меньше, клетка всё равно НЕ считается занятой.")]
     [SerializeField, Range(0f, 0.5f)] private float overlapTolerance = 0.05f;
 
-    [Header("Explicit Cells (если выбран соответствующий source)")]
+    [Tooltip("ManualSize: размер платформы в клетках. Опорной (pivot) считается " +
+             "клетка, в которой стоит Transform платформы; от неё прямоугольник " +
+             "растёт вправо и вверх. Поставь Transform платформы в левую нижнюю клетку.")]
+    [SerializeField] private Vector2Int manualSizeInCells = new Vector2Int(3, 1);
+
+    [Tooltip("ExplicitCells: вручную заданный список клеток сетки (мировые координаты сетки).")]
     [SerializeField] private Vector2Int[] explicitCells;
 
     [Header("Snap")]
     [Tooltip("Прижать Transform к центру опорной клетки на старте. Если выключить, " +
-             "визуал может «уехать» относительно зарегистрированных клеток.")]
-    [SerializeField] private bool snapTransformToPivotOnStart = true;
+             "визуальное смещение между Transform и pivot-клеткой будет сохраняться " +
+             "при движении (полезно, если у платформы свой кастомный визуал).")]
+    [SerializeField] private bool snapTransformToPivotOnStart = false;
 
     [Header("Waypoints")]
     [Tooltip("Точки в сцене, между которыми ходит платформа. Сетка определит " +
@@ -57,7 +69,14 @@ public class TetrisGridMovingPlatform : MonoBehaviour
     [SerializeField] private bool loop = true;
 
     [Header("Movement")]
-    [Tooltip("Сколько секунд между шагами. Шаг = сдвиг на 1 клетку.")]
+    [Tooltip("Если true — платформа двигается «как в тетрисе»: один клеточный шаг " +
+             "за раз, мгновенно. Если false — платформа и блоки на ней плавно " +
+             "интерполируются между клетками.")]
+    [SerializeField] private bool tetrisMoving = true;
+
+    [Tooltip("Сколько секунд занимает один клеточный шаг. В режиме TetrisMoving — " +
+             "это пауза между мгновенными прыжками. В плавном режиме — длительность " +
+             "анимации одного шага.")]
     [SerializeField, Min(0.05f)] private float moveInterval = 0.5f;
 
     [Tooltip("Стартовая задержка перед первым шагом.")]
@@ -65,14 +84,29 @@ public class TetrisGridMovingPlatform : MonoBehaviour
 
     [Tooltip("Если true — при упоре в препятствие платформа просто ждёт " +
              "следующего такта и пробует снова. Если false — пропускает waypoint и " +
-             "идёт к следующему. По умолчанию true.")]
+             "идёт к следующему.")]
     [SerializeField] private bool retryWhenBlocked = true;
 
+    [Header("Debug")]
+    [SerializeField] private bool verboseLogs = false;
+
     private TetrisPlacedBlock platformBlock;
-    private float moveTimer;
+    private Vector3 visualOffset;
+    private float stepTimer;
     private int currentWaypointIndex;
     private bool finished;
     private bool initialized;
+    private bool firstStepDone;
+
+    // Состояние плавной анимации одного шага.
+    private struct AnimEntry
+    {
+        public TetrisPlacedBlock block;
+        public Vector3 from;
+        public Vector3 to;
+    }
+    private List<AnimEntry> animEntries;
+    private float animProgress;
 
     public TetrisPlacedBlock PlatformBlock => platformBlock;
     public bool IsFinished => finished;
@@ -101,8 +135,21 @@ public class TetrisGridMovingPlatform : MonoBehaviour
         for (int i = 0; i < cells.Count; i++)
             offsets[i] = cells[i] - pivot;
 
+        Vector3 pivotWorld = board.CellToWorld(pivot);
+
         if (snapTransformToPivotOnStart)
-            transform.position = board.CellToWorld(pivot);
+        {
+            transform.position = pivotWorld;
+            visualOffset = Vector3.zero;
+        }
+        else
+        {
+            // Запомним, насколько визуал смещён относительно pivot-клетки.
+            // При каждом клеточном шаге будем восстанавливать этот сдвиг,
+            // чтобы спрайт платформы не «прыгал» в центр клетки.
+            visualOffset = transform.position - pivotWorld;
+            visualOffset.z = 0f;
+        }
 
         platformBlock = GetComponent<TetrisPlacedBlock>();
         if (platformBlock == null)
@@ -113,7 +160,14 @@ public class TetrisGridMovingPlatform : MonoBehaviour
 
         board.RegisterBlock(platformBlock);
 
-        moveTimer = -startDelay;
+        if (verboseLogs)
+            Debug.Log(
+                $"{nameof(TetrisGridMovingPlatform)} '{name}': registered {cells.Count} cell(s). " +
+                $"Pivot={pivot}, offsets=[{string.Join(",", offsets)}], visualOffset={visualOffset}",
+                this);
+
+        stepTimer = 0f;
+        firstStepDone = false;
         currentWaypointIndex = 0;
         finished = false;
         initialized = true;
@@ -127,6 +181,28 @@ public class TetrisGridMovingPlatform : MonoBehaviour
         board.UnregisterBlock(platformBlock);
     }
 
+    private void Update()
+    {
+        // Плавная анимация одного шага идёт по обычному Update (визуал).
+        if (animEntries == null || animEntries.Count == 0)
+            return;
+
+        animProgress += Time.deltaTime / Mathf.Max(0.0001f, moveInterval);
+
+        float t = Mathf.Clamp01(animProgress);
+
+        for (int i = 0; i < animEntries.Count; i++)
+        {
+            AnimEntry e = animEntries[i];
+            if (e.block == null) continue;
+            Vector3 pos = Vector3.Lerp(e.from, e.to, t);
+            e.block.SetVisualPosition(pos);
+        }
+
+        if (t >= 1f)
+            animEntries = null;
+    }
+
     private void FixedUpdate()
     {
         if (!initialized || platformBlock == null || board == null)
@@ -138,16 +214,32 @@ public class TetrisGridMovingPlatform : MonoBehaviour
         if (waypoints == null || waypoints.Length == 0)
             return;
 
-        moveTimer += Time.fixedDeltaTime;
-
-        if (moveTimer < moveInterval)
+        // Пока активна плавная анимация — следующий шаг не делаем.
+        if (!tetrisMoving && animEntries != null)
             return;
 
-        moveTimer = 0f;
+        // Стартовая задержка (один раз перед первым шагом).
+        if (!firstStepDone)
+        {
+            stepTimer += Time.fixedDeltaTime;
+            if (stepTimer < startDelay)
+                return;
+            stepTimer = 0f;
+            firstStepDone = true;
+        }
+        else if (tetrisMoving)
+        {
+            // Дискретный режим: ждём паузу между мгновенными прыжками.
+            stepTimer += Time.fixedDeltaTime;
+            if (stepTimer < moveInterval)
+                return;
+            stepTimer = 0f;
+        }
+        // В плавном режиме после анимации сразу начинаем следующий шаг —
+        // никакой дополнительной паузы нет.
 
         if (!TryResolveCurrentWaypointCell(out Vector2Int targetCell))
         {
-            // У этой waypoint нет валидного Transform — переходим к следующей.
             AdvanceWaypoint();
             return;
         }
@@ -157,7 +249,6 @@ public class TetrisGridMovingPlatform : MonoBehaviour
 
         if (delta.x == 0 && delta.y == 0)
         {
-            // Достигли точки — следующий шаг будет уже в сторону следующей.
             AdvanceWaypoint();
             return;
         }
@@ -167,12 +258,67 @@ public class TetrisGridMovingPlatform : MonoBehaviour
         if (step == Vector2Int.zero)
             return;
 
-        if (board.TryMovePlacedBlockWithStack(platformBlock, step))
-            return;
+        PerformStep(step);
+    }
 
-        // Шаг не удался: либо упёрлись в препятствие, либо в границу сетки.
-        if (!retryWhenBlocked)
-            AdvanceWaypoint();
+    private void PerformStep(Vector2Int step)
+    {
+        // Захватываем стопку и их текущие визуальные позиции ДО шага,
+        // чтобы потом либо откатить (плавный режим) либо просто пересчитать смещения.
+        HashSet<TetrisPlacedBlock> carry = board.GetCarryStack(platformBlock);
+
+        Dictionary<TetrisPlacedBlock, Vector3> preVisual = null;
+        if (!tetrisMoving)
+        {
+            preVisual = new Dictionary<TetrisPlacedBlock, Vector3>(carry.Count);
+            foreach (TetrisPlacedBlock b in carry)
+            {
+                if (b == null) continue;
+                preVisual[b] = b.transform.position;
+            }
+        }
+
+        bool moved = board.TryMovePlacedBlockWithStack(platformBlock, step);
+
+        if (!moved)
+        {
+            if (!retryWhenBlocked)
+                AdvanceWaypoint();
+            return;
+        }
+
+        // Платформе нужно сохранить визуальный сдвиг (visualOffset), а
+        // стопке блоков — оставаться в центре своих клеток.
+        Vector3 platformPostSnap = board.CellToWorld(platformBlock.PivotCell) + visualOffset;
+
+        if (tetrisMoving)
+        {
+            // Дискретный режим — мгновенно ставим всех в финальные позиции.
+            platformBlock.SetVisualPosition(platformPostSnap);
+            return;
+        }
+
+        // Плавный режим: всех откатываем визуально на старые позиции, ставим в очередь анимацию.
+        List<AnimEntry> anim = new List<AnimEntry>(carry.Count);
+
+        foreach (TetrisPlacedBlock b in carry)
+        {
+            if (b == null) continue;
+
+            Vector3 from = preVisual != null && preVisual.TryGetValue(b, out Vector3 cached)
+                ? cached
+                : b.transform.position;
+
+            Vector3 to = (b == platformBlock)
+                ? platformPostSnap
+                : board.CellToWorld(b.PivotCell);
+
+            anim.Add(new AnimEntry { block = b, from = from, to = to });
+            b.SetVisualPosition(from);
+        }
+
+        animEntries = anim;
+        animProgress = 0f;
     }
 
     private bool TryResolveCurrentWaypointCell(out Vector2Int cell)
@@ -203,16 +349,12 @@ public class TetrisGridMovingPlatform : MonoBehaviour
             return;
         }
 
-        // Не в цикле — фиксируемся на последней точке и больше не двигаемся.
         currentWaypointIndex = waypoints.Length - 1;
         finished = true;
     }
 
     private static Vector2Int ComputeStep(Vector2Int delta)
     {
-        // Один клеточный шаг по одной оси за такт. Сначала добираем по X,
-        // затем по Y — так платформа не двигается по диагонали и не пытается
-        // прыгать через занятые клетки.
         if (delta.x != 0)
             return new Vector2Int(delta.x > 0 ? 1 : -1, 0);
 
@@ -241,7 +383,6 @@ public class TetrisGridMovingPlatform : MonoBehaviour
                 }
 
             case Source.AutoFromCollider:
-            default:
                 {
                     Collider2D collider = GetComponentInChildren<Collider2D>();
                     if (collider == null)
@@ -251,7 +392,36 @@ public class TetrisGridMovingPlatform : MonoBehaviour
                     }
                     return CellsInsideAABB(collider.bounds);
                 }
+
+            case Source.ManualSize:
+            default:
+                return CellsFromManualSize();
         }
+    }
+
+    private List<Vector2Int> CellsFromManualSize()
+    {
+        if (board == null)
+            return null;
+
+        int w = Mathf.Max(1, manualSizeInCells.x);
+        int h = Mathf.Max(1, manualSizeInCells.y);
+
+        Vector2Int pivot = board.WorldToCell(transform.position);
+
+        List<Vector2Int> cells = new List<Vector2Int>(w * h);
+
+        for (int x = 0; x < w; x++)
+        {
+            for (int y = 0; y < h; y++)
+            {
+                Vector2Int cell = new Vector2Int(pivot.x + x, pivot.y + y);
+                if (board.IsInside(cell))
+                    cells.Add(cell);
+            }
+        }
+
+        return cells;
     }
 
     private List<Vector2Int> CellsInsideAABB(Bounds bounds)

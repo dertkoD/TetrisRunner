@@ -60,4 +60,18 @@ public class TetrisPlacedBlock : MonoBehaviour
         if (body != null)
             body.position = new Vector2(worldPosition.x, worldPosition.y);
     }
+
+    /// <summary>
+    /// Чисто визуально передвигает блок (Transform + Rigidbody2D.position),
+    /// не трогая логическую опорную клетку. Используется для плавной анимации
+    /// между шагами, когда логика сетки уже знает новую клетку, а визуал ещё
+    /// должен «доехать» из старой позиции.
+    /// </summary>
+    public void SetVisualPosition(Vector3 worldPosition)
+    {
+        transform.position = worldPosition;
+
+        if (body != null)
+            body.position = new Vector2(worldPosition.x, worldPosition.y);
+    }
 }

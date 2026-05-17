@@ -237,6 +237,15 @@ public class TetrisGridBoard : MonoBehaviour
     }
 
     /// <summary>
+    /// Возвращает блок и всё, что на нём (рекурсивно). Удобно для предпросмотра,
+    /// какие именно блоки уедут вместе с платформой при следующем шаге.
+    /// </summary>
+    public HashSet<TetrisPlacedBlock> GetCarryStack(TetrisPlacedBlock root)
+    {
+        return CollectCarryStack(root);
+    }
+
+    /// <summary>
     /// Собирает блок и всё, что на нём (рекурсивно). "Опирается" = у блока есть
     /// клетка, прямо под которой стоит клетка из текущего набора.
     /// </summary>
