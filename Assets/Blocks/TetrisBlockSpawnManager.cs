@@ -11,14 +11,15 @@ public class TetrisBlockSpawnManager : MonoBehaviour
     [SerializeField] private Transform blocksParent;
     [SerializeField] private TetrisGridBoard board;
 
-    [Header("Spawn Cell")]
-    [Tooltip("Желаемая координата (X) пивота нового блока в клетках сетки. " +
-             "Y будет автоматически подобран так, чтобы блок целиком влезал в сетку сверху.")]
-    [SerializeField] private Vector2Int spawnCell = new Vector2Int(5, 18);
+    [Header("Spawn Fallback (используется, если spawnPoint не задан)")]
+    [Tooltip("Если spawnPoint выше не задан, блок спавнится сверху сетки. " +
+             "Этот X (в клетках) определяет, где именно появится пивот, " +
+             "а Y подбирается так, чтобы фигура целиком влезла в верхнюю строку.")]
+    [SerializeField] private int fallbackSpawnColumn = -1;
 
-    [Tooltip("Если true, блок всегда спавнится в верхней части поля как в классическом тетрисе. " +
-             "Если false, используется ровно spawnCell (только клампится по X).")]
-    [SerializeField] private bool spawnAtTopOfBoard = true;
+    [Tooltip("Если true и spawnPoint не задан, X спавна берётся как центр сетки. " +
+             "fallbackSpawnColumn в этом случае игнорируется.")]
+    [SerializeField] private bool fallbackToBoardCenter = true;
 
     private TetrisBlockController activeBlock;
 
@@ -26,10 +27,36 @@ public class TetrisBlockSpawnManager : MonoBehaviour
     private InputAction moveAction;
     private InputAction rotateLeftAction;
     private InputAction rotateRightAction;
+    private InputAction softDropAction;
 
     private bool isRunning;
     private float spawnDelayTimer;
     private bool spawnPending;
+    private bool externalFreeze;
+
+    /// <summary>True, если активирована внешняя заморозка (PlayerBlockFreeze).</summary>
+    public bool IsExternallyFrozen => externalFreeze;
+
+    /// <summary>
+    /// Включает/выключает внешнюю заморозку (используется PlayerBlockFreeze).
+    /// Пока активна — блоки не падают и не спавнятся, текущий активный блок
+    /// замирает в воздухе. На обычное состояние P (start/stop) не влияет.
+    /// </summary>
+    public void SetExternalFreeze(bool freeze)
+    {
+        if (externalFreeze == freeze)
+            return;
+
+        externalFreeze = freeze;
+
+        if (activeBlock == null || activeBlock.IsLocked)
+            return;
+
+        if (freeze)
+            activeBlock.FreezeInAir();
+        else if (isRunning)
+            activeBlock.SetControlled(true);
+    }
 
     private void Awake()
     {
@@ -51,6 +78,7 @@ public class TetrisBlockSpawnManager : MonoBehaviour
         moveAction = config.MoveAction != null ? config.MoveAction.action : null;
         rotateLeftAction = config.RotateLeftAction != null ? config.RotateLeftAction.action : null;
         rotateRightAction = config.RotateRightAction != null ? config.RotateRightAction.action : null;
+        softDropAction = config.SoftDropAction != null ? config.SoftDropAction.action : null;
 
         if (toggleSpawnAction == null || moveAction == null || rotateLeftAction == null || rotateRightAction == null)
         {
@@ -74,6 +102,13 @@ public class TetrisBlockSpawnManager : MonoBehaviour
         moveAction.Enable();
         rotateLeftAction.Enable();
         rotateRightAction.Enable();
+
+        if (softDropAction != null)
+        {
+            softDropAction.performed += OnSoftDropPerformed;
+            softDropAction.canceled += OnSoftDropCanceled;
+            softDropAction.Enable();
+        }
     }
 
     private void OnDisable()
@@ -91,11 +126,18 @@ public class TetrisBlockSpawnManager : MonoBehaviour
         moveAction.Disable();
         rotateLeftAction.Disable();
         rotateRightAction.Disable();
+
+        if (softDropAction != null)
+        {
+            softDropAction.performed -= OnSoftDropPerformed;
+            softDropAction.canceled -= OnSoftDropCanceled;
+            softDropAction.Disable();
+        }
     }
 
     private void FixedUpdate()
     {
-        if (!isRunning)
+        if (!isRunning || externalFreeze)
             return;
 
         // Если блока ещё нет, но включён таймер задержки — ждём, потом спавним.
@@ -138,6 +180,30 @@ public class TetrisBlockSpawnManager : MonoBehaviour
         ScheduleNextSpawn();
     }
 
+    /// <summary>
+    /// Сообщает менеджеру, что текущий активный блок вышел за нижнюю границу
+    /// сетки и под ним нет ни ground, ни другого блока. Блок уничтожается,
+    /// после чего запускается обычная задержка перед следующим спавном.
+    /// </summary>
+    public void NotifyActiveBlockFellOff(TetrisBlockController block)
+    {
+        if (block == null)
+            return;
+
+        if (block != activeBlock)
+            return;
+
+        activeBlock = null;
+
+        if (block.gameObject != null)
+            Destroy(block.gameObject);
+
+        if (!isRunning)
+            return;
+
+        ScheduleNextSpawn();
+    }
+
     private void OnToggleSpawnPerformed(InputAction.CallbackContext context)
     {
         SetRunning(!isRunning);
@@ -174,6 +240,22 @@ public class TetrisBlockSpawnManager : MonoBehaviour
             return;
 
         activeBlock.Rotate(1);
+    }
+
+    private void OnSoftDropPerformed(InputAction.CallbackContext context)
+    {
+        if (activeBlock == null)
+            return;
+
+        activeBlock.SetSoftDrop(true);
+    }
+
+    private void OnSoftDropCanceled(InputAction.CallbackContext context)
+    {
+        if (activeBlock == null)
+            return;
+
+        activeBlock.SetSoftDrop(false);
     }
 
     private void SetRunning(bool value)
@@ -270,33 +352,52 @@ public class TetrisBlockSpawnManager : MonoBehaviour
 
     private Vector2Int ResolveSpawnCell(TetrisBlockCells blockCells)
     {
-        Vector2Int desired = spawnCell;
-
         Vector2Int[] offsets = blockCells != null ? blockCells.CurrentOffsets : null;
 
-        if (offsets == null || offsets.Length == 0)
-            return desired;
+        int minX = 0, maxX = 0, minY = 0, maxY = 0;
 
-        int minX = int.MaxValue;
-        int maxX = int.MinValue;
-        int minY = int.MaxValue;
-        int maxY = int.MinValue;
-
-        for (int i = 0; i < offsets.Length; i++)
+        if (offsets != null && offsets.Length > 0)
         {
-            Vector2Int o = offsets[i];
+            minX = int.MaxValue;
+            maxX = int.MinValue;
+            minY = int.MaxValue;
+            maxY = int.MinValue;
 
-            if (o.x < minX) minX = o.x;
-            if (o.x > maxX) maxX = o.x;
-            if (o.y < minY) minY = o.y;
-            if (o.y > maxY) maxY = o.y;
+            for (int i = 0; i < offsets.Length; i++)
+            {
+                Vector2Int o = offsets[i];
+
+                if (o.x < minX) minX = o.x;
+                if (o.x > maxX) maxX = o.x;
+                if (o.y < minY) minY = o.y;
+                if (o.y > maxY) maxY = o.y;
+            }
         }
 
         int boardWidth = board.Width;
         int boardHeight = board.Height;
 
-        int x = desired.x;
-        int y = spawnAtTopOfBoard ? (boardHeight - 1 - maxY) : desired.y;
+        int x;
+        int y;
+
+        if (spawnPoint != null)
+        {
+            // Если в инспекторе задан spawnPoint — конвертируем его мировую
+            // позицию в клетку сетки и спавним блок ровно там.
+            Vector2Int spawnPointCell = board.WorldToCell(spawnPoint.position);
+            x = spawnPointCell.x;
+            y = spawnPointCell.y;
+        }
+        else
+        {
+            // Нет spawnPoint — используем фоллбек: верх сетки, X либо из
+            // настройки fallbackSpawnColumn, либо центр поля.
+            x = fallbackToBoardCenter || fallbackSpawnColumn < 0
+                ? boardWidth / 2
+                : fallbackSpawnColumn;
+
+            y = boardHeight - 1 - maxY;
+        }
 
         // Клампим по X так, чтобы все клетки фигуры влезали в поле по горизонтали.
         if (x + minX < 0)

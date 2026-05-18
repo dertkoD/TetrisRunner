@@ -24,6 +24,11 @@ public class TetrisGridBoard : MonoBehaviour
              "дочерний объект 'PlacedBlocks' автоматически.")]
     [SerializeField] private Transform placedBlocksParent;
 
+    [Header("Fall Animation")]
+    [Tooltip("Скорость падения блоков при гравитации (мировых единиц в секунду). " +
+             "0 — мгновенный телепорт на новое место (старое поведение).")]
+    [SerializeField, Min(0f)] private float fallAnimationSpeed = 12f;
+
     /// <summary>cell -> блок, который занимает эту клетку.</summary>
     private readonly Dictionary<Vector2Int, TetrisPlacedBlock> cellsToBlock = new Dictionary<Vector2Int, TetrisPlacedBlock>();
 
@@ -32,6 +37,7 @@ public class TetrisGridBoard : MonoBehaviour
     public float CellSize => cellSize;
     public int Width => width;
     public int Height => height;
+    public float FallAnimationSpeed => fallAnimationSpeed;
 
     /// <summary>Возвращает уникальный идентификатор блока (используется при локе).</summary>
     public static int AllocateBlockId()
@@ -173,6 +179,127 @@ public class TetrisGridBoard : MonoBehaviour
         RegisterBlock(placedBlock);
 
         return placedBlock;
+    }
+
+    /// <summary>
+    /// Пробует сдвинуть статический блок (например, движущуюся платформу) на delta клеток,
+    /// захватив с собой стопку блоков, опирающихся на него (или друг на друга, и в итоге на него).
+    ///
+    /// Возвращает true, если перемещение удалось. Если на пути есть препятствие или
+    /// край сетки — возвращает false и сетка остаётся в исходном состоянии.
+    /// </summary>
+    public bool TryMovePlacedBlockWithStack(TetrisPlacedBlock platform, Vector2Int delta)
+    {
+        if (platform == null)
+            return false;
+
+        if (delta == Vector2Int.zero)
+            return true;
+
+        HashSet<TetrisPlacedBlock> moving = CollectCarryStack(platform);
+
+        if (moving == null || moving.Count == 0)
+            return false;
+
+        // Проверка валидности: каждая клетка набора в новой позиции должна
+        // быть внутри сетки и либо пуста, либо занята другим перемещаемым блоком.
+        foreach (TetrisPlacedBlock block in moving)
+        {
+            Vector2Int[] offsets = block.CellOffsets;
+            if (offsets == null) continue;
+
+            Vector2Int newPivot = block.PivotCell + delta;
+
+            for (int i = 0; i < offsets.Length; i++)
+            {
+                Vector2Int newCell = newPivot + offsets[i];
+
+                if (!IsInside(newCell))
+                    return false;
+
+                if (cellsToBlock.TryGetValue(newCell, out TetrisPlacedBlock occupant)
+                    && occupant != null
+                    && !moving.Contains(occupant))
+                {
+                    return false;
+                }
+            }
+        }
+
+        // Атомарно: сначала снимаем со всех клеток, потом перемещаем и
+        // регистрируем заново — иначе соседние блоки внутри moving могли бы
+        // самозаблокироваться.
+        foreach (TetrisPlacedBlock block in moving)
+            UnregisterBlock(block);
+
+        foreach (TetrisPlacedBlock block in moving)
+        {
+            Vector2Int newPivot = block.PivotCell + delta;
+            block.MoveToCell(newPivot, CellToWorld(newPivot));
+            RegisterBlock(block);
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Возвращает блок и всё, что на нём (рекурсивно). Удобно для предпросмотра,
+    /// какие именно блоки уедут вместе с платформой при следующем шаге.
+    /// </summary>
+    public HashSet<TetrisPlacedBlock> GetCarryStack(TetrisPlacedBlock root)
+    {
+        return CollectCarryStack(root);
+    }
+
+    /// <summary>
+    /// Собирает блок и всё, что на нём (рекурсивно). "Опирается" = у блока есть
+    /// клетка, прямо под которой стоит клетка из текущего набора.
+    /// </summary>
+    private HashSet<TetrisPlacedBlock> CollectCarryStack(TetrisPlacedBlock root)
+    {
+        HashSet<TetrisPlacedBlock> set = new HashSet<TetrisPlacedBlock>();
+        if (root == null) return set;
+
+        set.Add(root);
+
+        bool changed = true;
+        List<TetrisPlacedBlock> snapshot = new List<TetrisPlacedBlock>();
+
+        while (changed)
+        {
+            changed = false;
+            snapshot.Clear();
+            snapshot.AddRange(set);
+
+            for (int s = 0; s < snapshot.Count; s++)
+            {
+                TetrisPlacedBlock baseBlock = snapshot[s];
+                Vector2Int[] offsets = baseBlock.CellOffsets;
+                if (offsets == null) continue;
+
+                for (int i = 0; i < offsets.Length; i++)
+                {
+                    Vector2Int aboveCell = baseBlock.PivotCell + offsets[i] + Vector2Int.up;
+
+                    if (!cellsToBlock.TryGetValue(aboveCell, out TetrisPlacedBlock aboveBlock))
+                        continue;
+
+                    if (aboveBlock == null || aboveBlock == baseBlock)
+                        continue;
+
+                    // Другие статические блоки (другие платформы, стены и т.п.)
+                    // не подцепляем: они либо вообще не двигаются, либо двигаются
+                    // своей собственной логикой.
+                    if (aboveBlock.IsStatic)
+                        continue;
+
+                    if (set.Add(aboveBlock))
+                        changed = true;
+                }
+            }
+        }
+
+        return set;
     }
 
     /// <summary>Снимает блок с карты сетки (но сам объект не уничтожает).</summary>
@@ -360,13 +487,23 @@ public class TetrisGridBoard : MonoBehaviour
             return false;
 
         Vector2Int newPivot = block.PivotCell + Vector2Int.down;
+        bool anyBelowBoard = false;
 
         for (int i = 0; i < offsets.Length; i++)
         {
             Vector2Int newCell = newPivot + offsets[i];
 
             if (!IsInside(newCell))
+            {
+                // Сегмент уходит за нижний край сетки — отметим, но проверим
+                // остальные клетки: вдруг рядом обычная опора.
+                if (newCell.y < 0)
+                {
+                    anyBelowBoard = true;
+                    continue;
+                }
                 return false;
+            }
 
             if (cellsToBlock.TryGetValue(newCell, out TetrisPlacedBlock occupant)
                 && occupant != null
@@ -376,8 +513,25 @@ public class TetrisGridBoard : MonoBehaviour
             }
         }
 
+        if (anyBelowBoard)
+        {
+            // Под блоком ничего нет, и часть клеток уже за нижней границей —
+            // блок проваливается. Снимаем с сетки и запускаем последнюю
+            // анимацию падения «в никуда», по её завершении GameObject
+            // уничтожится. Гравитация других блоков на следующих итерациях
+            // увидит освобождённые клетки.
+            UnregisterBlock(block);
+            block.SetLogicalCell(newPivot);
+
+            Vector3 belowGridWorld = CellToWorld(newPivot) + Vector3.down * cellSize * 1.5f;
+            block.BeginAnimatedMoveTo(belowGridWorld, fallAnimationSpeed);
+            block.SetAnimationDestroyOnEnd(true);
+            return true;
+        }
+
+        // Обычное падение на одну клетку с анимацией.
         UnregisterBlock(block);
-        block.MoveToCell(newPivot, CellToWorld(newPivot));
+        block.MoveToCellAnimated(newPivot, CellToWorld(newPivot), fallAnimationSpeed);
         RegisterBlock(block);
         return true;
     }

@@ -9,6 +9,8 @@ public sealed class TetrisBlockConfigSO : ScriptableObject
     [SerializeField] private InputActionReference moveAction;
     [SerializeField] private InputActionReference rotateLeftAction;
     [SerializeField] private InputActionReference rotateRightAction;
+    [Tooltip("Кнопка ускоренного падения активного блока (soft-drop). Удерживать.")]
+    [SerializeField] private InputActionReference softDropAction;
 
     [Header("Prefabs")]
     [SerializeField] private TetrisBlockFacade[] blockPrefabs;
@@ -79,6 +81,7 @@ public sealed class TetrisBlockConfigSO : ScriptableObject
     public InputActionReference MoveAction => moveAction;
     public InputActionReference RotateLeftAction => rotateLeftAction;
     public InputActionReference RotateRightAction => rotateRightAction;
+    public InputActionReference SoftDropAction => softDropAction;
 
     public TetrisBlockFacade[] BlockPrefabs => blockPrefabs;
 

@@ -42,6 +42,26 @@ public sealed class PlayerConfigSO : ScriptableObject
              "По умолчанию 1 — отпрыгнуть от стены можно только один раз, потом нужно коснуться земли.")]
     [SerializeField, Min(0)] private int wallJumpCount = 1;
 
+    [Header("Health")]
+    [Tooltip("Стартовый уровень ХП игрока (он же максимум по умолчанию).")]
+    [SerializeField, Min(1)] private int maxHealth = 3;
+
+    [Header("Block Freeze Ability")]
+    [Tooltip("Input action для способности заморозки блоков. Используется в режиме 'удерживай для активации'.")]
+    [SerializeField] private InputActionReference freezeAction;
+
+    [Tooltip("Сколько секунд можно держать заморозку без перерыва (полный запас).")]
+    [SerializeField, Min(0f)] private float freezeMaxDuration = 3f;
+
+    [Tooltip("Сколько секунд заморозки восстанавливается за одну реальную секунду, когда " +
+             "способность не используется. Например 1 = полная зарядка за freezeMaxDuration секунд, " +
+             "0.5 = в два раза дольше.")]
+    [SerializeField, Min(0f)] private float freezeRechargeSecondsPerSecond = 1f;
+
+    [Tooltip("Минимальный запас (в секундах), при котором можно ЗАНОВО активировать заморозку. " +
+             "Защита от мерцания: если запас иссяк, надо немного перезарядиться перед следующим включением.")]
+    [SerializeField, Min(0f)] private float freezeMinToReactivate = 0.2f;
+
     [Header("Double Jump")]
     [Tooltip("Включает способность доп. прыжков в воздухе.")]
     [SerializeField] private bool doubleJumpEnabled = false;
@@ -77,6 +97,13 @@ public sealed class PlayerConfigSO : ScriptableObject
     public float WallJumpHorizontalVelocity => wallJumpHorizontalVelocity;
     public float WallJumpLockoutTime => wallJumpLockoutTime;
     public int WallJumpCount => wallJumpCount;
+
+    public int MaxHealth => maxHealth;
+
+    public InputActionReference FreezeAction => freezeAction;
+    public float FreezeMaxDuration => freezeMaxDuration;
+    public float FreezeRechargeSecondsPerSecond => freezeRechargeSecondsPerSecond;
+    public float FreezeMinToReactivate => freezeMinToReactivate;
 
     public bool DoubleJumpEnabled => doubleJumpEnabled;
     public int AirJumpCount => airJumpCount;

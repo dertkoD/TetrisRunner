@@ -16,9 +16,12 @@ GameObject:
   - component: {fileID: 7763938659550082240}
   - component: {fileID: 7005252166291759455}
   - component: {fileID: 1022987569021869951}
-  m_Layer: 0
+  - component: {fileID: 5555000000000000001}
+  - component: {fileID: 5555000000000000002}
+  - component: {fileID: 1758295582694427973}
+  m_Layer: 8
   m_Name: Player
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -130,6 +133,11 @@ MonoBehaviour:
   movement: {fileID: 7763938659550082240}
   jump: {fileID: 7005252166291759455}
   groundChecker: {fileID: 1022987569021869951}
+  wallChecker: {fileID: 0}
+  wallJump: {fileID: 0}
+  doubleJump: {fileID: 0}
+  health: {fileID: 5555000000000000001}
+  respawnAnchor: {fileID: 5555000000000000002}
 --- !u!114 &4197742775898903169
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -180,6 +188,70 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerGroundChecker
   config: {fileID: 11400000, guid: 826d45ab6160d90478caa1f8e4444891, type: 2}
+--- !u!114 &5555000000000000001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5150875803941336052}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d112c1fcfac94a69ac548f619c450054, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerHealth
+  config: {fileID: 11400000, guid: 826d45ab6160d90478caa1f8e4444891, type: 2}
+  manualMaxHealth: 3
+  dieAtZero: 1
+  OnHealthChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  OnDamaged:
+    m_PersistentCalls:
+      m_Calls: []
+  OnHealed:
+    m_PersistentCalls:
+      m_Calls: []
+  OnDied:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!114 &5555000000000000002
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5150875803941336052}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61b6cd9e5b084bb183a97b3a5e882da5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerRespawnAnchor
+  body: {fileID: 3434918879539031079}
+  useStartPositionAsInitialCheckpoint: 1
+--- !u!114 &1758295582694427973
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5150875803941336052}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 85a8a66f07f8435aa956c8f8e5e1d386, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerBlockFreeze
+  config: {fileID: 11400000, guid: 826d45ab6160d90478caa1f8e4444891, type: 2}
+  spawnManager: {fileID: 0}
+  OnBudgetChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  OnActivated:
+    m_PersistentCalls:
+      m_Calls: []
+  OnDeactivated:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &7358726200767095675
 GameObject:
   m_ObjectHideFlags: 0
@@ -190,7 +262,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8720017897012598121}
   - component: {fileID: 2228056603336561495}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Rendering
   m_TagString: Untagged
   m_Icon: {fileID: 0}

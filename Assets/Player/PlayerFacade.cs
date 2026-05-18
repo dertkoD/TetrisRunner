@@ -22,6 +22,12 @@ public class PlayerFacade : MonoBehaviour
     [Tooltip("Заполняй для персонажа, который умеет двойной прыжок.")]
     [SerializeField] private PlayerDoubleJump doubleJump;
 
+    [Header("Optional Health / Respawn")]
+    [Tooltip("HP игрока. Используется Deathzone для нанесения урона.")]
+    [SerializeField] private PlayerHealth health;
+    [Tooltip("Чекпоинт по последнему прыжку. Используется Deathzone для возврата игрока.")]
+    [SerializeField] private PlayerRespawnAnchor respawnAnchor;
+
     public PlayerConfigSO Config => config;
     public Rigidbody2D Body => body;
     public Transform BodyTransform => bodyTransform;
@@ -32,4 +38,27 @@ public class PlayerFacade : MonoBehaviour
     public PlayerWallChecker WallChecker => wallChecker;
     public PlayerWallJump WallJump => wallJump;
     public PlayerDoubleJump DoubleJump => doubleJump;
+
+    public PlayerHealth Health
+    {
+        get
+        {
+            // Если поле не назначили в инспекторе — попробуем найти компонент
+            // на этом же объекте. Так Deathzone и т.п. работают и без явной
+            // привязки в фасаде.
+            if (health == null)
+                health = GetComponent<PlayerHealth>();
+            return health;
+        }
+    }
+
+    public PlayerRespawnAnchor RespawnAnchor
+    {
+        get
+        {
+            if (respawnAnchor == null)
+                respawnAnchor = GetComponent<PlayerRespawnAnchor>();
+            return respawnAnchor;
+        }
+    }
 }
