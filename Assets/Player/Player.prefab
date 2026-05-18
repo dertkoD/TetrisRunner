@@ -18,6 +18,7 @@ GameObject:
   - component: {fileID: 1022987569021869951}
   - component: {fileID: 5555000000000000001}
   - component: {fileID: 5555000000000000002}
+  - component: {fileID: 1758295582694427973}
   m_Layer: 8
   m_Name: Player
   m_TagString: Player
@@ -228,6 +229,29 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerRespawnAnchor
   body: {fileID: 3434918879539031079}
   useStartPositionAsInitialCheckpoint: 1
+--- !u!114 &1758295582694427973
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5150875803941336052}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 85a8a66f07f8435aa956c8f8e5e1d386, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerBlockFreeze
+  config: {fileID: 11400000, guid: 826d45ab6160d90478caa1f8e4444891, type: 2}
+  spawnManager: {fileID: 0}
+  OnBudgetChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  OnActivated:
+    m_PersistentCalls:
+      m_Calls: []
+  OnDeactivated:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &7358726200767095675
 GameObject:
   m_ObjectHideFlags: 0
