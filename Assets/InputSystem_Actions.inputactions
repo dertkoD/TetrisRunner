@@ -131,6 +131,15 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
+                },
+                {
+                    "name": "Soft Drop",
+                    "type": "Button",
+                    "id": "f0dfe7c8-9c87-443a-bd0e-3412ec985c35",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -487,28 +496,6 @@
                     "isPartOfComposite": false
                 },
                 {
-                    "name": "up",
-                    "id": "bec162bf-ec43-4999-95c2-d57063fb8da4",
-                    "path": "<Keyboard>/upArrow",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": ";Keyboard&Mouse",
-                    "action": "MoveBlocks",
-                    "isComposite": false,
-                    "isPartOfComposite": true
-                },
-                {
-                    "name": "down",
-                    "id": "e6f08e5d-f5da-4109-ba50-877fc2c45978",
-                    "path": "<Keyboard>/downArrow",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": ";Keyboard&Mouse",
-                    "action": "MoveBlocks",
-                    "isComposite": false,
-                    "isPartOfComposite": true
-                },
-                {
                     "name": "left",
                     "id": "06406e61-0447-48e2-999b-e39c9a0298c9",
                     "path": "<Keyboard>/leftArrow",
@@ -559,7 +546,7 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "RotateRight",
+                    "action": "Freeze Blocks",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -570,7 +557,29 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "Freeze Blocks",
+                    "action": "Soft Drop",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "153d33fc-5d55-4b06-80b8-4bfaf9a43a47",
+                    "path": "<Keyboard>/upArrow",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "RotateLeft",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "02319f5d-9e10-4ee8-bfc1-9b860bdd4100",
+                    "path": "<Keyboard>/downArrow",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "RotateRight",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

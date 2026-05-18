@@ -14,6 +14,7 @@ public class TetrisBlockController : MonoBehaviour
     private TetrisBlockCells blockCells;
 
     private Vector2 moveInput;
+    private bool softDropActive;
 
     private bool initialized;
     private bool controlled;
@@ -76,7 +77,8 @@ public class TetrisBlockController : MonoBehaviour
             config,
             board,
             blockCells,
-            moveInput
+            moveInput,
+            softDropActive
         );
 
         if (result == TetrisBlockMoveResult.BlockedDown)
@@ -104,6 +106,12 @@ public class TetrisBlockController : MonoBehaviour
     public void SetHorizontalInput(float value)
     {
         SetMoveInput(new Vector2(value, moveInput.y));
+    }
+
+    /// <summary>Включает/выключает ускоренное падение (soft-drop) для активного блока.</summary>
+    public void SetSoftDrop(bool value)
+    {
+        softDropActive = value;
     }
 
     public void Rotate(int direction)

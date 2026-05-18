@@ -134,7 +134,8 @@ public class TetrisBlockMovement : MonoBehaviour
         TetrisBlockConfigSO config,
         TetrisGridBoard board,
         TetrisBlockCells blockCells,
-        Vector2 moveInput)
+        Vector2 moveInput,
+        bool softDropButtonHeld = false)
     {
         if (body == null || board == null || blockCells == null)
             return TetrisBlockMoveResult.Moving;
@@ -176,8 +177,9 @@ public class TetrisBlockMovement : MonoBehaviour
             }
         }
 
-        // Soft-drop: при удержании "вниз" блок падает быстрее.
-        bool softDropping = moveInput.y < -0.1f;
+        // Soft-drop: ускоряем падение либо при удержании отдельной кнопки (Shift),
+        // либо если ввод по Y отрицательный (поддержка геймпадов/стиков).
+        bool softDropping = softDropButtonHeld || moveInput.y < -0.1f;
         float softDropMultiplier = Mathf.Max(1f, config != null ? config.SoftDropMultiplier : 1f);
         float fallStepTickSpeed = softDropping ? softDropMultiplier : 1f;
 

@@ -27,6 +27,7 @@ public class TetrisBlockSpawnManager : MonoBehaviour
     private InputAction moveAction;
     private InputAction rotateLeftAction;
     private InputAction rotateRightAction;
+    private InputAction softDropAction;
 
     private bool isRunning;
     private float spawnDelayTimer;
@@ -77,6 +78,7 @@ public class TetrisBlockSpawnManager : MonoBehaviour
         moveAction = config.MoveAction != null ? config.MoveAction.action : null;
         rotateLeftAction = config.RotateLeftAction != null ? config.RotateLeftAction.action : null;
         rotateRightAction = config.RotateRightAction != null ? config.RotateRightAction.action : null;
+        softDropAction = config.SoftDropAction != null ? config.SoftDropAction.action : null;
 
         if (toggleSpawnAction == null || moveAction == null || rotateLeftAction == null || rotateRightAction == null)
         {
@@ -100,6 +102,13 @@ public class TetrisBlockSpawnManager : MonoBehaviour
         moveAction.Enable();
         rotateLeftAction.Enable();
         rotateRightAction.Enable();
+
+        if (softDropAction != null)
+        {
+            softDropAction.performed += OnSoftDropPerformed;
+            softDropAction.canceled += OnSoftDropCanceled;
+            softDropAction.Enable();
+        }
     }
 
     private void OnDisable()
@@ -117,6 +126,13 @@ public class TetrisBlockSpawnManager : MonoBehaviour
         moveAction.Disable();
         rotateLeftAction.Disable();
         rotateRightAction.Disable();
+
+        if (softDropAction != null)
+        {
+            softDropAction.performed -= OnSoftDropPerformed;
+            softDropAction.canceled -= OnSoftDropCanceled;
+            softDropAction.Disable();
+        }
     }
 
     private void FixedUpdate()
@@ -224,6 +240,22 @@ public class TetrisBlockSpawnManager : MonoBehaviour
             return;
 
         activeBlock.Rotate(1);
+    }
+
+    private void OnSoftDropPerformed(InputAction.CallbackContext context)
+    {
+        if (activeBlock == null)
+            return;
+
+        activeBlock.SetSoftDrop(true);
+    }
+
+    private void OnSoftDropCanceled(InputAction.CallbackContext context)
+    {
+        if (activeBlock == null)
+            return;
+
+        activeBlock.SetSoftDrop(false);
     }
 
     private void SetRunning(bool value)
