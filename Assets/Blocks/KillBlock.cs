@@ -734,6 +734,16 @@ public class KillBlock : MonoBehaviour
 
     private void TickJammed()
     {
+        // Если игрок выбил блок, который удерживал Kill Block — снова падаем.
+        if (CanDropOneCellNow())
+        {
+            if (verboseLogs)
+                Debug.Log($"{nameof(KillBlock)} '{name}': опора под блоком пропала — возобновляю падение.", this);
+            state = State.Falling;
+            resetTimer = 0f;
+            return;
+        }
+
         if (resetWhenPlayerLeavesArea && !IsPlayerOnTriggerPlatform())
         {
             ResetToStart();
@@ -746,6 +756,51 @@ public class KillBlock : MonoBehaviour
         resetTimer += Time.fixedDeltaTime;
         if (resetTimer >= autoResetDelay)
             ResetToStart();
+    }
+
+    /// <summary>
+    /// Можно ли прямо сейчас сделать шаг на одну клетку вниз: все целевые клетки
+    /// либо ниже сетки (тогда блок проваливается и разрушается дальше по логике),
+    /// либо внутри сетки и пусты. Используется в Jammed, чтобы вовремя
+    /// возобновить падение, когда опора исчезла (например, поддерживающий блок
+    /// уничтожен схлопыванием по цвету или провалился от гравитации).
+    /// </summary>
+    private bool CanDropOneCellNow()
+    {
+        if (board == null || placedBlock == null)
+            return false;
+
+        Vector2Int[] offsets = placedBlock.CellOffsets;
+        if (offsets == null || offsets.Length == 0)
+            return false;
+
+        Vector2Int pivot = placedBlock.PivotCell;
+
+        // Свои клетки исключаем (для многострочного KillBlock новый набор
+        // частично пересекается со старым).
+        HashSet<Vector2Int> selfCells = new HashSet<Vector2Int>(offsets.Length);
+        for (int i = 0; i < offsets.Length; i++)
+            selfCells.Add(pivot + offsets[i]);
+
+        Vector2Int newPivot = pivot + Vector2Int.down;
+        for (int i = 0; i < offsets.Length; i++)
+        {
+            Vector2Int newCell = newPivot + offsets[i];
+
+            if (!board.IsInside(newCell))
+            {
+                // Снизу за сеткой — это валидное «продолжение падения».
+                if (newCell.y < 0)
+                    continue;
+                // Сбоку за сеткой быть не должно при шаге вниз.
+                return false;
+            }
+
+            if (board.IsOccupied(newCell) && !selfCells.Contains(newCell))
+                return false;
+        }
+
+        return true;
     }
 
     private void ResetToStart()
