@@ -138,9 +138,22 @@ public class KillBlock : MonoBehaviour
 
     private State state = State.Idle;
     private float resetTimer;
-    private float cellAccumulator;
     private PlayerFacade lastHitPlayer;
     private float lastHitTime = -999f;
+
+    // Анимация одного клеточного шага: визуал плавно едет из start в end
+    // за время stepDuration (= 1 / fallSpeedCellsPerSec).
+    private struct StepAnim
+    {
+        public Transform target;
+        public Vector3 from;
+        public Vector3 to;
+    }
+
+    private readonly List<StepAnim> stepAnims = new List<StepAnim>();
+    private float stepAnimProgress;
+    private float stepAnimDuration;
+    private bool stepAnimDestroyAfter;
 
     // Буферы.
     private readonly Collider2D[] overlapBuffer = new Collider2D[16];
@@ -373,20 +386,61 @@ public class KillBlock : MonoBehaviour
     private void TransitionToFalling()
     {
         state = State.Falling;
-        cellAccumulator = 0f;
         if (verboseLogs)
             Debug.Log($"{nameof(KillBlock)} '{name}': игрок над платформой — падаю.", this);
     }
 
     private void FallTick()
     {
-        cellAccumulator += fallSpeedCellsPerSec * Time.fixedDeltaTime;
-        int safety = 16;
-        while (cellAccumulator >= 1f && state == State.Falling && safety-- > 0)
+        // Если идёт анимация клеточного шага — следующий клеточный сдвиг
+        // отложим до её завершения. Сам шаг визуала проигрывается в Update.
+        if (stepAnims.Count > 0)
+            return;
+
+        DropOneCell();
+    }
+
+    private void Update()
+    {
+        // Плавное проигрывание анимации одного шага падения.
+        if (stepAnims.Count == 0)
+            return;
+
+        stepAnimProgress += Time.deltaTime / Mathf.Max(0.0001f, stepAnimDuration);
+        float t = Mathf.Clamp01(stepAnimProgress);
+
+        for (int i = 0; i < stepAnims.Count; i++)
         {
-            cellAccumulator -= 1f;
-            DropOneCell();
+            StepAnim s = stepAnims[i];
+            if (s.target == null) continue;
+            Vector3 pos = Vector3.Lerp(s.from, s.to, t);
+            s.target.position = pos;
+            // Для самого KillBlock дополнительно тянем Rigidbody2D, чтобы
+            // физика и триггеры (BoxCast, OverlapBox) видели свежую позицию.
+            if (s.target == transform && ownBody != null)
+                ownBody.position = new Vector2(pos.x, pos.y);
         }
+
+        if (t < 1f)
+            return;
+
+        // Анимация завершена — фиксируем финальные позиции и при необходимости уничтожаем.
+        for (int i = 0; i < stepAnims.Count; i++)
+        {
+            StepAnim s = stepAnims[i];
+            if (s.target == null) continue;
+            s.target.position = s.to;
+            if (s.target == transform && ownBody != null)
+                ownBody.position = new Vector2(s.to.x, s.to.y);
+        }
+
+        bool destroyAfter = stepAnimDestroyAfter;
+        stepAnims.Clear();
+        stepAnimProgress = 0f;
+        stepAnimDestroyAfter = false;
+
+        if (destroyAfter)
+            DestroySelfAndRiders();
     }
 
     /// <summary>Пытается опуститься на одну клетку вниз. Сначала проверяет игрока через BoxCast, потом — сетку.</summary>
@@ -397,7 +451,7 @@ public class KillBlock : MonoBehaviour
         // 1) Физический скан на игрока (он не лежит в сетке). При попадании
         //    наносим урон + телепортируем игрока в чекпоинт, но НЕ
         //    останавливаемся — KillBlock продолжает падать дальше, пока не
-        //    встретит реальный блок / Ground / низ сетки. Так и просил геймдиз.
+        //    встретит реальный блок / Ground / низ сетки.
         if (TryHitPlayerOneCellBelow(cellSize, out PlayerFacade hitPlayer, out _))
         {
             ApplyHitToPlayer(hitPlayer);
@@ -408,26 +462,32 @@ public class KillBlock : MonoBehaviour
         if (board != null && placedBlock != null)
         {
             Vector3 oldPos = transform.position;
+
+            // Проверим заранее, не уходит ли шаг за нижнюю границу сетки —
+            // тогда нужно НЕ просто откатиться, а проиграть финальный кадр
+            // падения и уничтожиться.
+            if (WouldFallOffGridBottom())
+            {
+                Vector2Int newPivot = placedBlock.PivotCell + Vector2Int.down;
+                board.UnregisterBlock(placedBlock);
+                placedBlock.SetLogicalCell(newPivot);
+
+                Vector3 destination = board.CellToWorld(newPivot) + visualOffset;
+                BeginCellStepAnimation(oldPos, destination, destroyAfter: true);
+
+                if (verboseLogs)
+                    Debug.Log($"{nameof(KillBlock)} '{name}': уходит за нижнюю границу сетки — последний кадр падения с уничтожением.", this);
+                return;
+            }
+
             bool moved = board.TryMovePlacedBlockWithStack(placedBlock, Vector2Int.down);
 
             if (moved)
             {
-                // TryMove… снапает Transform в центр новой pivot-клетки. Восстановим
-                // наш визуальный сдвиг — иначе спрайт прыгает в центр клетки.
-                Vector3 desired = board.CellToWorld(placedBlock.PivotCell) + visualOffset;
-                transform.position = desired;
-                if (ownBody != null) ownBody.position = desired;
-
-                MoveRidersBy(transform.position - oldPos);
-                return;
-            }
-
-            // Шаг не удался. Разбираемся: реальное препятствие или дно сетки.
-            if (WouldFallOffGridBottom())
-            {
-                if (verboseLogs)
-                    Debug.Log($"{nameof(KillBlock)} '{name}': вышел за нижнюю границу сетки без опоры — самоуничтожение вместе с райдерами.", this);
-                DestroySelfAndRiders();
+                // TryMove… снапает Transform в центр новой pivot-клетки. Откатываем
+                // визуал на старое место и запускаем плавную анимацию шага.
+                Vector3 destination = board.CellToWorld(placedBlock.PivotCell) + visualOffset;
+                BeginCellStepAnimation(oldPos, destination, destroyAfter: false);
                 return;
             }
 
@@ -437,12 +497,53 @@ public class KillBlock : MonoBehaviour
             return;
         }
 
-        // Fallback: нет сетки — просто двигаем Transform.
+        // Fallback: нет сетки — просто плавно двигаем Transform.
         Vector3 fallbackOld = transform.position;
         Vector3 fallbackNew = fallbackOld + Vector3.down * cellSize;
-        transform.position = fallbackNew;
-        if (ownBody != null) ownBody.position = fallbackNew;
-        MoveRidersBy(fallbackNew - fallbackOld);
+        BeginCellStepAnimation(fallbackOld, fallbackNew, destroyAfter: false);
+    }
+
+    /// <summary>
+    /// Готовит анимацию одного клеточного шага: запоминает старт/финал для
+    /// Kill Block'а и каждого райдера, откатывает их визуально на старт, чтобы
+    /// в <see cref="Update"/> они плавно "доехали" до финальной точки.
+    /// </summary>
+    private void BeginCellStepAnimation(Vector3 platformOldPos, Vector3 platformNewPos, bool destroyAfter)
+    {
+        stepAnims.Clear();
+        stepAnimProgress = 0f;
+        stepAnimDestroyAfter = destroyAfter;
+
+        // Длительность шага = время на 1 клетку = 1 / fallSpeed.
+        stepAnimDuration = 1f / Mathf.Max(0.0001f, fallSpeedCellsPerSec);
+
+        // Сам Kill Block.
+        stepAnims.Add(new StepAnim
+        {
+            target = transform,
+            from = platformOldPos,
+            to = platformNewPos,
+        });
+
+        // Откатываем визуал к старту, чтобы анимация шла "сверху-вниз".
+        transform.position = platformOldPos;
+        if (ownBody != null)
+            ownBody.position = platformOldPos;
+
+        // Райдеры — на ту же дельту.
+        Vector3 worldDelta = platformNewPos - platformOldPos;
+        if (riders != null && riders.Count > 0 && worldDelta.sqrMagnitude > 1e-8f)
+        {
+            for (int i = 0; i < riders.Count; i++)
+            {
+                Transform t = riders[i];
+                if (t == null) continue;
+                Vector3 rOld = t.position;
+                Vector3 rNew = rOld + worldDelta;
+                stepAnims.Add(new StepAnim { target = t, from = rOld, to = rNew });
+                t.position = rOld; // уже на месте, но для симметрии
+            }
+        }
     }
 
     private bool TryHitPlayerOneCellBelow(float cellSize, out PlayerFacade player, out float hitDistance)
@@ -554,7 +655,8 @@ public class KillBlock : MonoBehaviour
     {
         state = State.Jammed;
         resetTimer = 0f;
-        cellAccumulator = 0f;
+        stepAnims.Clear();
+        stepAnimProgress = 0f;
     }
 
     /// <summary>
@@ -686,7 +788,8 @@ public class KillBlock : MonoBehaviour
 
         state = State.Idle;
         resetTimer = 0f;
-        cellAccumulator = 0f;
+        stepAnims.Clear();
+        stepAnimProgress = 0f;
 
         if (verboseLogs)
             Debug.Log($"{nameof(KillBlock)} '{name}': сброс на исходную позицию (с {oldPos}).", this);

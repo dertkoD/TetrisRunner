@@ -24,6 +24,11 @@ public class TetrisGridBoard : MonoBehaviour
              "дочерний объект 'PlacedBlocks' автоматически.")]
     [SerializeField] private Transform placedBlocksParent;
 
+    [Header("Fall Animation")]
+    [Tooltip("Скорость падения блоков при гравитации (мировых единиц в секунду). " +
+             "0 — мгновенный телепорт на новое место (старое поведение).")]
+    [SerializeField, Min(0f)] private float fallAnimationSpeed = 12f;
+
     /// <summary>cell -> блок, который занимает эту клетку.</summary>
     private readonly Dictionary<Vector2Int, TetrisPlacedBlock> cellsToBlock = new Dictionary<Vector2Int, TetrisPlacedBlock>();
 
@@ -32,6 +37,7 @@ public class TetrisGridBoard : MonoBehaviour
     public float CellSize => cellSize;
     public int Width => width;
     public int Height => height;
+    public float FallAnimationSpeed => fallAnimationSpeed;
 
     /// <summary>Возвращает уникальный идентификатор блока (используется при локе).</summary>
     public static int AllocateBlockId()
@@ -481,13 +487,23 @@ public class TetrisGridBoard : MonoBehaviour
             return false;
 
         Vector2Int newPivot = block.PivotCell + Vector2Int.down;
+        bool anyBelowBoard = false;
 
         for (int i = 0; i < offsets.Length; i++)
         {
             Vector2Int newCell = newPivot + offsets[i];
 
             if (!IsInside(newCell))
+            {
+                // Сегмент уходит за нижний край сетки — отметим, но проверим
+                // остальные клетки: вдруг рядом обычная опора.
+                if (newCell.y < 0)
+                {
+                    anyBelowBoard = true;
+                    continue;
+                }
                 return false;
+            }
 
             if (cellsToBlock.TryGetValue(newCell, out TetrisPlacedBlock occupant)
                 && occupant != null
@@ -497,8 +513,25 @@ public class TetrisGridBoard : MonoBehaviour
             }
         }
 
+        if (anyBelowBoard)
+        {
+            // Под блоком ничего нет, и часть клеток уже за нижней границей —
+            // блок проваливается. Снимаем с сетки и запускаем последнюю
+            // анимацию падения «в никуда», по её завершении GameObject
+            // уничтожится. Гравитация других блоков на следующих итерациях
+            // увидит освобождённые клетки.
+            UnregisterBlock(block);
+            block.SetLogicalCell(newPivot);
+
+            Vector3 belowGridWorld = CellToWorld(newPivot) + Vector3.down * cellSize * 1.5f;
+            block.BeginAnimatedMoveTo(belowGridWorld, fallAnimationSpeed);
+            block.SetAnimationDestroyOnEnd(true);
+            return true;
+        }
+
+        // Обычное падение на одну клетку с анимацией.
         UnregisterBlock(block);
-        block.MoveToCell(newPivot, CellToWorld(newPivot));
+        block.MoveToCellAnimated(newPivot, CellToWorld(newPivot), fallAnimationSpeed);
         RegisterBlock(block);
         return true;
     }

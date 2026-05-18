@@ -87,6 +87,17 @@ public class TetrisGridMovingPlatform : MonoBehaviour
              "идёт к следующему.")]
     [SerializeField] private bool retryWhenBlocked = true;
 
+    [Header("Player Carry")]
+    [Tooltip("Если true — игрок, стоящий на верхней грани платформы, едет вместе с ней.")]
+    [SerializeField] private bool carryPlayer = true;
+
+    [Tooltip("Высота зоны над платформой, в которой ищется игрок-наездник (мировые единицы). " +
+             "Должна быть немного больше, чем зазор между ногами игрока и поверхностью платформы.")]
+    [SerializeField, Min(0.05f)] private float playerCarryDetectHeight = 0.25f;
+
+    [Tooltip("Слои, считающиеся игроком. Если Nothing — детектор ищет компонент PlayerFacade.")]
+    [SerializeField] private LayerMask playerLayers = 0;
+
     [Header("Debug")]
     [Tooltip("По умолчанию включено — в консоль пишутся стартовая регистрация клеток, " +
              "каждый шаг и причина блокировки шага. Когда всё работает, можно отключить.")]
@@ -94,12 +105,14 @@ public class TetrisGridMovingPlatform : MonoBehaviour
 
     private TetrisPlacedBlock platformBlock;
     private Rigidbody2D platformBody;
+    private Collider2D platformCollider;
     private Vector3 visualOffset;
     private float stepTimer;
     private int currentWaypointIndex;
     private bool finished;
     private bool initialized;
     private bool firstStepDone;
+    private readonly Collider2D[] playerScanBuffer = new Collider2D[8];
 
     // Состояние плавной анимации одного шага.
     private struct AnimEntry
@@ -158,6 +171,9 @@ public class TetrisGridMovingPlatform : MonoBehaviour
             Debug.LogWarning($"{nameof(TetrisGridMovingPlatform)}: TetrisGridBoard не найден в сцене.", this);
             return;
         }
+
+        if (platformCollider == null)
+            platformCollider = GetComponentInChildren<Collider2D>();
 
         List<Vector2Int> cells = ResolveCells();
 
@@ -224,17 +240,26 @@ public class TetrisGridMovingPlatform : MonoBehaviour
         if (animEntries == null || animEntries.Count == 0)
             return;
 
+        float prevProgress = Mathf.Clamp01(animProgress);
         animProgress += Time.deltaTime / Mathf.Max(0.0001f, moveInterval);
-
         float t = Mathf.Clamp01(animProgress);
+
+        Vector3 platformDelta = Vector3.zero;
 
         for (int i = 0; i < animEntries.Count; i++)
         {
             AnimEntry e = animEntries[i];
             if (e.block == null) continue;
+            Vector3 prevPos = Vector3.Lerp(e.from, e.to, prevProgress);
             Vector3 pos = Vector3.Lerp(e.from, e.to, t);
             e.block.SetVisualPosition(pos);
+
+            if (e.block == platformBlock)
+                platformDelta = pos - prevPos;
         }
+
+        if (platformDelta.sqrMagnitude > 1e-8f)
+            CarryPlayerOnTop(platformDelta);
 
         if (t >= 1f)
             animEntries = null;
@@ -333,6 +358,9 @@ public class TetrisGridMovingPlatform : MonoBehaviour
             }
         }
 
+        // Запоминаем стартовую позицию платформы — нужна, чтобы потом передвинуть игрока.
+        Vector3 platformPreStep = transform.position;
+
         bool moved = board.TryMovePlacedBlockWithStack(platformBlock, step);
 
         if (!moved)
@@ -363,6 +391,7 @@ public class TetrisGridMovingPlatform : MonoBehaviour
         {
             // Дискретный режим — мгновенно ставим всех в финальные позиции.
             platformBlock.SetVisualPosition(platformPostSnap);
+            CarryPlayerOnTop(platformPostSnap - platformPreStep);
             return;
         }
 
@@ -419,6 +448,52 @@ public class TetrisGridMovingPlatform : MonoBehaviour
 
         currentWaypointIndex = waypoints.Length - 1;
         finished = true;
+    }
+
+    /// <summary>
+    /// Если на верхней грани платформы стоит игрок — двигает его на ту же
+    /// дельту, что и платформа. Делает это и в дискретном, и в плавном режиме.
+    /// </summary>
+    private void CarryPlayerOnTop(Vector3 worldDelta)
+    {
+        if (!carryPlayer)
+            return;
+
+        if (worldDelta.sqrMagnitude < 1e-8f)
+            return;
+
+        if (platformCollider == null)
+            platformCollider = GetComponentInChildren<Collider2D>();
+
+        if (platformCollider == null)
+            return;
+
+        Bounds b = platformCollider.bounds;
+        Vector2 center = new Vector2(b.center.x, b.max.y + playerCarryDetectHeight * 0.5f);
+        Vector2 size = new Vector2(Mathf.Max(0.05f, b.size.x), playerCarryDetectHeight);
+
+        int n;
+        if (playerLayers.value != 0)
+            n = Physics2D.OverlapBoxNonAlloc(center, size, 0f, playerScanBuffer, playerLayers);
+        else
+            n = Physics2D.OverlapBoxNonAlloc(center, size, 0f, playerScanBuffer);
+
+        for (int i = 0; i < n; i++)
+        {
+            Collider2D c = playerScanBuffer[i];
+            if (c == null) continue;
+
+            PlayerFacade pf = c.GetComponent<PlayerFacade>()
+                              ?? c.GetComponentInParent<PlayerFacade>();
+            if (pf == null) continue;
+
+            // Двигаем тело игрока. Динамическому RB достаточно body.position,
+            // но обновим и transform для согласованности.
+            Vector3 newPos = pf.transform.position + worldDelta;
+            pf.transform.position = newPos;
+            if (pf.Body != null)
+                pf.Body.position = new Vector2(newPos.x, newPos.y);
+        }
     }
 
     private static Vector2Int ComputeStep(Vector2Int delta)
