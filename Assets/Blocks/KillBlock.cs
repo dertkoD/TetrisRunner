@@ -162,20 +162,20 @@ public class KillBlock : MonoBehaviour
         if (board == null)
             board = FindFirstObjectByType<TetrisGridBoard>();
 
-        if (board == null)
+        /*if (board == null)
         {
             Debug.LogWarning($"{nameof(KillBlock)} '{name}': TetrisGridBoard не найден — Kill Block не будет занимать клетки сетки.", this);
             CaptureRiderOffsets();
             return;
-        }
+        }*/
 
         List<Vector2Int> cells = ResolveCells();
-        if (cells == null || cells.Count == 0)
+        /*if (cells == null || cells.Count == 0)
         {
             Debug.LogWarning($"{nameof(KillBlock)} '{name}': не удалось определить клетки.", this);
             CaptureRiderOffsets();
             return;
-        }
+        }*/
 
         Vector2Int pivot = cells[0];
         Vector2Int[] offsets = new Vector2Int[cells.Count];

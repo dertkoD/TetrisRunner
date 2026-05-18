@@ -2064,9 +2064,21 @@ PrefabInstance:
       value: KillBlock
       objectReference: {fileID: 0}
     - target: {fileID: 7515432441722256987, guid: f597927c94f94ae48bee462da92c2680, type: 3}
+      propertyPath: board
+      value: 
+      objectReference: {fileID: 1285392918}
+    - target: {fileID: 7515432441722256987, guid: f597927c94f94ae48bee462da92c2680, type: 3}
       propertyPath: triggerPlatformCollider
       value: 
       objectReference: {fileID: 1723231519}
+    - target: {fileID: 7515432441722256987, guid: f597927c94f94ae48bee462da92c2680, type: 3}
+      propertyPath: attachedRiders.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7515432441722256987, guid: f597927c94f94ae48bee462da92c2680, type: 3}
+      propertyPath: 'attachedRiders.Array.data[0]'
+      value: 
+      objectReference: {fileID: 1039330126}
     - target: {fileID: 8516255792378897519, guid: f597927c94f94ae48bee462da92c2680, type: 3}
       propertyPath: m_LocalPosition.x
       value: 4.4068
