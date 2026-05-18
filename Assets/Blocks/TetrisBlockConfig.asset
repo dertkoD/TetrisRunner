@@ -16,6 +16,7 @@ MonoBehaviour:
   moveAction: {fileID: 7329743444415074453, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
   rotateLeftAction: {fileID: -4684518472287713469, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
   rotateRightAction: {fileID: 7723348945565235230, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
+  softDropAction: {fileID: 5390057950536644350, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
   blockPrefabs:
   - {fileID: 3092340227535929987, guid: fd78f1a4f3c81ec45a35d1fa6e7dc237, type: 3}
   - {fileID: 1973468500140566148, guid: 948f0f29f09e6674e9e1796d60fb7583, type: 3}
@@ -42,9 +43,9 @@ MonoBehaviour:
   horizontalStepDistance: 1
   horizontalStepRepeatTime: 0.12
   fallStepDistance: 1
-  fallStepInterval: 0.83
-  softDropMultiplier: 4
-  spawnDelay: 1.04
+  fallStepInterval: 0.6
+  softDropMultiplier: 10
+  spawnDelay: 1.1
   rotationStepDegrees: 90
   freezeRotationWhileControlled: 1
   releasedGravityScale: 1
