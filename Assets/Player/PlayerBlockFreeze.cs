@@ -3,11 +3,17 @@ using UnityEngine.Events;
 using UnityEngine.InputSystem;
 
 /// <summary>
-/// Способность "Заморозить блоки". Игрок удерживает кнопку — блоки в сетке
-/// не двигаются (через <see cref="TetrisBlockSpawnManager.SetExternalFreeze"/>).
-/// Доступное время ограничено (<see cref="PlayerConfigSO.FreezeMaxDuration"/>),
-/// способность медленно восстанавливается, когда не используется
-/// (<see cref="PlayerConfigSO.FreezeRechargeSecondsPerSecond"/>).
+/// Способность "Заморозить блоки". Работает по принципу ТОГГЛА: одно нажатие
+/// включает заморозку, повторное нажатие — выключает. Удерживать кнопку не нужно.
+///
+/// Пока заморозка активна, блоки в сетке не двигаются (через
+/// <see cref="TetrisBlockSpawnManager.SetExternalFreeze"/>) и расходуется запас
+/// (<see cref="PlayerConfigSO.FreezeMaxDuration"/> секунд). Когда запас иссякает,
+/// заморозка автоматически отключается. Между активациями способность
+/// восстанавливается со скоростью
+/// <see cref="PlayerConfigSO.FreezeRechargeSecondsPerSecond"/> секунд за секунду.
+/// Включить заново можно, когда запас вырос как минимум до
+/// <see cref="PlayerConfigSO.FreezeMinToReactivate"/>.
 ///
 /// <see cref="BudgetFraction"/> от 0 до 1 удобно отдавать в Image.fillAmount
 /// для UI-шкалы.
@@ -30,9 +36,8 @@ public class PlayerBlockFreeze : MonoBehaviour
     private InputAction freezeAction;
     private float budget;
     private float maxBudget;
-    private bool requestActive;
+    private bool toggleActive;
     private bool isActive;
-    private bool exhaustedSinceRelease;
 
     public float Budget => budget;
     public float MaxBudget => maxBudget;
@@ -73,7 +78,6 @@ public class PlayerBlockFreeze : MonoBehaviour
             return;
 
         freezeAction.performed += OnFreezePressed;
-        freezeAction.canceled += OnFreezeReleased;
         freezeAction.Enable();
     }
 
@@ -82,52 +86,52 @@ public class PlayerBlockFreeze : MonoBehaviour
         if (freezeAction != null)
         {
             freezeAction.performed -= OnFreezePressed;
-            freezeAction.canceled -= OnFreezeReleased;
             freezeAction.Disable();
         }
 
+        toggleActive = false;
         SetActive(false);
     }
 
     private void OnFreezePressed(InputAction.CallbackContext ctx)
     {
-        requestActive = true;
-    }
+        // Toggle. Каждое нажатие переключает: вкл → выкл и наоборот.
+        if (toggleActive)
+        {
+            toggleActive = false;
+            return;
+        }
 
-    private void OnFreezeReleased(InputAction.CallbackContext ctx)
-    {
-        requestActive = false;
-        exhaustedSinceRelease = false;
+        // Нельзя включить, если запас слишком мал — заставим подождать перезарядки.
+        float minToActivate = Mathf.Max(0f, config.FreezeMinToReactivate);
+        if (budget <= minToActivate)
+            return;
+
+        toggleActive = true;
     }
 
     private void Update()
     {
         float dt = Time.deltaTime;
-        bool canActivate = requestActive && !exhaustedSinceRelease;
 
-        // Если запас полностью иссяк во время удержания — заставим игрока
-        // сначала отпустить кнопку и подождать минимума, прежде чем снова
-        // нажать. Иначе при микро-зарядке заморозка дёргается.
-        if (canActivate && budget <= 0f)
+        if (toggleActive)
         {
-            exhaustedSinceRelease = true;
-            canActivate = false;
-        }
+            // Заморозка активна: тратим запас. Когда дошли до нуля — автоматически выключаемся.
+            budget -= dt;
+            if (budget <= 0f)
+            {
+                budget = 0f;
+                toggleActive = false;
+            }
 
-        if (canActivate)
-        {
-            budget = Mathf.Max(0f, budget - dt);
-            SetActive(true);
+            SetActive(toggleActive);
         }
         else
         {
+            // Заморозка не активна: восстанавливаем запас.
             float recharge = Mathf.Max(0f, config.FreezeRechargeSecondsPerSecond);
             if (recharge > 0f && budget < maxBudget)
                 budget = Mathf.Min(maxBudget, budget + recharge * dt);
-
-            // Когда запас восстановился до порога — даём возможность снова активировать.
-            if (exhaustedSinceRelease && budget >= Mathf.Max(0f, config.FreezeMinToReactivate))
-                exhaustedSinceRelease = false;
 
             SetActive(false);
         }
