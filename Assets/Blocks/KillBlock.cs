@@ -104,6 +104,11 @@ public class KillBlock : MonoBehaviour
              "последнюю точку прыжка (PlayerRespawnAnchor).")]
     [SerializeField] private bool teleportPlayerOnHit = true;
 
+    [Tooltip("Минимальный интервал в секундах между повторными ударами по тому же игроку. " +
+             "Защищает от повторного нанесения урона за один и тот же 'проход', пока " +
+             "телепорт ещё не успел увести игрока из колонки падения.")]
+    [SerializeField, Min(0f)] private float hitCooldown = 0.2f;
+
     [Header("Reset")]
     [Tooltip("Через сколько секунд после остановки Kill Block вернётся на исходную позицию. " +
              "0 — не возвращать (одноразовая ловушка).")]
@@ -134,6 +139,8 @@ public class KillBlock : MonoBehaviour
     private State state = State.Idle;
     private float resetTimer;
     private float cellAccumulator;
+    private PlayerFacade lastHitPlayer;
+    private float lastHitTime = -999f;
 
     // Буферы.
     private readonly Collider2D[] overlapBuffer = new Collider2D[16];
@@ -162,20 +169,20 @@ public class KillBlock : MonoBehaviour
         if (board == null)
             board = FindFirstObjectByType<TetrisGridBoard>();
 
-        /*if (board == null)
+        if (board == null)
         {
             Debug.LogWarning($"{nameof(KillBlock)} '{name}': TetrisGridBoard не найден — Kill Block не будет занимать клетки сетки.", this);
-            CaptureRiderOffsets();
+            BuildRiderList();
             return;
-        }*/
+        }
 
         List<Vector2Int> cells = ResolveCells();
-        /*if (cells == null || cells.Count == 0)
+        if (cells == null || cells.Count == 0)
         {
             Debug.LogWarning($"{nameof(KillBlock)} '{name}': не удалось определить клетки.", this);
-            CaptureRiderOffsets();
+            BuildRiderList();
             return;
-        }*/
+        }
 
         Vector2Int pivot = cells[0];
         Vector2Int[] offsets = new Vector2Int[cells.Count];
@@ -387,18 +394,14 @@ public class KillBlock : MonoBehaviour
     {
         float cellSize = board != null ? board.CellSize : 1f;
 
-        // 1) Физический скан на игрока (он не лежит в сетке).
-        if (TryHitPlayerOneCellBelow(cellSize, out PlayerFacade hitPlayer, out float hitDistance))
+        // 1) Физический скан на игрока (он не лежит в сетке). При попадании
+        //    наносим урон + телепортируем игрока в чекпоинт, но НЕ
+        //    останавливаемся — KillBlock продолжает падать дальше, пока не
+        //    встретит реальный блок / Ground / низ сетки. Так и просил геймдиз.
+        if (TryHitPlayerOneCellBelow(cellSize, out PlayerFacade hitPlayer, out _))
         {
-            // Подъезжаем впритык к игроку и фиксируемся.
-            Vector3 oldPos = transform.position;
-            transform.position = oldPos + Vector3.down * Mathf.Max(0f, hitDistance - 0.001f);
-            if (ownBody != null) ownBody.position = transform.position;
-
-            MoveRidersBy(transform.position - oldPos);
             ApplyHitToPlayer(hitPlayer);
-            EnterJammed();
-            return;
+            // Сразу проходим к шагу в сетке ниже — игрок уже улетел в чекпоинт.
         }
 
         // 2) Шаг в сетке (или без неё, если board не задан).
@@ -521,6 +524,15 @@ public class KillBlock : MonoBehaviour
     {
         if (pf == null) return;
 
+        // Защита от повторного удара по тому же игроку за один "пролёт":
+        // BoxCast мог зацепить игрока несколько тактов подряд, пока он не
+        // успел телепортироваться, или соседняя клетка ловит его ещё раз.
+        if (pf == lastHitPlayer && Time.time - lastHitTime < hitCooldown)
+            return;
+
+        lastHitPlayer = pf;
+        lastHitTime = Time.time;
+
         PlayerHealth health = pf.Health != null ? pf.Health : pf.GetComponent<PlayerHealth>();
         if (health != null && damage > 0)
             health.TakeDamage(damage);
@@ -535,7 +547,7 @@ public class KillBlock : MonoBehaviour
         }
 
         if (verboseLogs)
-            Debug.Log($"{nameof(KillBlock)} '{name}': попал в игрока. damage={damage}, teleport={teleportPlayerOnHit}.", this);
+            Debug.Log($"{nameof(KillBlock)} '{name}': попал в игрока. damage={damage}, teleport={teleportPlayerOnHit}. Падение продолжается.", this);
     }
 
     private void EnterJammed()
