@@ -53,6 +53,14 @@ public class KillBlock : MonoBehaviour
              "что и Kill Block, при каждом клеточном шаге.")]
     [SerializeField] private Transform[] attachedRiders;
 
+    [Tooltip("Автоматически найти и подцепить к Kill Block все объекты, которые " +
+             "находятся в полосе ровно над верхним краем коллайдера (1 клетка вверх). " +
+             "Так шипы / Deathzone, лежащие сверху, поедут вниз даже без явной привязки.")]
+    [SerializeField] private bool autoDiscoverRidersOnTop = true;
+
+    [Tooltip("Высота полосы поиска райдеров над верхним краем Kill Block, в клетках.")]
+    [SerializeField, Min(0.1f)] private float autoDiscoverHeightCells = 1.0f;
+
     [Header("Grid")]
     [Tooltip("Сетка, в которой Kill Block занимает клетки. Если пусто — найдём в сцене сами.")]
     [SerializeField] private TetrisGridBoard board;
@@ -117,7 +125,11 @@ public class KillBlock : MonoBehaviour
     private Quaternion startWorldRotation;
     private Vector2Int startPivotCell;
     private Vector3 visualOffset;
-    private List<Vector3> riderOffsets;
+
+    // Полный список райдеров (привязанные вручную + найденные автоматически),
+    // плюс их стартовые offset'ы относительно Kill Block (для ResetToStart).
+    private readonly List<Transform> riders = new List<Transform>();
+    private readonly List<Vector3> riderOffsets = new List<Vector3>();
 
     private State state = State.Idle;
     private float resetTimer;
@@ -192,7 +204,7 @@ public class KillBlock : MonoBehaviour
                 $"{nameof(KillBlock)} '{name}': зарегистрирован в сетке. Cells={cells.Count}, pivot={pivot}, visualOffset={visualOffset}.",
                 this);
 
-        CaptureRiderOffsets();
+        BuildRiderList();
     }
 
     private void OnDestroy()
@@ -245,24 +257,58 @@ public class KillBlock : MonoBehaviour
         }
     }
 
-    private void CaptureRiderOffsets()
+    private void BuildRiderList()
     {
-        if (attachedRiders == null || attachedRiders.Length == 0)
+        riders.Clear();
+        riderOffsets.Clear();
+
+        // 1) Явно заданные в инспекторе.
+        if (attachedRiders != null)
         {
-            riderOffsets = null;
-            return;
+            for (int i = 0; i < attachedRiders.Length; i++)
+            {
+                Transform t = attachedRiders[i];
+                if (t == null) continue;
+                if (riders.Contains(t)) continue;
+                riders.Add(t);
+            }
         }
 
-        riderOffsets = new List<Vector3>(attachedRiders.Length);
-        for (int i = 0; i < attachedRiders.Length; i++)
+        // 2) Автоматический поиск над верхним краем коллайдера. Берём всё, что
+        //    НЕ относится к нам самим, НЕ игрок и НЕ зарегистрированный в сетке
+        //    блок (тот уедет через carry-stack).
+        if (autoDiscoverRidersOnTop && ownCollider != null)
         {
-            Transform t = attachedRiders[i];
-            if (t == null)
+            float cellSize = board != null ? board.CellSize : 1f;
+            float band = Mathf.Max(0.1f, autoDiscoverHeightCells) * cellSize;
+
+            Bounds b = ownCollider.bounds;
+            Vector2 center = new Vector2(b.center.x, b.max.y + band * 0.5f);
+            Vector2 size = new Vector2(Mathf.Max(0.05f, b.size.x), band);
+
+            int hitCount = Physics2D.OverlapBoxNonAlloc(center, size, 0f, overlapBuffer);
+            for (int i = 0; i < hitCount; i++)
             {
-                riderOffsets.Add(Vector3.zero);
-                continue;
+                Collider2D c = overlapBuffer[i];
+                if (c == null || c == ownCollider) continue;
+                if (c.transform.IsChildOf(transform)) continue;
+                if (c.GetComponentInParent<PlayerFacade>() != null) continue;
+                if (c.GetComponentInParent<TetrisPlacedBlock>() != null) continue;
+
+                Transform t = c.transform;
+                if (!riders.Contains(t))
+                    riders.Add(t);
             }
-            riderOffsets.Add(t.position - transform.position);
+
+            if (verboseLogs && hitCount > 0)
+                Debug.Log($"{nameof(KillBlock)} '{name}': авто-подцеп нашёл {riders.Count} объект(ов) сверху.", this);
+        }
+
+        // Запоминаем offset каждого райдера для ResetToStart.
+        for (int i = 0; i < riders.Count; i++)
+        {
+            Transform t = riders[i];
+            riderOffsets.Add(t != null ? t.position - transform.position : Vector3.zero);
         }
     }
 
@@ -361,21 +407,30 @@ public class KillBlock : MonoBehaviour
             Vector3 oldPos = transform.position;
             bool moved = board.TryMovePlacedBlockWithStack(placedBlock, Vector2Int.down);
 
-            if (!moved)
+            if (moved)
             {
-                if (verboseLogs)
-                    Debug.Log($"{nameof(KillBlock)} '{name}': заело на сетке (целевые клетки заняты или вне сетки).", this);
-                EnterJammed();
+                // TryMove… снапает Transform в центр новой pivot-клетки. Восстановим
+                // наш визуальный сдвиг — иначе спрайт прыгает в центр клетки.
+                Vector3 desired = board.CellToWorld(placedBlock.PivotCell) + visualOffset;
+                transform.position = desired;
+                if (ownBody != null) ownBody.position = desired;
+
+                MoveRidersBy(transform.position - oldPos);
                 return;
             }
 
-            // TryMove… снапает Transform в центр новой pivot-клетки. Восстановим
-            // наш визуальный сдвиг — иначе спрайт прыгает в центр клетки.
-            Vector3 desired = board.CellToWorld(placedBlock.PivotCell) + visualOffset;
-            transform.position = desired;
-            if (ownBody != null) ownBody.position = desired;
+            // Шаг не удался. Разбираемся: реальное препятствие или дно сетки.
+            if (WouldFallOffGridBottom())
+            {
+                if (verboseLogs)
+                    Debug.Log($"{nameof(KillBlock)} '{name}': вышел за нижнюю границу сетки без опоры — самоуничтожение вместе с райдерами.", this);
+                DestroySelfAndRiders();
+                return;
+            }
 
-            MoveRidersBy(transform.position - oldPos);
+            if (verboseLogs)
+                Debug.Log($"{nameof(KillBlock)} '{name}': заело на сетке (целевые клетки заняты).", this);
+            EnterJammed();
             return;
         }
 
@@ -436,11 +491,11 @@ public class KillBlock : MonoBehaviour
 
     private bool IsRiderCollider(Collider2D c)
     {
-        if (attachedRiders == null) return false;
+        if (riders == null || riders.Count == 0) return false;
         Transform t = c.transform;
-        for (int i = 0; i < attachedRiders.Length; i++)
+        for (int i = 0; i < riders.Count; i++)
         {
-            Transform rider = attachedRiders[i];
+            Transform rider = riders[i];
             if (rider == null) continue;
             if (t == rider) return true;
             if (t.IsChildOf(rider)) return true;
@@ -450,13 +505,13 @@ public class KillBlock : MonoBehaviour
 
     private void MoveRidersBy(Vector3 worldDelta)
     {
-        if (attachedRiders == null || attachedRiders.Length == 0)
+        if (riders == null || riders.Count == 0)
             return;
 
         worldDelta.z = 0f;
-        for (int i = 0; i < attachedRiders.Length; i++)
+        for (int i = 0; i < riders.Count; i++)
         {
-            Transform t = attachedRiders[i];
+            Transform t = riders[i];
             if (t == null) continue;
             t.position += worldDelta;
         }
@@ -488,6 +543,79 @@ public class KillBlock : MonoBehaviour
         state = State.Jammed;
         resetTimer = 0f;
         cellAccumulator = 0f;
+    }
+
+    /// <summary>
+    /// Проверяет: после шага вниз все клетки Kill Block оказались бы либо ниже
+    /// сетки, либо внутри неё, но пустыми? Если да — это "пролетел сквозь сетку",
+    /// без реальной опоры. Если хотя бы одна клетка ВНУТРИ сетки занята чем-то
+    /// чужим — это нормальное застревание.
+    /// </summary>
+    private bool WouldFallOffGridBottom()
+    {
+        if (board == null || placedBlock == null)
+            return false;
+
+        Vector2Int[] offsets = placedBlock.CellOffsets;
+        if (offsets == null || offsets.Length == 0)
+            return false;
+
+        // Свои клетки исключаем — они в новой позиции могут пересекаться с
+        // самими собой (для блоков высотой 2+ клеток).
+        HashSet<Vector2Int> selfCells = new HashSet<Vector2Int>(offsets.Length);
+        Vector2Int pivot = placedBlock.PivotCell;
+        for (int i = 0; i < offsets.Length; i++)
+            selfCells.Add(pivot + offsets[i]);
+
+        Vector2Int newPivot = pivot + Vector2Int.down;
+        bool anyBelowBoard = false;
+
+        for (int i = 0; i < offsets.Length; i++)
+        {
+            Vector2Int cell = newPivot + offsets[i];
+
+            if (board.IsInside(cell))
+            {
+                // Реальное препятствие — это НЕ собственные клетки.
+                if (board.IsOccupied(cell) && !selfCells.Contains(cell))
+                    return false;
+                continue;
+            }
+
+            // Клетка снаружи. Боковой выход не считается падением, только нижний.
+            if (cell.y >= 0)
+                return false;
+
+            anyBelowBoard = true;
+        }
+
+        return anyBelowBoard;
+    }
+
+    private void DestroySelfAndRiders()
+    {
+        // Снимаем регистрацию в сетке заранее: после Destroy OnDestroy всё равно
+        // снимет, но лучше освободить клетки до удаления связанных райдеров.
+        if (board != null && placedBlock != null)
+        {
+            board.UnregisterBlock(placedBlock);
+            placedBlock = null;
+        }
+
+        // Уничтожаем райдеров (шипы, deathzone и т.п.) — они визуально часть Kill Block.
+        if (riders != null)
+        {
+            for (int i = 0; i < riders.Count; i++)
+            {
+                Transform t = riders[i];
+                if (t == null) continue;
+                Destroy(t.gameObject);
+            }
+            riders.Clear();
+            riderOffsets.Clear();
+        }
+
+        Destroy(gameObject);
     }
 
     private void TickJammed()
@@ -536,15 +664,12 @@ public class KillBlock : MonoBehaviour
             board.RegisterBlock(placedBlock);
         }
 
-        // Райдеров возвращаем по сохранённому offset'у.
-        if (attachedRiders != null && riderOffsets != null)
+        // Райдеров возвращаем по сохранённому offset'у (и явные, и авто-найденные).
+        for (int i = 0; i < riders.Count && i < riderOffsets.Count; i++)
         {
-            for (int i = 0; i < attachedRiders.Length && i < riderOffsets.Count; i++)
-            {
-                Transform t = attachedRiders[i];
-                if (t == null) continue;
-                t.position = transform.position + riderOffsets[i];
-            }
+            Transform t = riders[i];
+            if (t == null) continue;
+            t.position = transform.position + riderOffsets[i];
         }
 
         state = State.Idle;
