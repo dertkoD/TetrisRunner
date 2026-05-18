@@ -31,6 +31,31 @@ public class TetrisBlockSpawnManager : MonoBehaviour
     private bool isRunning;
     private float spawnDelayTimer;
     private bool spawnPending;
+    private bool externalFreeze;
+
+    /// <summary>True, если активирована внешняя заморозка (PlayerBlockFreeze).</summary>
+    public bool IsExternallyFrozen => externalFreeze;
+
+    /// <summary>
+    /// Включает/выключает внешнюю заморозку (используется PlayerBlockFreeze).
+    /// Пока активна — блоки не падают и не спавнятся, текущий активный блок
+    /// замирает в воздухе. На обычное состояние P (start/stop) не влияет.
+    /// </summary>
+    public void SetExternalFreeze(bool freeze)
+    {
+        if (externalFreeze == freeze)
+            return;
+
+        externalFreeze = freeze;
+
+        if (activeBlock == null || activeBlock.IsLocked)
+            return;
+
+        if (freeze)
+            activeBlock.FreezeInAir();
+        else if (isRunning)
+            activeBlock.SetControlled(true);
+    }
 
     private void Awake()
     {
@@ -96,7 +121,7 @@ public class TetrisBlockSpawnManager : MonoBehaviour
 
     private void FixedUpdate()
     {
-        if (!isRunning)
+        if (!isRunning || externalFreeze)
             return;
 
         // Если блока ещё нет, но включён таймер задержки — ждём, потом спавним.
