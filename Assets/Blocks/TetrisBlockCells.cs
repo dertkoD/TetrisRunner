@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 [DisallowMultipleComponent]
@@ -18,8 +19,8 @@ public class TetrisBlockCells : MonoBehaviour
              "Если оставить пустым, он будет найден или создан автоматически.")]
     [SerializeField] private PolygonCollider2D polygonCollider;
 
-    [Tooltip("Если true, любые BoxCollider2D на этом GameObject будут отключены при инициализации " +
-             "(чтобы не возникали лишние коллизии от старых коллайдеров из префаба).")]
+    [Tooltip("Если true, любые BoxCollider2D в иерархии блока будут отключены при инициализации " +
+             "(чтобы не возникали лишние коллизии от старых поячеечных коллайдеров из префаба).")]
     [SerializeField] private bool disableLegacyBoxColliders = true;
 
     private Vector2Int[] currentOffsets;
@@ -135,7 +136,13 @@ public class TetrisBlockCells : MonoBehaviour
         if (!disableLegacyBoxColliders)
             return;
 
-        BoxCollider2D[] boxColliders = GetComponents<BoxCollider2D>();
+        // Отключаем ЛЮБЫЕ BoxCollider2D в иерархии блока (и на корне, и на
+        // ячейках-детях). Раньше отключались только коллайдеры на корне, из-за
+        // чего вручную выставленные «по-клеточные» BoxCollider2D на детях
+        // оставались включёнными и накладывались на PolygonCollider2D —
+        // получался двойной слой коллайдеров с миллиметровыми перекосами,
+        // на которых игрок цеплялся при прыжках.
+        BoxCollider2D[] boxColliders = GetComponentsInChildren<BoxCollider2D>(true);
 
         for (int i = 0; i < boxColliders.Length; i++)
         {
@@ -270,26 +277,136 @@ public class TetrisBlockCells : MonoBehaviour
             return;
 
         polygonCollider.offset = Vector2.zero;
-        polygonCollider.pathCount = currentOffsets.Length;
 
-        float half = cellSize * 0.5f;
-
-        for (int i = 0; i < currentOffsets.Length; i++)
+        if (currentOffsets.Length == 0)
         {
-            Vector2 center = new Vector2(
-                currentOffsets[i].x * cellSize,
-                currentOffsets[i].y * cellSize
-            );
-
-            Vector2[] squarePath =
-            {
-                center + new Vector2(-half, -half),
-                center + new Vector2(-half,  half),
-                center + new Vector2( half,  half),
-                center + new Vector2( half, -half)
-            };
-
-            polygonCollider.SetPath(i, squarePath);
+            polygonCollider.pathCount = 0;
+            return;
         }
+
+        // Раньше тут создавался отдельный квадратный путь на КАЖДУЮ ячейку.
+        // Из-за этого у соседних ячеек получались общие внутренние рёбра, и
+        // игрок цеплялся за «шов» между клетками, хотя визуально фигура была
+        // ровной. Теперь мы выстраиваем ОДИН внешний контур по всем клеткам:
+        //   * берём 4 ребра каждой ячейки;
+        //   * выкидываем рёбра, у которых есть соседняя ячейка с другой стороны;
+        //   * соединяем оставшиеся рёбра в замкнутый цикл и склеиваем
+        //     коллинеарные сегменты.
+        // На выходе — одна аккуратная многоугольная граница без швов внутри
+        // фигуры; стороны идеально прямые, углы строго 90°.
+
+        List<Vector2[]> outlinePaths = BuildOutlinePaths(currentOffsets, cellSize);
+
+        polygonCollider.pathCount = outlinePaths.Count;
+
+        for (int i = 0; i < outlinePaths.Count; i++)
+            polygonCollider.SetPath(i, outlinePaths[i]);
+    }
+
+    /// <summary>
+    /// Строит внешний контур (контуры) фигуры по списку клеток. Работает в
+    /// удвоенных целых координатах углов клетки, чтобы все сравнения вершин
+    /// были точными и не накапливались float-погрешности.
+    /// </summary>
+    private static List<Vector2[]> BuildOutlinePaths(Vector2Int[] offsets, float cellSize)
+    {
+        List<Vector2[]> result = new List<Vector2[]>();
+
+        if (offsets == null || offsets.Length == 0)
+            return result;
+
+        HashSet<Vector2Int> cells = new HashSet<Vector2Int>();
+
+        for (int i = 0; i < offsets.Length; i++)
+            cells.Add(offsets[i]);
+
+        // В удвоенной системе координат центр клетки (cx, cy) — это (2*cx, 2*cy),
+        // а её углы — это (2*cx ± 1, 2*cy ± 1). Каждая клетка обходится против
+        // часовой стрелки (CCW), чтобы итоговый полигон тоже был CCW
+        // (PolygonCollider2D трактует CCW-путь как «solid»).
+
+        Dictionary<Vector2Int, Vector2Int> edgeNext = new Dictionary<Vector2Int, Vector2Int>();
+
+        foreach (Vector2Int c in cells)
+        {
+            int x0 = c.x * 2 - 1;
+            int x1 = c.x * 2 + 1;
+            int y0 = c.y * 2 - 1;
+            int y1 = c.y * 2 + 1;
+
+            Vector2Int bl = new Vector2Int(x0, y0);
+            Vector2Int br = new Vector2Int(x1, y0);
+            Vector2Int tr = new Vector2Int(x1, y1);
+            Vector2Int tl = new Vector2Int(x0, y1);
+
+            // Ребро попадает во внешний контур только если по ту сторону клетки
+            // нет соседней клетки фигуры — тогда это граница фигуры с пустотой.
+            if (!cells.Contains(new Vector2Int(c.x, c.y - 1)))
+                edgeNext[bl] = br;
+
+            if (!cells.Contains(new Vector2Int(c.x + 1, c.y)))
+                edgeNext[br] = tr;
+
+            if (!cells.Contains(new Vector2Int(c.x, c.y + 1)))
+                edgeNext[tr] = tl;
+
+            if (!cells.Contains(new Vector2Int(c.x - 1, c.y)))
+                edgeNext[tl] = bl;
+        }
+
+        HashSet<Vector2Int> visited = new HashSet<Vector2Int>();
+        float scale = 0.5f * cellSize;
+
+        foreach (Vector2Int startCorner in edgeNext.Keys)
+        {
+            if (visited.Contains(startCorner))
+                continue;
+
+            List<Vector2Int> loop = new List<Vector2Int>();
+            Vector2Int current = startCorner;
+            int safety = edgeNext.Count + 1;
+
+            while (!visited.Contains(current) && safety-- > 0)
+            {
+                visited.Add(current);
+                loop.Add(current);
+
+                if (!edgeNext.TryGetValue(current, out Vector2Int next))
+                    break;
+
+                current = next;
+            }
+
+            if (loop.Count < 3)
+                continue;
+
+            // Склеиваем коллинеарные сегменты: если два соседних ребра идут
+            // в одном направлении, средняя вершина не нужна — иначе у
+            // PolygonCollider2D окажутся лишние точки прямо посередине
+            // прямой стороны (и физика теоретически может на них цепляться).
+            List<Vector2> simplified = new List<Vector2>(loop.Count);
+
+            for (int i = 0; i < loop.Count; i++)
+            {
+                Vector2Int prev = loop[(i - 1 + loop.Count) % loop.Count];
+                Vector2Int cur = loop[i];
+                Vector2Int next = loop[(i + 1) % loop.Count];
+
+                int dx1 = cur.x - prev.x;
+                int dy1 = cur.y - prev.y;
+                int dx2 = next.x - cur.x;
+                int dy2 = next.y - cur.y;
+
+                if (dx1 == dx2 && dy1 == dy2)
+                    continue;
+
+                simplified.Add(new Vector2(cur.x * scale, cur.y * scale));
+            }
+
+            if (simplified.Count >= 3)
+                result.Add(simplified.ToArray());
+        }
+
+        return result;
     }
 }
