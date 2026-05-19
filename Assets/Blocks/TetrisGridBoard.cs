@@ -107,6 +107,39 @@ public class TetrisGridBoard : MonoBehaviour
         return cellsToBlock.ContainsKey(cell);
     }
 
+    /// <summary>
+    /// Y самой верхней занятой клетки на доске. Возвращает -1, если ни одна
+    /// клетка не занята. Используется, чтобы понять, не «доехала» ли стопка
+    /// блоков до уровня спавна — тогда уровень нужно перезапустить.
+    /// </summary>
+    public int GetHighestOccupiedRow()
+    {
+        int highest = -1;
+
+        foreach (Vector2Int cell in cellsToBlock.Keys)
+        {
+            if (cell.y > highest)
+                highest = cell.y;
+        }
+
+        return highest;
+    }
+
+    /// <summary>
+    /// True, если хотя бы одна занятая клетка имеет Y &gt;= row. Используется как
+    /// быстрый «game-over check»: стопка блоков доросла до строки row.
+    /// </summary>
+    public bool HasOccupiedCellAtOrAbove(int row)
+    {
+        foreach (Vector2Int cell in cellsToBlock.Keys)
+        {
+            if (cell.y >= row)
+                return true;
+        }
+
+        return false;
+    }
+
     public bool CanPlaceOffsets(Vector2Int pivotCell, Vector2Int[] offsets)
     {
         if (offsets == null)

@@ -530,17 +530,6 @@
                 },
                 {
                     "name": "",
-                    "id": "ae2d4017-101d-46d2-b485-4cc2f0729dcd",
-                    "path": "<Keyboard>/q",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "",
-                    "action": "RotateLeft",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
                     "id": "d4e0b95d-0bee-4c65-9c34-12fc8bf6c66b",
                     "path": "<Keyboard>/e",
                     "interactions": "",
@@ -553,7 +542,7 @@
                 {
                     "name": "",
                     "id": "82bcc28b-b9ea-4159-b1f9-94fc195fa9b2",
-                    "path": "<Keyboard>/leftShift",
+                    "path": "<Keyboard>/downArrow",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
@@ -563,19 +552,8 @@
                 },
                 {
                     "name": "",
-                    "id": "153d33fc-5d55-4b06-80b8-4bfaf9a43a47",
-                    "path": "<Keyboard>/upArrow",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "",
-                    "action": "RotateLeft",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
                     "id": "02319f5d-9e10-4ee8-bfc1-9b860bdd4100",
-                    "path": "<Keyboard>/downArrow",
+                    "path": "<Keyboard>/upArrow",
                     "interactions": "",
                     "processors": "",
                     "groups": "",

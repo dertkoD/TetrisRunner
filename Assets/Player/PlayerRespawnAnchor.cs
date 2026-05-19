@@ -8,8 +8,10 @@ using UnityEngine.SceneManagement;
 /// (записывается из <see cref="PlayerStateMachine"/> при каждом удачном прыжке)
 /// или стартовая позиция игрока.
 ///
-/// Также при смерти игрока (<see cref="PlayerHealth.OnDied"/>) перезагружает
-/// текущую сцену, если <see cref="reloadSceneOnDeath"/> = true.
+/// Также при смерти игрока (<see cref="PlayerHealth.OnDied"/>) и/или при любом
+/// получении урона (<see cref="PlayerHealth.OnDamaged"/>) перезагружает текущую
+/// сцену — поведением управляют <see cref="reloadSceneOnDeath"/> и
+/// <see cref="reloadSceneOnAnyDamage"/>.
 /// </summary>
 public class PlayerRespawnAnchor : MonoBehaviour
 {
@@ -17,7 +19,7 @@ public class PlayerRespawnAnchor : MonoBehaviour
     [Tooltip("Тело игрока. Если пусто, попробуем найти Rigidbody2D в родителях.")]
     [SerializeField] private Rigidbody2D body;
 
-    [Tooltip("HP игрока. Используется, чтобы перезагрузить сцену при OnDied. " +
+    [Tooltip("HP игрока. Используется, чтобы перезагрузить сцену при OnDied/OnDamaged. " +
              "Если пусто — найдётся через GetComponentInParent.")]
     [SerializeField] private PlayerHealth health;
 
@@ -31,6 +33,11 @@ public class PlayerRespawnAnchor : MonoBehaviour
              "перезагружается через SceneManager.LoadScene.")]
     [SerializeField] private bool reloadSceneOnDeath = true;
 
+    [Tooltip("Если true — текущая сцена перезагружается при ЛЮБОМ получении урона " +
+             "(а не только при смерти). Удобно, когда игроку нельзя получать урон " +
+             "вообще — любое попадание мгновенно ресетит уровень.")]
+    [SerializeField] private bool reloadSceneOnAnyDamage = true;
+
     [Header("Fallback Initial")]
     [Tooltip("Если true и spawnPoint не задан — стартовая позиция игрока становится первым " +
              "чекпоинтом, чтобы первая смерть до прыжка не отправляла его в (0;0).")]
@@ -39,6 +46,8 @@ public class PlayerRespawnAnchor : MonoBehaviour
     private Vector2 lastCheckpoint;
     private bool hasCheckpoint;
     private bool subscribedToDied;
+    private bool subscribedToDamaged;
+    private bool reloadScheduled;
 
     public bool HasCheckpoint => hasCheckpoint;
     public Vector2 LastCheckpoint => lastCheckpoint;
@@ -55,19 +64,37 @@ public class PlayerRespawnAnchor : MonoBehaviour
 
     private void OnEnable()
     {
-        if (health != null && !subscribedToDied)
+        if (health == null)
+            return;
+
+        if (!subscribedToDied)
         {
             health.OnDied.AddListener(OnPlayerDied);
             subscribedToDied = true;
+        }
+
+        if (!subscribedToDamaged)
+        {
+            health.OnDamaged.AddListener(OnPlayerDamaged);
+            subscribedToDamaged = true;
         }
     }
 
     private void OnDisable()
     {
-        if (health != null && subscribedToDied)
+        if (health == null)
+            return;
+
+        if (subscribedToDied)
         {
             health.OnDied.RemoveListener(OnPlayerDied);
             subscribedToDied = false;
+        }
+
+        if (subscribedToDamaged)
+        {
+            health.OnDamaged.RemoveListener(OnPlayerDamaged);
+            subscribedToDamaged = false;
         }
     }
 
@@ -130,6 +157,28 @@ public class PlayerRespawnAnchor : MonoBehaviour
         if (!reloadSceneOnDeath)
             return;
 
+        ReloadActiveScene();
+    }
+
+    private void OnPlayerDamaged(int amount)
+    {
+        if (!reloadSceneOnAnyDamage)
+            return;
+
+        if (amount <= 0)
+            return;
+
+        ReloadActiveScene();
+    }
+
+    private void ReloadActiveScene()
+    {
+        // Если параллельно прилетают и OnDamaged, и OnDied (когда удар добил
+        // игрока), не дёргаем LoadScene дважды.
+        if (reloadScheduled)
+            return;
+
+        reloadScheduled = true;
         Scene scene = SceneManager.GetActiveScene();
         SceneManager.LoadScene(scene.buildIndex, LoadSceneMode.Single);
     }

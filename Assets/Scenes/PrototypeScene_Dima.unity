@@ -229,6 +229,7 @@ MonoBehaviour:
   board: {fileID: 1285392918}
   fallbackSpawnColumn: -1
   fallbackToBoardCenter: 1
+  reloadSceneWhenStackReachesSpawn: 1
 --- !u!4 &243099991
 Transform:
   m_ObjectHideFlags: 0
@@ -596,8 +597,8 @@ CircleCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: -0.1305635, y: 0.120312095}
-  m_Radius: 0.49962485
+  m_Offset: {x: -0.13239726, y: 0.11106911}
+  m_Radius: 0.46962562
 --- !u!1 &597222734
 GameObject:
   m_ObjectHideFlags: 0
@@ -1499,7 +1500,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TetrisGridBoard
   width: 44
-  height: 25
+  height: 30
   cellSize: 1
   origin: {fileID: 0}
   placedBlocksParent: {fileID: 0}
@@ -2704,7 +2705,7 @@ Transform:
   m_GameObject: {fileID: 2142727813}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 20.4, y: 25.44, z: 0}
+  m_LocalPosition: {x: 20.4, y: 27.27, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2725,6 +2726,14 @@ PrefabInstance:
     - target: {fileID: 4407569250403060488, guid: f597927c94f94ae48bee462da92c2680, type: 3}
       propertyPath: m_Name
       value: KillBlock
+      objectReference: {fileID: 0}
+    - target: {fileID: 7139007943639884279, guid: f597927c94f94ae48bee462da92c2680, type: 3}
+      propertyPath: m_Size.y
+      value: 0.9440867
+      objectReference: {fileID: 0}
+    - target: {fileID: 7139007943639884279, guid: f597927c94f94ae48bee462da92c2680, type: 3}
+      propertyPath: m_Offset.y
+      value: 0.02795668
       objectReference: {fileID: 0}
     - target: {fileID: 7515432441722256987, guid: f597927c94f94ae48bee462da92c2680, type: 3}
       propertyPath: board
