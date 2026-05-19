@@ -338,6 +338,13 @@ public class KillBlock : MonoBehaviour
 
     private void FixedUpdate()
     {
+        // Урон наносится строго по факту касания: если коллайдер Kill Block'а
+        // в данный момент пересекается с игроком — наносим урон и (при
+        // необходимости) телепортируем его в чекпоинт. Никакой "look-ahead"
+        // больше нет, поэтому ловушка не бьёт издалека.
+        if (TryHitPlayerOnContact(out PlayerFacade contactedPlayer))
+            ApplyHitToPlayer(contactedPlayer);
+
         switch (state)
         {
             case State.Idle:
@@ -447,22 +454,16 @@ public class KillBlock : MonoBehaviour
             DestroySelfAndRiders();
     }
 
-    /// <summary>Пытается опуститься на одну клетку вниз. Сначала проверяет игрока через BoxCast, потом — сетку.</summary>
+    /// <summary>
+    /// Пытается опуститься на одну клетку вниз через сетку. Урон по игроку
+    /// здесь специально не проверяется — он наносится в FixedUpdate по факту
+    /// реального пересечения коллайдеров (см. <see cref="TryHitPlayerOnContact"/>).
+    /// </summary>
     private void DropOneCell()
     {
         float cellSize = board != null ? board.CellSize : 1f;
 
-        // 1) Физический скан на игрока (он не лежит в сетке). При попадании
-        //    наносим урон + телепортируем игрока в чекпоинт, но НЕ
-        //    останавливаемся — KillBlock продолжает падать дальше, пока не
-        //    встретит реальный блок / Ground / низ сетки.
-        if (TryHitPlayerOneCellBelow(cellSize, out PlayerFacade hitPlayer, out _))
-        {
-            ApplyHitToPlayer(hitPlayer);
-            // Сразу проходим к шагу в сетке ниже — игрок уже улетел в чекпоинт.
-        }
-
-        // 2) Шаг в сетке (или без неё, если board не задан).
+        // Шаг в сетке (или без неё, если board не задан).
         if (board != null && placedBlock != null)
         {
             Vector3 oldPos = transform.position;
@@ -550,51 +551,53 @@ public class KillBlock : MonoBehaviour
         }
     }
 
-    private bool TryHitPlayerOneCellBelow(float cellSize, out PlayerFacade player, out float hitDistance)
+    /// <summary>
+    /// Контактная проверка: пересекается ли коллайдер Kill Block с коллайдером
+    /// игрока прямо сейчас? Никакого «look-ahead» на клетку вперёд — только
+    /// фактическое касание. Так ловушка перестаёт «бить заранее».
+    /// </summary>
+    private bool TryHitPlayerOnContact(out PlayerFacade player)
     {
         player = null;
-        hitDistance = 0f;
 
         if (ownCollider == null)
             return false;
 
-        Vector2 origin = transform.position;
-        Vector2 size = ownCollider.bounds.size;
+        Bounds b = ownCollider.bounds;
+
+        // Чуть ужимаем коробку проверки, чтобы «стоит вплотную сбоку» не
+        // считалось касанием из-за float-погрешностей в Physics2D.
+        const float shrink = 0.02f;
+        Vector2 size = new Vector2(
+            Mathf.Max(0.05f, b.size.x - shrink),
+            Mathf.Max(0.05f, b.size.y - shrink));
 
         int hitCount;
         if (physicsScanLayers.value != 0)
-        {
-            hitCount = Physics2D.BoxCastNonAlloc(origin, size, 0f, Vector2.down, castBuffer, cellSize, physicsScanLayers);
-        }
+            hitCount = Physics2D.OverlapBoxNonAlloc(b.center, size, 0f, overlapBuffer, physicsScanLayers);
         else
-        {
-            hitCount = Physics2D.BoxCastNonAlloc(origin, size, 0f, Vector2.down, castBuffer, cellSize);
-        }
+            hitCount = Physics2D.OverlapBoxNonAlloc(b.center, size, 0f, overlapBuffer);
 
         for (int i = 0; i < hitCount; i++)
         {
-            RaycastHit2D h = castBuffer[i];
-            if (h.collider == null) continue;
-            if (h.collider == ownCollider) continue;
-            if (h.collider.transform.IsChildOf(transform)) continue;
-            if (h.collider.isTrigger) continue;
-            // Игнорируем коллайдеры наших же райдеров (например, спрайт шипов).
-            if (IsRiderCollider(h.collider)) continue;
+            Collider2D c = overlapBuffer[i];
+            if (c == null) continue;
+            if (c == ownCollider) continue;
+            if (c.transform.IsChildOf(transform)) continue;
+            if (c.isTrigger) continue;
+            // Свои же райдеры (спрайт шипов, deathzone сверху и т.п.) — это не игрок.
+            if (IsRiderCollider(c)) continue;
 
-            PlayerFacade pf = h.collider.GetComponent<PlayerFacade>()
-                              ?? h.collider.GetComponentInParent<PlayerFacade>();
+            PlayerFacade pf = c.GetComponent<PlayerFacade>()
+                              ?? c.GetComponentInParent<PlayerFacade>();
             if (pf == null)
                 continue;
 
-            // Берём самое ближнее попадание в игрока.
-            if (player == null || h.distance < hitDistance)
-            {
-                player = pf;
-                hitDistance = h.distance;
-            }
+            player = pf;
+            return true;
         }
 
-        return player != null;
+        return false;
     }
 
     private bool IsRiderCollider(Collider2D c)
