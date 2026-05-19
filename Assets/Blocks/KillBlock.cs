@@ -110,12 +110,16 @@ public class KillBlock : MonoBehaviour
     [SerializeField, Min(0f)] private float hitCooldown = 0.2f;
 
     [Header("Reset")]
-    [Tooltip("Через сколько секунд после остановки Kill Block вернётся на исходную позицию. " +
-             "0 — не возвращать (одноразовая ловушка).")]
+    [Tooltip("Через сколько секунд ПОСЛЕ ТОГО, как игрок покинул триггерную платформу, " +
+             "Kill Block вернётся на исходную позицию. Пока игрок ещё на платформе — " +
+             "таймер сброшен в 0, и ловушка точно не «уезжает» обратно вверх над ним. " +
+             "0 — не возвращать по таймеру (одноразовая ловушка либо только через " +
+             "resetWhenPlayerLeavesArea).")]
     [SerializeField, Min(0f)] private float autoResetDelay = 0f;
 
-    [Tooltip("Если true — Kill Block возвращается на исходную позицию автоматически, " +
-             "когда игрок выходит из детекторной зоны (после того как блок успел остановиться).")]
+    [Tooltip("Если true — Kill Block мгновенно возвращается на исходную позицию, как " +
+             "только игрок вышел из детекторной зоны (после того как блок успел " +
+             "остановиться). Пока игрок на платформе — никаких сбросов не происходит.")]
     [SerializeField] private bool resetWhenPlayerLeavesArea = false;
 
     [Header("Debug")]
@@ -744,7 +748,19 @@ public class KillBlock : MonoBehaviour
             return;
         }
 
-        if (resetWhenPlayerLeavesArea && !IsPlayerOnTriggerPlatform())
+        // Возврат на исходную позицию допускаем ТОЛЬКО когда игрока больше нет
+        // на триггерной платформе. Иначе KillBlock «телепортируется» обратно
+        // вверх прямо над игроком и тут же снова обрушится — получается
+        // ёршение ловушки. Таймер задержки тоже не должен идти, пока игрок
+        // стоит сверху: иначе автосбросом блок утащит вверх через autoResetDelay
+        // секунд, даже если игрок никуда не уходил.
+        if (IsPlayerOnTriggerPlatform())
+        {
+            resetTimer = 0f;
+            return;
+        }
+
+        if (resetWhenPlayerLeavesArea)
         {
             ResetToStart();
             return;
