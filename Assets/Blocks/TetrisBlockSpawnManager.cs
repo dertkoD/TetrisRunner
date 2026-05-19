@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 
 public class TetrisBlockSpawnManager : MonoBehaviour
 {
@@ -20,6 +21,13 @@ public class TetrisBlockSpawnManager : MonoBehaviour
     [Tooltip("Если true и spawnPoint не задан, X спавна берётся как центр сетки. " +
              "fallbackSpawnColumn в этом случае игнорируется.")]
     [SerializeField] private bool fallbackToBoardCenter = true;
+
+    [Header("Game Over")]
+    [Tooltip("Если true — как только хотя бы одна залоченная клетка достигнет " +
+             "строки спавна (или выше), текущая сцена будет перезагружена.")]
+    [SerializeField] private bool reloadSceneWhenStackReachesSpawn = true;
+
+    private bool reloadScheduled;
 
     private TetrisBlockController activeBlock;
 
@@ -171,6 +179,12 @@ public class TetrisBlockSpawnManager : MonoBehaviour
         block.LockAndForget();
 
         activeBlock = null;
+
+        // После того как блок встал в стопку и провёлся matching/гравитация,
+        // проверяем, не доросла ли стопка до уровня спавна. Если да —
+        // игрок «проиграл», и текущая сцена перезагружается.
+        if (CheckStackReachedSpawnRow())
+            return;
 
         if (!isRunning)
             return;
@@ -414,5 +428,63 @@ public class TetrisBlockSpawnManager : MonoBehaviour
             y = -minY;
 
         return new Vector2Int(x, y);
+    }
+
+    /// <summary>
+    /// Возвращает Y клетки, на уровне которой появляются новые блоки. Если в
+    /// инспекторе задан <see cref="spawnPoint"/>, берём его клетку; иначе —
+    /// верхнюю строку сетки.
+    /// </summary>
+    private int ResolveSpawnRow()
+    {
+        if (board == null)
+            return int.MaxValue;
+
+        if (spawnPoint != null)
+            return board.WorldToCell(spawnPoint.position).y;
+
+        return board.Height - 1;
+    }
+
+    /// <summary>
+    /// Если в стопке появилась клетка на уровне строки спавна (или выше) —
+    /// перезагружаем сцену. Возвращает true, если сцена начала перезагружаться,
+    /// чтобы вызывающая сторона не пыталась дальше планировать спавн.
+    /// </summary>
+    private bool CheckStackReachedSpawnRow()
+    {
+        if (!reloadSceneWhenStackReachesSpawn)
+            return false;
+
+        if (reloadScheduled)
+            return true;
+
+        if (board == null)
+            return false;
+
+        int spawnRow = ResolveSpawnRow();
+
+        if (spawnRow == int.MaxValue)
+            return false;
+
+        if (!board.HasOccupiedCellAtOrAbove(spawnRow))
+            return false;
+
+        ReloadActiveScene();
+        return true;
+    }
+
+    private void ReloadActiveScene()
+    {
+        if (reloadScheduled)
+            return;
+
+        reloadScheduled = true;
+        isRunning = false;
+        spawnPending = false;
+        spawnDelayTimer = 0f;
+
+        Scene scene = SceneManager.GetActiveScene();
+        SceneManager.LoadScene(scene.buildIndex, LoadSceneMode.Single);
     }
 }
