@@ -39,7 +39,7 @@ MonoBehaviour:
   wallJumpLockoutTime: 0.18
   wallJumpCount: 1
   maxHealth: 3
-  freezeAction: {fileID: -8099891060752677814, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
+  freezeAction: {fileID: 0}
   freezeMaxDuration: 3
   freezeRechargeSecondsPerSecond: 1
   freezeMinToReactivate: 0.2

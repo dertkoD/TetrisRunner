@@ -18,14 +18,14 @@ MonoBehaviour:
   rotateRightAction: {fileID: 7723348945565235230, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
   softDropAction: {fileID: 5390057950536644350, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
   blockPrefabs:
-  - {fileID: 3092340227535929987, guid: fd78f1a4f3c81ec45a35d1fa6e7dc237, type: 3}
-  - {fileID: 1973468500140566148, guid: 948f0f29f09e6674e9e1796d60fb7583, type: 3}
-  - {fileID: 8728981169166942628, guid: 2beb2fc002480c643aba186cbacfc614, type: 3}
-  - {fileID: 3603334595476509150, guid: f1d09cfe15b02814b888053d24d9d34a, type: 3}
-  - {fileID: 1093901546526259396, guid: 70e2569109ad6ba40bed7d736f2a39e3, type: 3}
+  - {fileID: 6125394987573159461, guid: fd78f1a4f3c81ec45a35d1fa6e7dc237, type: 3}
+  - {fileID: 8468388542951108320, guid: 948f0f29f09e6674e9e1796d60fb7583, type: 3}
+  - {fileID: 593489853493299204, guid: 2beb2fc002480c643aba186cbacfc614, type: 3}
+  - {fileID: 6473357724889834740, guid: f1d09cfe15b02814b888053d24d9d34a, type: 3}
+  - {fileID: 1661254410516727698, guid: 70e2569109ad6ba40bed7d736f2a39e3, type: 3}
   - {fileID: 4714977706633055889, guid: 6c78957ecba295e439020622f0215927, type: 3}
-  - {fileID: 7618780904533301972, guid: 68c869ee770a67b44ba8118c497dc3fa, type: 3}
-  - {fileID: 3248146488557248093, guid: 8003fe88d1bd000408ec02f2636f6530, type: 3}
+  - {fileID: 3425058448189026989, guid: 68c869ee770a67b44ba8118c497dc3fa, type: 3}
+  - {fileID: 7380247307805375547, guid: 8003fe88d1bd000408ec02f2636f6530, type: 3}
   freeFall: 0
   stackBlocks: 0
   groundLayers:
@@ -43,7 +43,7 @@ MonoBehaviour:
   horizontalStepDistance: 1
   horizontalStepRepeatTime: 0.12
   fallStepDistance: 1
-  fallStepInterval: 0.6
+  fallStepInterval: 0.75
   softDropMultiplier: 10
   spawnDelay: 1.1
   rotationStepDegrees: 90
