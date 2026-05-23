@@ -50,6 +50,8 @@ public class DeathWaterController : MonoBehaviour
     private float initialBottomY;
     private float initialTopY;
     private int extraCellsAbove;
+    private int lastErodedRow = int.MinValue;
+    private bool erosionInitialized;
     private readonly HashSet<TetrisBlockController> alreadyEntered = new HashSet<TetrisBlockController>();
 
     /// <summary>Текущая верхняя граница воды в мировых координатах Y.</summary>
@@ -88,6 +90,17 @@ public class DeathWaterController : MonoBehaviour
         extraCellsAbove = 0;
     }
 
+    private void Start()
+    {
+        // На момент Start блоки уровня уже зарегистрированы в сетке (их
+        // TetrisGridLevelBlocks делает в Start). Если стартовый объём воды
+        // покрывает какие-то клетки — они тоже эродируются «постепенно».
+        // Чтобы не сжирать сразу все нижние ряды разом, начинаем эрозию
+        // с того ряда, который уже накрыт водой на старте.
+        lastErodedRow = ComputeCurrentTopRow();
+        erosionInitialized = true;
+    }
+
     private void OnDestroy()
     {
         if (instance == this)
@@ -106,13 +119,20 @@ public class DeathWaterController : MonoBehaviour
         Shrink(config != null ? config.DeathWaterShrinkOnSameColorLanding : 1);
     }
 
-    /// <summary>Падающий блок попал прямо в DeathWater — поднимаем воду.</summary>
+    /// <summary>
+    /// Падающий блок попал прямо в DeathWater. Сам управляемый блок исчезает
+    /// мгновенно (через спавн-менеджер, чтобы корректно появился следующий),
+    /// плюс уровень воды поднимается на N клеток (значение N — из конфига).
+    /// </summary>
     public void HandleBlockFellIntoWater(TetrisBlockController controller)
     {
         if (controller != null && !alreadyEntered.Add(controller))
             return;
 
         Grow(config != null ? config.DeathWaterGrowOnBlockEnteringWater : 1);
+
+        if (controller != null)
+            controller.NotifyFellIntoWater();
     }
 
     /// <summary>Поднимает воду на <paramref name="cells"/> клеток вверх.</summary>
@@ -154,8 +174,54 @@ public class DeathWaterController : MonoBehaviour
         if (target == extraCellsAbove)
             return;
 
+        int previousExtra = extraCellsAbove;
         extraCellsAbove = target;
         ApplyTransform();
+
+        // После того как вода поднялась — стираем у блоков сетки клетки,
+        // которые оказались под новым уровнем воды. Шринк ничего не
+        // восстанавливает: блоки, которые вода уже «съела», не возвращаются.
+        if (target > previousExtra)
+            ErodeNewlyCoveredRows();
+    }
+
+    /// <summary>
+    /// Текущая верхняя строка сетки, центр которой находится под уровнем воды.
+    /// Используется и при росте воды (нужно проредить блоки в новых строках),
+    /// и при старте сцены (фиксируем начальный уровень).
+    /// </summary>
+    private int ComputeCurrentTopRow()
+    {
+        if (board == null)
+            return int.MinValue;
+
+        return board.GetHighestRowAtOrBelowWorldY(CurrentTopY);
+    }
+
+    private void ErodeNewlyCoveredRows()
+    {
+        if (board == null)
+            return;
+
+        int newTopRow = ComputeCurrentTopRow();
+
+        // Если эрозию ещё не инициализировали (например, Grow вызвали до Start),
+        // считаем, что текущий уровень — это «база» и сжигать пока нечего.
+        if (!erosionInitialized)
+        {
+            lastErodedRow = newTopRow;
+            erosionInitialized = true;
+            return;
+        }
+
+        if (newTopRow <= lastErodedRow)
+            return;
+
+        int minRow = lastErodedRow + 1;
+        int maxRow = newTopRow;
+
+        board.EraseCellsInRowRange(minRow, maxRow);
+        lastErodedRow = newTopRow;
     }
 
     private int ComputeMinExtraAbove()

@@ -190,6 +190,87 @@ public class TetrisBlockCells : MonoBehaviour
         ApplyShape(cellSize);
     }
 
+    /// <summary>
+    /// Удаляет указанные ячейки (по смещению относительно пивота) из блока:
+    /// прячет их визуалы, сжимает параллельные массивы currentOffsets /
+    /// cellVisuals / cellColorIndices / cellRenderers и перестраивает
+    /// PolygonCollider2D под уменьшившуюся фигуру. Возвращает количество
+    /// оставшихся (живых) ячеек.
+    /// </summary>
+    public int RemoveOffsets(IEnumerable<Vector2Int> offsetsToRemove, float cellSize)
+    {
+        if (currentOffsets == null || offsetsToRemove == null)
+            return currentOffsets != null ? currentOffsets.Length : 0;
+
+        HashSet<Vector2Int> removeSet = new HashSet<Vector2Int>(offsetsToRemove);
+
+        if (removeSet.Count == 0)
+            return currentOffsets.Length;
+
+        List<Vector2Int> keptOffsets = new List<Vector2Int>(currentOffsets.Length);
+        List<Transform> keptVisuals = cellVisuals != null
+            ? new List<Transform>(cellVisuals.Length)
+            : null;
+        List<SpriteRenderer> keptRenderers = cellRenderers != null
+            ? new List<SpriteRenderer>(cellRenderers.Length)
+            : null;
+        List<int> keptColorIndices = cellColorIndices != null
+            ? new List<int>(cellColorIndices.Length)
+            : null;
+
+        int n = currentOffsets.Length;
+
+        for (int i = 0; i < n; i++)
+        {
+            Vector2Int offset = currentOffsets[i];
+
+            if (removeSet.Contains(offset))
+            {
+                // Скрываем визуал у выпиленной клетки. Сам объект не уничтожаем —
+                // это дочка блока, её Destroy может ударить по чистке Unity.
+                if (cellVisuals != null && i < cellVisuals.Length && cellVisuals[i] != null)
+                    cellVisuals[i].gameObject.SetActive(false);
+
+                continue;
+            }
+
+            keptOffsets.Add(offset);
+
+            if (keptVisuals != null && i < cellVisuals.Length)
+                keptVisuals.Add(cellVisuals[i]);
+
+            if (keptRenderers != null && i < cellRenderers.Length)
+                keptRenderers.Add(cellRenderers[i]);
+
+            if (keptColorIndices != null && i < cellColorIndices.Length)
+                keptColorIndices.Add(cellColorIndices[i]);
+        }
+
+        currentOffsets = keptOffsets.ToArray();
+
+        if (keptVisuals != null)
+            cellVisuals = keptVisuals.ToArray();
+
+        if (keptRenderers != null)
+            cellRenderers = keptRenderers.ToArray();
+
+        if (keptColorIndices != null)
+            cellColorIndices = keptColorIndices.ToArray();
+
+        // Контур и позиции оставшихся ячеек могли стать «дырявыми» — пересчитаем.
+        if (currentOffsets.Length > 0)
+        {
+            ApplyPolygonCollider(cellSize);
+        }
+        else
+        {
+            if (polygonCollider != null)
+                polygonCollider.pathCount = 0;
+        }
+
+        return currentOffsets.Length;
+    }
+
     private void ResetParentTransform()
     {
         // В исходных префабах у корня блока стоят произвольные scale/position,
