@@ -3452,6 +3452,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: DeathWater
       objectReference: {fileID: 0}
+    - target: {fileID: 7401294031847562301, guid: 30b14d6cf4c4ada468a11a8783941500, type: 3}
+      propertyPath: board
+      value: 
+      objectReference: {fileID: 1285392918}
+    - target: {fileID: 7401294031847562301, guid: 30b14d6cf4c4ada468a11a8783941500, type: 3}
+      propertyPath: config
+      value: 
+      objectReference: {fileID: 11400000, guid: 14ef53e94afa8a7479d88720bce07788, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

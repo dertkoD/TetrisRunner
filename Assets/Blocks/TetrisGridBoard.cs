@@ -108,6 +108,16 @@ public class TetrisGridBoard : MonoBehaviour
     }
 
     /// <summary>
+    /// Возвращает блок, который занимает клетку <paramref name="cell"/>, или
+    /// null, если клетка пуста.
+    /// </summary>
+    public TetrisPlacedBlock GetBlockAt(Vector2Int cell)
+    {
+        cellsToBlock.TryGetValue(cell, out TetrisPlacedBlock block);
+        return block;
+    }
+
+    /// <summary>
     /// Y самой верхней занятой клетки на доске. Возвращает -1, если ни одна
     /// клетка не занята. Используется, чтобы понять, не «доехала» ли стопка
     /// блоков до уровня спавна — тогда уровень нужно перезапустить.

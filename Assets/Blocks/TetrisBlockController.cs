@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public class TetrisBlockController : MonoBehaviour
@@ -221,6 +222,12 @@ public class TetrisBlockController : MonoBehaviour
 
         board.RegisterBlock(placedBlock);
 
+        // Сообщаем DeathWater о контакте: блок встал на блок того же цвета —
+        // вода опустится, на блок другого цвета — вода поднимется. Делаем это
+        // ДО ResolveMatches, иначе блок-сосед, с которым произошёл матчинг,
+        // уже окажется уничтожен и мы не сможем сравнить цвета.
+        NotifyDeathWaterAboutLanding(placedBlock);
+
         // Проверяем совпадения: если рядом стоит блок такого же цвета — оба
         // полностью исчезнут, висящие сверху осыпятся целиком, не теряя формы.
         board.ResolveMatches();
@@ -228,6 +235,76 @@ public class TetrisBlockController : MonoBehaviour
         // Контроллеру больше делать нечего — отключаем его компонент
         // (но сам объект, его коллайдер и визуал остаются жить).
         enabled = false;
+    }
+
+    /// <summary>
+    /// После приземления блока сравнивает его цвет с цветами блоков, на
+    /// которые он встал (т.е. блоков, стоящих ровно под его клетками-«ножками»).
+    /// При попадании на блок такого же цвета — сообщает DeathWater про шринк,
+    /// при попадании на блок другого цвета — про рост. Статические блоки
+    /// (платформы) в подсчёте не участвуют, т.к. у них нет цвета.
+    /// </summary>
+    private void NotifyDeathWaterAboutLanding(TetrisPlacedBlock placedBlock)
+    {
+        DeathWaterController dw = DeathWaterController.Instance;
+        if (dw == null || placedBlock == null || board == null)
+            return;
+
+        Vector2Int[] ownOffsets = placedBlock.CellOffsets;
+        if (ownOffsets == null || ownOffsets.Length == 0)
+            return;
+
+        Vector2Int pivot = placedBlock.PivotCell;
+
+        HashSet<Vector2Int> ownCells = new HashSet<Vector2Int>();
+        for (int i = 0; i < ownOffsets.Length; i++)
+            ownCells.Add(pivot + ownOffsets[i]);
+
+        HashSet<TetrisPlacedBlock> belowOthers = new HashSet<TetrisPlacedBlock>();
+
+        for (int i = 0; i < ownOffsets.Length; i++)
+        {
+            Vector2Int cellBelow = pivot + ownOffsets[i] + Vector2Int.down;
+
+            // Если эта клетка тоже принадлежит самому новому блоку — это его
+            // же «внутренняя» соседка, она не считается контактом с другим блоком.
+            if (ownCells.Contains(cellBelow))
+                continue;
+
+            if (!board.IsInside(cellBelow))
+                continue;
+
+            TetrisPlacedBlock occupant = board.GetBlockAt(cellBelow);
+            if (occupant == null || occupant == placedBlock)
+                continue;
+
+            // Статические платформы цвета не имеют (colorIndex = -1), поэтому
+            // приземление на них не считается ни матчингом, ни мисматчингом.
+            if (occupant.IsStatic)
+                continue;
+
+            belowOthers.Add(occupant);
+        }
+
+        if (belowOthers.Count == 0)
+            return;
+
+        bool anySameColor = false;
+        bool anyDifferentColor = false;
+
+        foreach (TetrisPlacedBlock other in belowOthers)
+        {
+            if (other.ColorIndex == placedBlock.ColorIndex)
+                anySameColor = true;
+            else
+                anyDifferentColor = true;
+        }
+
+        if (anySameColor)
+            dw.HandleBlockLandedOnSameColor();
+
+        if (anyDifferentColor)
+            dw.HandleBlockLandedOnDifferentColor();
     }
 
     private void StopMotion()

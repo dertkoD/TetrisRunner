@@ -77,6 +77,19 @@ public sealed class TetrisBlockConfigSO : ScriptableObject
         new Color(0.95f, 0.65f, 0.30f, 1f), // оранжевый
     };
 
+    [Header("Death Water")]
+    [Tooltip("На сколько клеток DeathWater поднимается вверх, когда падающий блок " +
+             "встал на блок ДРУГОГО цвета (т.е. не произошёл матчинг).")]
+    [SerializeField, Min(0)] private int deathWaterGrowOnDifferentColorLanding = 1;
+
+    [Tooltip("На сколько клеток DeathWater опускается вниз, когда падающий блок " +
+             "встал на блок ТАКОГО ЖЕ цвета (т.е. произошёл матчинг).")]
+    [SerializeField, Min(0)] private int deathWaterShrinkOnSameColorLanding = 1;
+
+    [Tooltip("На сколько клеток DeathWater поднимается вверх, когда падающий блок " +
+             "проваливается в саму DeathWater.")]
+    [SerializeField, Min(0)] private int deathWaterGrowOnBlockEnteringWater = 1;
+
     public InputActionReference ToggleSpawnAction => toggleSpawnAction;
     public InputActionReference MoveAction => moveAction;
     public InputActionReference RotateLeftAction => rotateLeftAction;
@@ -116,6 +129,10 @@ public sealed class TetrisBlockConfigSO : ScriptableObject
     public bool SnapPositionWhenStacking => snapPositionWhenStacking;
     public bool SnapRotationWhenStacking => snapRotationWhenStacking;
     public float GridCellSize => gridCellSize;
+
+    public int DeathWaterGrowOnDifferentColorLanding => deathWaterGrowOnDifferentColorLanding;
+    public int DeathWaterShrinkOnSameColorLanding => deathWaterShrinkOnSameColorLanding;
+    public int DeathWaterGrowOnBlockEnteringWater => deathWaterGrowOnBlockEnteringWater;
 
     public Color[] CellColorPalette => cellColorPalette;
 }
