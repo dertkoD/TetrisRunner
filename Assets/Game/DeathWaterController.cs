@@ -37,6 +37,12 @@ public class DeathWaterController : MonoBehaviour
     [Tooltip("Максимальная высота воды в клетках. 0 — без верхнего ограничения.")]
     [SerializeField, Min(0)] private int maxHeightInCells = 0;
 
+    [Header("Door (game-over когда вода доходит)")]
+    [Tooltip("Пустой GameObject в сцене, который отмечает «дверь». Когда DeathWater " +
+             "поднимается до клетки, в которой стоит этот объект, сцена перезагружается. " +
+             "Если поле пустое — проверка двери выключена.")]
+    [SerializeField] private Transform doorMarker;
+
     private static DeathWaterController instance;
 
     /// <summary>
@@ -222,6 +228,26 @@ public class DeathWaterController : MonoBehaviour
 
         board.EraseCellsInRowRange(minRow, maxRow);
         lastErodedRow = newTopRow;
+
+        CheckDoorFlooded();
+    }
+
+    /// <summary>
+    /// Если задана метка двери и текущий уровень воды дорос до её клетки —
+    /// перезагружаем сцену. «Дорос» означает, что центр клетки двери
+    /// находится не выше текущей верхней границы воды.
+    /// </summary>
+    private void CheckDoorFlooded()
+    {
+        if (doorMarker == null || board == null)
+            return;
+
+        Vector2Int doorCell = board.WorldToCell(doorMarker.position);
+
+        // Та же логика, что и для эрозии: клетка считается «накрытой», если
+        // её Y-индекс не превышает текущий верхний ряд воды.
+        if (doorCell.y <= lastErodedRow)
+            LevelReloader.RequestReload();
     }
 
     private int ComputeMinExtraAbove()
@@ -269,6 +295,16 @@ public class DeathWaterController : MonoBehaviour
     {
         if (other == null)
             return;
+
+        // Если в воду заходит сам игрок — игрок умирает мгновенно и сцена
+        // перезагружается. Никакого HP, никаких чекпойнтов.
+        PlayerFacade player = other.GetComponent<PlayerFacade>()
+                              ?? other.GetComponentInParent<PlayerFacade>();
+        if (player != null)
+        {
+            LevelReloader.RequestReload();
+            return;
+        }
 
         // Реагируем только на ИГРОВОЙ падающий блок — статические платформы,
         // anchored-блоки уровня и уже застывшие блоки в воду не «проваливаются».
