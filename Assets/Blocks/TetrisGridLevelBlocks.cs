@@ -112,9 +112,35 @@ public class TetrisGridLevelBlocks : MonoBehaviour
             if (cells == null)
                 continue;
 
-            Vector2Int pivot = board.WorldToCell(child.position);
-            Vector3 snapPos = board.CellToWorld(pivot);
-            child.position = snapPos;
+            // Если у блока есть видимые ячейки, ориентируемся на первую из них:
+            // сдвигаем корень так, чтобы первая ячейка попадала в центр своей
+            // клетки сетки. Это даёт ту же геометрию snap, что и runtime.
+            Vector2Int pivot;
+            Vector3 anchorWorld = child.position;
+
+            Transform[] visuals = cells.CellVisuals;
+            Transform firstVisual = null;
+
+            if (visuals != null)
+            {
+                for (int v = 0; v < visuals.Length; v++)
+                {
+                    if (visuals[v] != null && visuals[v].gameObject.activeInHierarchy)
+                    {
+                        firstVisual = visuals[v];
+                        break;
+                    }
+                }
+            }
+
+            if (firstVisual != null)
+                anchorWorld = firstVisual.position;
+
+            pivot = board.WorldToCell(anchorWorld);
+
+            // Двигаем корень так, чтобы anchor-ячейка оказалась в центре своей клетки.
+            Vector3 anchorDelta = board.CellToWorld(pivot) - anchorWorld;
+            child.position += anchorDelta;
 
             float angle = NormalizeAngle(child.eulerAngles.z);
             int steps = Mathf.RoundToInt(angle / 90f) & 3;
@@ -140,22 +166,74 @@ public class TetrisGridLevelBlocks : MonoBehaviour
             if (cells == null)
                 continue;
 
-            Vector2Int[] rawOffsets = cells.GetStartOffsetsCopy();
+            // Источник истины — где КЛЕТКИ блока сейчас находятся в мире.
+            // Эта информация уже учитывает любой поворот и любую кривизну
+            // расстановки, и совпадает с тем, что игрок видит в редакторе.
+            // Если cellVisuals не заданы — откатываемся к startOffsets +
+            // повороту корня (старая логика).
+            Vector2Int[] offsets;
+            Vector2Int pivot;
             int rotationSteps = ComputeRotationSteps(child);
-            Vector2Int[] rotatedOffsets = ApplyRotationSteps(rawOffsets, rotationSteps);
 
-            Vector2Int pivot = board.WorldToCell(child.position);
+            if (!TryResolveCellsFromVisuals(cells, out offsets, out pivot))
+            {
+                Vector2Int[] rawOffsets = cells.GetStartOffsetsCopy();
+                offsets = ApplyRotationSteps(rawOffsets, rotationSteps);
+                pivot = board.WorldToCell(child.position);
+            }
 
             entries.Add(new BlockEntry
             {
                 cells = cells,
-                offsets = rotatedOffsets,
+                offsets = offsets,
                 pivot = pivot,
                 rotationSteps = rotationSteps,
             });
         }
 
         return entries;
+    }
+
+    /// <summary>
+    /// Считывает текущие мировые позиции cellVisuals блока, превращает их в
+    /// клетки сетки и выбирает первую из них в качестве pivot. Возвращает
+    /// false, если у блока нет cellVisuals — тогда вызывающий код должен
+    /// откатиться к startOffsets + поворот.
+    /// </summary>
+    private bool TryResolveCellsFromVisuals(TetrisBlockCells cells, out Vector2Int[] offsets, out Vector2Int pivot)
+    {
+        offsets = null;
+        pivot = Vector2Int.zero;
+
+        Transform[] visuals = cells != null ? cells.CellVisuals : null;
+        if (visuals == null || visuals.Length == 0)
+            return false;
+
+        List<Vector2Int> uniqueCells = new List<Vector2Int>(visuals.Length);
+        HashSet<Vector2Int> seen = new HashSet<Vector2Int>();
+
+        for (int i = 0; i < visuals.Length; i++)
+        {
+            Transform visual = visuals[i];
+            if (visual == null || !visual.gameObject.activeInHierarchy)
+                continue;
+
+            Vector2Int cell = board.WorldToCell(visual.position);
+
+            if (seen.Add(cell))
+                uniqueCells.Add(cell);
+        }
+
+        if (uniqueCells.Count == 0)
+            return false;
+
+        pivot = uniqueCells[0];
+
+        offsets = new Vector2Int[uniqueCells.Count];
+        for (int i = 0; i < uniqueCells.Count; i++)
+            offsets[i] = uniqueCells[i] - pivot;
+
+        return true;
     }
 
     private List<int> ValidateAndReserveCells(List<BlockEntry> entries, Dictionary<Vector2Int, int> occupancy)
@@ -169,7 +247,7 @@ public class TetrisGridLevelBlocks : MonoBehaviour
             if (e.offsets == null || e.offsets.Length == 0)
                 continue;
 
-            bool ok = true;
+            string failReason = null;
 
             for (int i = 0; i < e.offsets.Length; i++)
             {
@@ -177,28 +255,31 @@ public class TetrisGridLevelBlocks : MonoBehaviour
 
                 if (!board.IsInside(cell))
                 {
-                    ok = false;
+                    failReason = $"клетка {cell} вне границ сетки";
                     break;
                 }
 
                 if (board.IsOccupied(cell))
                 {
-                    ok = false;
+                    failReason = $"клетка {cell} уже занята другим объектом сетки";
                     break;
                 }
 
-                if (occupancy.ContainsKey(cell))
+                if (occupancy.TryGetValue(cell, out int otherIdx))
                 {
-                    ok = false;
+                    string otherName = entries[otherIdx].cells != null
+                        ? entries[otherIdx].cells.name
+                        : "?";
+                    failReason = $"клетка {cell} налезает на блок '{otherName}'";
                     break;
                 }
             }
 
-            if (!ok)
+            if (failReason != null)
             {
                 Debug.LogWarning(
-                    $"{nameof(TetrisGridLevelBlocks)}: блок '{e.cells.name}' расположен вне сетки " +
-                    $"или налезает на занятые клетки (pivot={e.pivot}) и не будет зарегистрирован.",
+                    $"{nameof(TetrisGridLevelBlocks)}: блок '{e.cells.name}' (pivot={e.pivot}) " +
+                    $"не будет зарегистрирован: {failReason}.",
                     e.cells);
 
                 if (disableInvalidBlocks)
