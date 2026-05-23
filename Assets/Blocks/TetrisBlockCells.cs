@@ -32,6 +32,41 @@ public class TetrisBlockCells : MonoBehaviour
     public Vector2Int[] CurrentOffsets => currentOffsets;
     public Transform[] CellVisuals => cellVisuals;
 
+    /// <summary>
+    /// Копия исходных оффсетов блока (так как они сериализованы в префабе).
+    /// Используется внешними системами, чтобы заранее, ещё до Initialize, знать,
+    /// какие клетки сетки занимает фигура.
+    /// </summary>
+    public Vector2Int[] GetStartOffsetsCopy()
+    {
+        if (startOffsets == null)
+            return new Vector2Int[0];
+
+        Vector2Int[] copy = new Vector2Int[startOffsets.Length];
+        for (int i = 0; i < startOffsets.Length; i++)
+            copy[i] = startOffsets[i];
+        return copy;
+    }
+
+    /// <summary>
+    /// Полностью переопределяет startOffsets перед вызовом
+    /// <see cref="Initialize(float, Color[])"/>. Полезно для статичных блоков
+    /// уровня, у которых форма зависит от того, под каким углом блок был
+    /// расставлен в сцене.
+    /// </summary>
+    public void OverrideStartOffsets(Vector2Int[] offsets)
+    {
+        if (offsets == null)
+        {
+            startOffsets = new Vector2Int[0];
+            return;
+        }
+
+        startOffsets = new Vector2Int[offsets.Length];
+        for (int i = 0; i < offsets.Length; i++)
+            startOffsets[i] = offsets[i];
+    }
+
     /// <summary>Цветовой индекс для i-й ячейки (соответствует cellVisuals[i] и CurrentOffsets[i]).</summary>
     public int GetColorIndex(int index)
     {
@@ -64,6 +99,17 @@ public class TetrisBlockCells : MonoBehaviour
 
     public void Initialize(float cellSize, Color[] palette)
     {
+        Initialize(cellSize, palette, assignRandomColors: true);
+    }
+
+    /// <summary>
+    /// Полная версия Initialize. При <paramref name="assignRandomColors"/> = false
+    /// случайный цвет НЕ выбирается — все индексы цветов выставляются в 0,
+    /// и предполагается, что вызывающая сторона задаст конкретный цвет через
+    /// <see cref="SetUniformColorIndex"/>.
+    /// </summary>
+    public void Initialize(float cellSize, Color[] palette, bool assignRandomColors)
+    {
         ResetParentTransform();
         EnsureColliderSetup();
 
@@ -77,8 +123,37 @@ public class TetrisBlockCells : MonoBehaviour
             currentOffsets[i] = effectiveOffsets[i];
 
         CacheCellRenderers();
-        AssignRandomColors();
+
+        if (assignRandomColors)
+            AssignRandomColors();
+        else
+            AssignFixedColors(0);
+
         ApplyShape(cellSize);
+        ApplyColors();
+    }
+
+    /// <summary>
+    /// Устанавливает один и тот же цветовой индекс для всех ячеек блока и
+    /// сразу же обновляет визуалы. Если палитра задана, индекс приводится
+    /// в её границы по модулю.
+    /// </summary>
+    public void SetUniformColorIndex(int colorIndex)
+    {
+        if (cellColorIndices == null)
+            return;
+
+        int paletteLength = activePalette != null ? activePalette.Length : 0;
+        int normalized;
+
+        if (paletteLength > 0)
+            normalized = ((colorIndex % paletteLength) + paletteLength) % paletteLength;
+        else
+            normalized = 0;
+
+        for (int i = 0; i < cellColorIndices.Length; i++)
+            cellColorIndices[i] = normalized;
+
         ApplyColors();
     }
 
@@ -113,6 +188,87 @@ public class TetrisBlockCells : MonoBehaviour
             currentOffsets[i] = newOffsets[i];
 
         ApplyShape(cellSize);
+    }
+
+    /// <summary>
+    /// Удаляет указанные ячейки (по смещению относительно пивота) из блока:
+    /// прячет их визуалы, сжимает параллельные массивы currentOffsets /
+    /// cellVisuals / cellColorIndices / cellRenderers и перестраивает
+    /// PolygonCollider2D под уменьшившуюся фигуру. Возвращает количество
+    /// оставшихся (живых) ячеек.
+    /// </summary>
+    public int RemoveOffsets(IEnumerable<Vector2Int> offsetsToRemove, float cellSize)
+    {
+        if (currentOffsets == null || offsetsToRemove == null)
+            return currentOffsets != null ? currentOffsets.Length : 0;
+
+        HashSet<Vector2Int> removeSet = new HashSet<Vector2Int>(offsetsToRemove);
+
+        if (removeSet.Count == 0)
+            return currentOffsets.Length;
+
+        List<Vector2Int> keptOffsets = new List<Vector2Int>(currentOffsets.Length);
+        List<Transform> keptVisuals = cellVisuals != null
+            ? new List<Transform>(cellVisuals.Length)
+            : null;
+        List<SpriteRenderer> keptRenderers = cellRenderers != null
+            ? new List<SpriteRenderer>(cellRenderers.Length)
+            : null;
+        List<int> keptColorIndices = cellColorIndices != null
+            ? new List<int>(cellColorIndices.Length)
+            : null;
+
+        int n = currentOffsets.Length;
+
+        for (int i = 0; i < n; i++)
+        {
+            Vector2Int offset = currentOffsets[i];
+
+            if (removeSet.Contains(offset))
+            {
+                // Скрываем визуал у выпиленной клетки. Сам объект не уничтожаем —
+                // это дочка блока, её Destroy может ударить по чистке Unity.
+                if (cellVisuals != null && i < cellVisuals.Length && cellVisuals[i] != null)
+                    cellVisuals[i].gameObject.SetActive(false);
+
+                continue;
+            }
+
+            keptOffsets.Add(offset);
+
+            if (keptVisuals != null && i < cellVisuals.Length)
+                keptVisuals.Add(cellVisuals[i]);
+
+            if (keptRenderers != null && i < cellRenderers.Length)
+                keptRenderers.Add(cellRenderers[i]);
+
+            if (keptColorIndices != null && i < cellColorIndices.Length)
+                keptColorIndices.Add(cellColorIndices[i]);
+        }
+
+        currentOffsets = keptOffsets.ToArray();
+
+        if (keptVisuals != null)
+            cellVisuals = keptVisuals.ToArray();
+
+        if (keptRenderers != null)
+            cellRenderers = keptRenderers.ToArray();
+
+        if (keptColorIndices != null)
+            cellColorIndices = keptColorIndices.ToArray();
+
+        // Контур и позиции оставшихся ячеек могли стать «дырявыми» — пересчитаем.
+        if (currentOffsets.Length > 0)
+        {
+            ApplyPolygonCollider(cellSize);
+        }
+        else
+        {
+            if (polygonCollider != null)
+                polygonCollider.pathCount = 0;
+        }
+
+        return currentOffsets.Length;
     }
 
     private void ResetParentTransform()
@@ -195,6 +351,20 @@ public class TetrisBlockCells : MonoBehaviour
             if (cellRenderers[i] == null)
                 cellRenderers[i] = cellVisuals[i].GetComponentInChildren<SpriteRenderer>();
         }
+    }
+
+    private void AssignFixedColors(int colorIndex)
+    {
+        if (currentOffsets == null)
+        {
+            cellColorIndices = new int[0];
+            return;
+        }
+
+        cellColorIndices = new int[currentOffsets.Length];
+
+        for (int i = 0; i < cellColorIndices.Length; i++)
+            cellColorIndices[i] = colorIndex;
     }
 
     private void AssignRandomColors()

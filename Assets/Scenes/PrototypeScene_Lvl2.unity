@@ -119,6 +119,37 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &7300100
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7300101}
+  m_Layer: 0
+  m_Name: Door
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7300101
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7300100}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 39.5, y: 10.53, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &130035942
 GameObject:
   m_ObjectHideFlags: 0
@@ -442,15 +473,15 @@ PrefabInstance:
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 0}
+    m_TransformParent: {fileID: 621945652}
     m_Modifications:
     - target: {fileID: 517674675530223418, guid: 8003fe88d1bd000408ec02f2636f6530, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 40.47
+      value: -919.53
       objectReference: {fileID: 0}
     - target: {fileID: 517674675530223418, guid: 8003fe88d1bd000408ec02f2636f6530, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 9.43
+      value: -530.57
       objectReference: {fileID: 0}
     - target: {fileID: 517674675530223418, guid: 8003fe88d1bd000408ec02f2636f6530, type: 3}
       propertyPath: m_LocalPosition.z
@@ -462,11 +493,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 517674675530223418, guid: 8003fe88d1bd000408ec02f2636f6530, type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 517674675530223418, guid: 8003fe88d1bd000408ec02f2636f6530, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 517674675530223418, guid: 8003fe88d1bd000408ec02f2636f6530, type: 3}
       propertyPath: m_LocalRotation.z
@@ -634,6 +665,11 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!4 &586404217 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 517674675530223418, guid: 8003fe88d1bd000408ec02f2636f6530, type: 3}
+  m_PrefabInstance: {fileID: 346503227}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &587052485
 GameObject:
   m_ObjectHideFlags: 0
@@ -1089,6 +1125,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 621945652}
+  - component: {fileID: 621945660}
   m_Layer: 5
   m_Name: Blocks
   m_TagString: Untagged
@@ -1123,6 +1160,8 @@ RectTransform:
   - {fileID: 1070026619}
   - {fileID: 910209961}
   - {fileID: 1064097456}
+  - {fileID: 641810045}
+  - {fileID: 586404217}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
@@ -1130,6 +1169,27 @@ RectTransform:
   m_AnchoredPosition: {x: 960, y: 540}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &621945660
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 621945651}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7c7c2f9e3a1b4d2298a4c1c8f5e90b27, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TetrisGridLevelBlocks
+  board: {fileID: 1285392918}
+  config: {fileID: 11400000, guid: 14ef53e94afa8a7479d88720bce07788, type: 2}
+  disableInvalidBlocks: 1
+  registerAsAnchored: 1
+--- !u!4 &641810045 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 6731336852715431340, guid: 6c78957ecba295e439020622f0215927, type: 3}
+  m_PrefabInstance: {fileID: 1638728814}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &665575934
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2428,7 +2488,7 @@ PrefabInstance:
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 0}
+    m_TransformParent: {fileID: 621945652}
     m_Modifications:
     - target: {fileID: 372500134378389720, guid: 6c78957ecba295e439020622f0215927, type: 3}
       propertyPath: m_Name
@@ -2436,11 +2496,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6731336852715431340, guid: 6c78957ecba295e439020622f0215927, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 39.92
+      value: -920.08
       objectReference: {fileID: 0}
     - target: {fileID: 6731336852715431340, guid: 6c78957ecba295e439020622f0215927, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 7.48
+      value: -532.52
       objectReference: {fileID: 0}
     - target: {fileID: 6731336852715431340, guid: 6c78957ecba295e439020622f0215927, type: 3}
       propertyPath: m_LocalPosition.z
@@ -2452,11 +2512,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6731336852715431340, guid: 6c78957ecba295e439020622f0215927, type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 6731336852715431340, guid: 6c78957ecba295e439020622f0215927, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 6731336852715431340, guid: 6c78957ecba295e439020622f0215927, type: 3}
       propertyPath: m_LocalRotation.z
@@ -3432,6 +3492,18 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7401294031847562301, guid: 30b14d6cf4c4ada468a11a8783941500, type: 3}
+      propertyPath: board
+      value: 
+      objectReference: {fileID: 1285392918}
+    - target: {fileID: 7401294031847562301, guid: 30b14d6cf4c4ada468a11a8783941500, type: 3}
+      propertyPath: config
+      value: 
+      objectReference: {fileID: 11400000, guid: 14ef53e94afa8a7479d88720bce07788, type: 2}
+    - target: {fileID: 7401294031847562301, guid: 30b14d6cf4c4ada468a11a8783941500, type: 3}
+      propertyPath: doorMarker
+      value: 
+      objectReference: {fileID: 7300101}
     - target: {fileID: 8099961666266046189, guid: 30b14d6cf4c4ada468a11a8783941500, type: 3}
       propertyPath: m_Name
       value: DeathWater
@@ -3463,5 +3535,4 @@ SceneRoots:
   - {fileID: 2033867214}
   - {fileID: 621945652}
   - {fileID: 9008558761261487619}
-  - {fileID: 346503227}
-  - {fileID: 1638728814}
+  - {fileID: 7300101}

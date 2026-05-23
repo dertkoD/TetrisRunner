@@ -94,6 +94,20 @@ public class TetrisGridBoard : MonoBehaviour
         );
     }
 
+    /// <summary>
+    /// Возвращает номер самой верхней строки сетки, центр которой не
+    /// поднимается выше <paramref name="worldY"/>. Иначе говоря — индекс
+    /// последнего ряда, который полностью «накрыт» уровнем по высоте
+    /// <paramref name="worldY"/>. Возвращает int.MinValue, если выше клетки 0
+    /// (т.е. вода ещё не доросла до сетки).
+    /// </summary>
+    public int GetHighestRowAtOrBelowWorldY(float worldY)
+    {
+        float originY = OriginPosition.y;
+        float t = (worldY - originY) / cellSize - 0.5f;
+        return Mathf.FloorToInt(t);
+    }
+
     public bool IsInside(Vector2Int cell)
     {
         return cell.x >= 0 &&
@@ -105,6 +119,16 @@ public class TetrisGridBoard : MonoBehaviour
     public bool IsOccupied(Vector2Int cell)
     {
         return cellsToBlock.ContainsKey(cell);
+    }
+
+    /// <summary>
+    /// Возвращает блок, который занимает клетку <paramref name="cell"/>, или
+    /// null, если клетка пуста.
+    /// </summary>
+    public TetrisPlacedBlock GetBlockAt(Vector2Int cell)
+    {
+        cellsToBlock.TryGetValue(cell, out TetrisPlacedBlock block);
+        return block;
     }
 
     /// <summary>
@@ -326,6 +350,11 @@ public class TetrisGridBoard : MonoBehaviour
                     if (aboveBlock.IsStatic)
                         continue;
 
+                    // Закреплённые блоки уровня тоже неподвижны и не должны
+                    // ехать вместе с платформой.
+                    if (aboveBlock.IsAnchored)
+                        continue;
+
                     if (set.Add(aboveBlock))
                         changed = true;
                 }
@@ -333,6 +362,68 @@ public class TetrisGridBoard : MonoBehaviour
         }
 
         return set;
+    }
+
+    /// <summary>
+    /// Убирает из сетки все занятые клетки в указанном диапазоне строк
+    /// [minRow..maxRow] (включительно). Если у какого-то блока удалили все
+    /// его клетки — блок-объект уничтожается. Возвращает true, если хотя
+    /// бы одна клетка действительно была эродирована.
+    /// </summary>
+    public bool EraseCellsInRowRange(int minRow, int maxRow)
+    {
+        if (maxRow < minRow)
+            return false;
+
+        // Группируем удаляемые клетки по блокам, чтобы за один проход
+        // убрать у каждого блока все «утонувшие» клетки и при необходимости
+        // уничтожить пустой объект целиком.
+        Dictionary<TetrisPlacedBlock, List<Vector2Int>> blocksToCells = null;
+
+        foreach (KeyValuePair<Vector2Int, TetrisPlacedBlock> kvp in cellsToBlock)
+        {
+            if (kvp.Key.y < minRow || kvp.Key.y > maxRow)
+                continue;
+
+            if (kvp.Value == null)
+                continue;
+
+            // Статические платформы (земля, движущиеся платформы и т.п.)
+            // в воде не разрушаются — это часть геометрии уровня, у них
+            // даже цвета нет. Иначе игрок терял бы пол.
+            if (kvp.Value.IsStatic)
+                continue;
+
+            if (blocksToCells == null)
+                blocksToCells = new Dictionary<TetrisPlacedBlock, List<Vector2Int>>();
+
+            if (!blocksToCells.TryGetValue(kvp.Value, out List<Vector2Int> list))
+            {
+                list = new List<Vector2Int>();
+                blocksToCells[kvp.Value] = list;
+            }
+
+            list.Add(kvp.Key);
+        }
+
+        if (blocksToCells == null)
+            return false;
+
+        foreach (KeyValuePair<TetrisPlacedBlock, List<Vector2Int>> pair in blocksToCells)
+        {
+            TetrisPlacedBlock block = pair.Key;
+            List<Vector2Int> cells = pair.Value;
+
+            for (int i = 0; i < cells.Count; i++)
+                cellsToBlock.Remove(cells[i]);
+
+            int remaining = block != null ? block.RemoveCellsAtWorldCells(cells) : 0;
+
+            if (remaining <= 0 && block != null)
+                Destroy(block.gameObject);
+        }
+
+        return true;
     }
 
     /// <summary>Снимает блок с карты сетки (но сам объект не уничтожает).</summary>
@@ -513,6 +604,12 @@ public class TetrisGridBoard : MonoBehaviour
     {
         // Статические блоки (платформы из сцены) висят там, где их поставили.
         if (block.IsStatic)
+            return false;
+
+        // Закреплённые блоки уровня тоже остаются на своих клетках: если в
+        // конструкции образовалась дыра после матчинга, остальные блоки уровня
+        // НЕ должны сыпаться вниз и заваливать структуру.
+        if (block.IsAnchored)
             return false;
 
         Vector2Int[] offsets = block.CellOffsets;

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -14,6 +15,7 @@ public class TetrisPlacedBlock : MonoBehaviour
     private Vector2Int[] cellOffsets;
     private Rigidbody2D body;
     private bool isStatic;
+    private bool isAnchored;
 
     // Состояние плавной анимации (для гравитации и т.п.)
     private Vector3 animationTargetWorld;
@@ -26,11 +28,20 @@ public class TetrisPlacedBlock : MonoBehaviour
     public Vector2Int PivotCell => pivotCell;
     public Vector2Int[] CellOffsets => cellOffsets;
     public bool IsAnimating => isAnimating;
+
     /// <summary>
     /// Статические блоки (например, платформы из сцены) занимают клетки сетки,
     /// но не падают по гравитации и не участвуют в схлопывании по цвету.
     /// </summary>
     public bool IsStatic => isStatic;
+
+    /// <summary>
+    /// Закреплённые блоки (нарисованные вручную в сцене статичные блоки уровня)
+    /// занимают клетки сетки и УЧАСТВУЮТ в схлопывании по цвету, но НЕ падают
+    /// по гравитации. Таким образом конструкция уровня не разваливается, даже
+    /// если в её середине образовалась дыра от матчинга.
+    /// </summary>
+    public bool IsAnchored => isAnchored;
 
     public void Initialize(int blockId, int colorIndex, Vector2Int pivotCell, Vector2Int[] offsets)
     {
@@ -56,6 +67,17 @@ public class TetrisPlacedBlock : MonoBehaviour
     public void MarkAsStatic()
     {
         isStatic = true;
+    }
+
+    /// <summary>
+    /// Помечает блок как «закреплённый»: он останется на месте при гравитации,
+    /// но при этом будет участвовать в схлопывании по цвету и исчезнет, если
+    /// рядом с ним окажется блок такого же цвета. Используется для статичных
+    /// блоков уровня, расставленных вручную в сцене.
+    /// </summary>
+    public void MarkAsAnchored()
+    {
+        isAnchored = true;
     }
 
     /// <summary>Перемещает блок в новую клетку-пивот целиком МГНОВЕННО (без анимации).</summary>
@@ -127,6 +149,76 @@ public class TetrisPlacedBlock : MonoBehaviour
     {
         isAnimating = false;
         destroyOnAnimationEnd = false;
+    }
+
+    /// <summary>
+    /// Убирает у блока перечисленные мировые клетки (например, ушедшие под
+    /// уровень воды). Внутри переводит мировые клетки в смещения относительно
+    /// пивота, чистит cellOffsets и просит TetrisBlockCells обновить визуал
+    /// и коллайдер. Возвращает количество оставшихся клеток (0 — блок можно
+    /// уничтожать).
+    /// </summary>
+    public int RemoveCellsAtWorldCells(IEnumerable<Vector2Int> worldCells)
+    {
+        if (worldCells == null || cellOffsets == null || cellOffsets.Length == 0)
+            return cellOffsets != null ? cellOffsets.Length : 0;
+
+        HashSet<Vector2Int> removeSet = new HashSet<Vector2Int>();
+        foreach (Vector2Int worldCell in worldCells)
+            removeSet.Add(worldCell - pivotCell);
+
+        if (removeSet.Count == 0)
+            return cellOffsets.Length;
+
+        List<Vector2Int> kept = new List<Vector2Int>(cellOffsets.Length);
+
+        for (int i = 0; i < cellOffsets.Length; i++)
+        {
+            if (removeSet.Contains(cellOffsets[i]))
+                continue;
+
+            kept.Add(cellOffsets[i]);
+        }
+
+        cellOffsets = kept.ToArray();
+
+        // Синхронизируем визуал. CellSize узнаём у TetrisBlockCells через
+        // его текущее представление — она знает свой cellSize неявно через
+        // localPositions, но для пересборки коллайдера ей нужно явное число.
+        TetrisBlockCells cells = GetComponent<TetrisBlockCells>();
+        if (cells != null)
+        {
+            float cellSize = ResolveCellSize();
+            cells.RemoveOffsets(removeSet, cellSize);
+        }
+
+        return cellOffsets.Length;
+    }
+
+    /// <summary>
+    /// Пытается выяснить cellSize, по которому был сложен блок. Берём
+    /// первый сосед среди cellVisuals — расстояние между ними и центром
+    /// блока есть кратное cellSize. Если ничего не нашли, возвращаем 1
+    /// (стандартный размер клетки в этой игре).
+    /// </summary>
+    private float ResolveCellSize()
+    {
+        TetrisBlockCells cells = GetComponent<TetrisBlockCells>();
+        if (cells == null)
+            return 1f;
+
+        Transform[] visuals = cells.CellVisuals;
+        if (visuals == null || visuals.Length == 0)
+            return 1f;
+
+        for (int i = 0; i < visuals.Length; i++)
+        {
+            if (visuals[i] == null) continue;
+            float sx = Mathf.Abs(visuals[i].localScale.x);
+            if (sx > 0.0001f) return sx;
+        }
+
+        return 1f;
     }
 
     private void Update()
