@@ -14,6 +14,7 @@ public class TetrisPlacedBlock : MonoBehaviour
     private Vector2Int[] cellOffsets;
     private Rigidbody2D body;
     private bool isStatic;
+    private bool isAnchored;
 
     // Состояние плавной анимации (для гравитации и т.п.)
     private Vector3 animationTargetWorld;
@@ -26,11 +27,20 @@ public class TetrisPlacedBlock : MonoBehaviour
     public Vector2Int PivotCell => pivotCell;
     public Vector2Int[] CellOffsets => cellOffsets;
     public bool IsAnimating => isAnimating;
+
     /// <summary>
     /// Статические блоки (например, платформы из сцены) занимают клетки сетки,
     /// но не падают по гравитации и не участвуют в схлопывании по цвету.
     /// </summary>
     public bool IsStatic => isStatic;
+
+    /// <summary>
+    /// Закреплённые блоки (нарисованные вручную в сцене статичные блоки уровня)
+    /// занимают клетки сетки и УЧАСТВУЮТ в схлопывании по цвету, но НЕ падают
+    /// по гравитации. Таким образом конструкция уровня не разваливается, даже
+    /// если в её середине образовалась дыра от матчинга.
+    /// </summary>
+    public bool IsAnchored => isAnchored;
 
     public void Initialize(int blockId, int colorIndex, Vector2Int pivotCell, Vector2Int[] offsets)
     {
@@ -56,6 +66,17 @@ public class TetrisPlacedBlock : MonoBehaviour
     public void MarkAsStatic()
     {
         isStatic = true;
+    }
+
+    /// <summary>
+    /// Помечает блок как «закреплённый»: он останется на месте при гравитации,
+    /// но при этом будет участвовать в схлопывании по цвету и исчезнет, если
+    /// рядом с ним окажется блок такого же цвета. Используется для статичных
+    /// блоков уровня, расставленных вручную в сцене.
+    /// </summary>
+    public void MarkAsAnchored()
+    {
+        isAnchored = true;
     }
 
     /// <summary>Перемещает блок в новую клетку-пивот целиком МГНОВЕННО (без анимации).</summary>

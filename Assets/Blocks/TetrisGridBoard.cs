@@ -326,6 +326,11 @@ public class TetrisGridBoard : MonoBehaviour
                     if (aboveBlock.IsStatic)
                         continue;
 
+                    // Закреплённые блоки уровня тоже неподвижны и не должны
+                    // ехать вместе с платформой.
+                    if (aboveBlock.IsAnchored)
+                        continue;
+
                     if (set.Add(aboveBlock))
                         changed = true;
                 }
@@ -513,6 +518,12 @@ public class TetrisGridBoard : MonoBehaviour
     {
         // Статические блоки (платформы из сцены) висят там, где их поставили.
         if (block.IsStatic)
+            return false;
+
+        // Закреплённые блоки уровня тоже остаются на своих клетках: если в
+        // конструкции образовалась дыра после матчинга, остальные блоки уровня
+        // НЕ должны сыпаться вниз и заваливать структуру.
+        if (block.IsAnchored)
             return false;
 
         Vector2Int[] offsets = block.CellOffsets;

@@ -1130,6 +1130,22 @@ RectTransform:
   m_AnchoredPosition: {x: 960, y: 540}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &621945660
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 621945651}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7c7c2f9e3a1b4d2298a4c1c8f5e90b27, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TetrisGridLevelBlocks
+  board: {fileID: 1285392918}
+  config: {fileID: 11400000, guid: 14ef53e94afa8a7479d88720bce07788, type: 2}
+  disableInvalidBlocks: 1
+  registerAsAnchored: 1
 --- !u!1001 &665575934
 PrefabInstance:
   m_ObjectHideFlags: 0
