@@ -418,6 +418,17 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &573233031 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6437615933254843532, guid: d5a95c488a072e44d91a061a7a8dcf75, type: 3}
+  m_PrefabInstance: {fileID: 7967098090238330461}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d92c7142345d467780f61c826ff60ed4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GridLiftDoor
 --- !u!1 &587052485
 GameObject:
   m_ObjectHideFlags: 0
@@ -2298,6 +2309,14 @@ PrefabInstance:
       propertyPath: door
       value: 
       objectReference: {fileID: 573233031}
+    - target: {fileID: 8994006026001905346, guid: 9b0544694f5b2bb418e428235b62785a, type: 3}
+      propertyPath: board
+      value: 
+      objectReference: {fileID: 1285392918}
+    - target: {fileID: 8994006026001905346, guid: 9b0544694f5b2bb418e428235b62785a, type: 3}
+      propertyPath: playerLayers.m_Bits
+      value: 256
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -2317,7 +2336,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5008518009849637176, guid: 25fcd083561d73043a94923a4a5bb141, type: 3}
       propertyPath: m_LocalScale.x
-      value: 1.9893451
+      value: 3.01346
       objectReference: {fileID: 0}
     - target: {fileID: 5008518009849637176, guid: 25fcd083561d73043a94923a4a5bb141, type: 3}
       propertyPath: m_LocalScale.y
@@ -2325,7 +2344,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5008518009849637176, guid: 25fcd083561d73043a94923a4a5bb141, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 6.3978
+      value: 5.8857
       objectReference: {fileID: 0}
     - target: {fileID: 5008518009849637176, guid: 25fcd083561d73043a94923a4a5bb141, type: 3}
       propertyPath: m_LocalPosition.y
@@ -2525,27 +2544,19 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6437615933254843532, guid: d5a95c488a072e44d91a061a7a8dcf75, type: 3}
+      propertyPath: board
+      value: 
+      objectReference: {fileID: 1285392918}
+    - target: {fileID: 6437615933254843532, guid: d5a95c488a072e44d91a061a7a8dcf75, type: 3}
+      propertyPath: playerLayers.m_Bits
+      value: 256
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: d5a95c488a072e44d91a061a7a8dcf75, type: 3}
---- !u!1 &935549143 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 3400602789005061986, guid: d5a95c488a072e44d91a061a7a8dcf75, type: 3}
-  m_PrefabInstance: {fileID: 7967098090238330461}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &573233031 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 6437615933254843532, guid: d5a95c488a072e44d91a061a7a8dcf75, type: 3}
-  m_PrefabInstance: {fileID: 7967098090238330461}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 935549143}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d92c7142345d467780f61c826ff60ed4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::GridLiftDoor
 --- !u!1001 &9008558761261487619
 PrefabInstance:
   m_ObjectHideFlags: 0
