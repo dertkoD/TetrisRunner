@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 1790862739309986735}
   - component: {fileID: 6170271382710332421}
   - component: {fileID: 4991548471710116511}
+  - component: {fileID: 8994006026001905346}
   m_Layer: 0
   m_Name: Button
   m_TagString: Untagged
@@ -128,3 +129,30 @@ CircleCollider2D:
   m_CompositeOrder: 0
   m_Offset: {x: 0, y: 0}
   m_Radius: 0.5
+--- !u!114 &8994006026001905346
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8020365304551779420}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 86aa444b99b94322a15b7dbbf23be5f2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GridButton
+  board: {fileID: 0}
+  door: {fileID: 0}
+  shapeSource: 0
+  manualSizeInCells: {x: 1, y: 1}
+  overlapTolerance: 0.05
+  snapTransformToPivotOnStart: 0
+  triggerSize: {x: 1, y: 1}
+  triggerOffset: {x: 0, y: 0}
+  playerLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  onPressed:
+    m_PersistentCalls:
+      m_Calls: []
+  verboseLogs: 0

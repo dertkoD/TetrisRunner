@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 4948795909462518478}
   - component: {fileID: 5480363175759838681}
   - component: {fileID: 212408050818852981}
+  - component: {fileID: 6437615933254843532}
   m_Layer: 0
   m_Name: PlatformaDoor
   m_TagString: Untagged
@@ -138,3 +139,36 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 1, y: 1}
   m_EdgeRadius: 0
+--- !u!114 &6437615933254843532
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3400602789005061986}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d92c7142345d467780f61c826ff60ed4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GridLiftDoor
+  board: {fileID: 0}
+  shapeSource: 1
+  manualSizeInCells: {x: 1, y: 4}
+  overlapTolerance: 0.05
+  snapTransformToPivotOnStart: 0
+  liftCells: 4
+  liftCellsPerSecond: 4
+  retryWhenBlocked: 1
+  openOnStart: 0
+  carryPlayer: 1
+  playerCarryDetectHeight: 0.25
+  playerLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  onOpenStarted:
+    m_PersistentCalls:
+      m_Calls: []
+  onOpenFinished:
+    m_PersistentCalls:
+      m_Calls: []
+  verboseLogs: 0
