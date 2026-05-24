@@ -304,16 +304,56 @@ public class DeathWaterController : MonoBehaviour
         if (other == null)
             return;
 
-        // Если в воду заходит сам игрок — игрок умирает мгновенно и сцена
-        // перезагружается. Никакого HP, никаких чекпойнтов.
+        // Игрок при первом контакте с водой НЕ умирает мгновенно: он умирает
+        // только когда полностью погружён (см. OnTriggerStay2D ниже). Это даёт
+        // короткое окно, чтобы выпрыгнуть из воды до того, как голова уйдёт
+        // под уровень.
         PlayerFacade player = other.GetComponent<PlayerFacade>()
                               ?? other.GetComponentInParent<PlayerFacade>();
         if (player != null)
         {
-            LevelReloader.RequestReload();
+            TryKillPlayerIfSubmerged(other, player);
             return;
         }
 
+        TryHandleFallingBlock(other);
+    }
+
+    private void OnTriggerStay2D(Collider2D other)
+    {
+        if (other == null)
+            return;
+
+        // Пока игрок касается воды — на каждом физическом такте проверяем,
+        // ушёл ли он полностью под верхнюю границу. Только тогда — смерть.
+        PlayerFacade player = other.GetComponent<PlayerFacade>()
+                              ?? other.GetComponentInParent<PlayerFacade>();
+        if (player != null)
+            TryKillPlayerIfSubmerged(other, player);
+    }
+
+    private void TryKillPlayerIfSubmerged(Collider2D playerCollider, PlayerFacade player)
+    {
+        // «Полностью погружён» = верхняя грань коллайдера игрока находится
+        // НЕ ВЫШЕ текущей верхней границы воды. Маленький отрицательный
+        // допуск (epsilon) спасает от граничного «дребезжания» по float'у,
+        // когда игрок ровно по уровню воды.
+        const float submersionEpsilon = 0.02f;
+
+        if (playerCollider == null)
+            return;
+
+        float playerTopY = playerCollider.bounds.max.y;
+        float waterTopY = CurrentTopY;
+
+        if (playerTopY > waterTopY - submersionEpsilon)
+            return;
+
+        LevelReloader.RequestReload();
+    }
+
+    private void TryHandleFallingBlock(Collider2D other)
+    {
         // Реагируем только на ИГРОВОЙ падающий блок — статические платформы,
         // anchored-блоки уровня и уже застывшие блоки в воду не «проваливаются».
         TetrisBlockController controller = other.GetComponent<TetrisBlockController>()
