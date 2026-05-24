@@ -17,6 +17,11 @@ using UnityEngine;
 /// Бэйз-уровень воды (низ) фиксируется на старте: рост и падение меняют
 /// только её верхнюю границу. Внутри объекта сохраняется текущий «надбавок»
 /// в клетках, который применяется к Transform.position.y и Transform.localScale.y.
+///
+/// Сами блоки сетки под водой НЕ разрушаются: всё, что игрок или уровень уже
+/// поставили, остаётся на месте даже если оказалось под водой. Вода всё ещё
+/// убивает игрока при контакте и триггерит перезагрузку сцены, когда доходит
+/// до двери.
 /// </summary>
 [DisallowMultipleComponent]
 public class DeathWaterController : MonoBehaviour
@@ -98,11 +103,12 @@ public class DeathWaterController : MonoBehaviour
 
     private void Start()
     {
-        // На момент Start блоки уровня уже зарегистрированы в сетке (их
-        // TetrisGridLevelBlocks делает в Start). Если стартовый объём воды
-        // покрывает какие-то клетки — они тоже эродируются «постепенно».
-        // Чтобы не сжирать сразу все нижние ряды разом, начинаем эрозию
-        // с того ряда, который уже накрыт водой на старте.
+        // На момент Start блоки уровня уже зарегистрированы в сетке
+        // (TetrisGridLevelBlocks делает это в Start). Фиксируем стартовый
+        // верхний ряд воды — от него отсчитываются дальнейшие подъёмы.
+        // Сами блоки под водой не разрушаются, поэтому здесь нечего
+        // эродировать «постепенно» — просто стартовая точка для проверок
+        // двери.
         lastErodedRow = ComputeCurrentTopRow();
         erosionInitialized = true;
     }
@@ -184,17 +190,18 @@ public class DeathWaterController : MonoBehaviour
         extraCellsAbove = target;
         ApplyTransform();
 
-        // После того как вода поднялась — стираем у блоков сетки клетки,
-        // которые оказались под новым уровнем воды. Шринк ничего не
-        // восстанавливает: блоки, которые вода уже «съела», не возвращаются.
+        // После того как вода поднялась — отмечаем строки, которые ушли под
+        // воду, и проверяем триггер двери. Сами блоки при этом НЕ стираются:
+        // всё, что игрок или уровень уже поставили в сетку, остаётся на месте
+        // даже если оказалось под водой.
         if (target > previousExtra)
-            ErodeNewlyCoveredRows();
+            AdvanceFloodedRows();
     }
 
     /// <summary>
     /// Текущая верхняя строка сетки, центр которой находится под уровнем воды.
-    /// Используется и при росте воды (нужно проредить блоки в новых строках),
-    /// и при старте сцены (фиксируем начальный уровень).
+    /// Используется при росте воды (для проверки двери и обновления отметки
+    /// «затопленного» ряда) и при старте сцены (фиксируем начальный уровень).
     /// </summary>
     private int ComputeCurrentTopRow()
     {
@@ -204,15 +211,15 @@ public class DeathWaterController : MonoBehaviour
         return board.GetHighestRowAtOrBelowWorldY(CurrentTopY);
     }
 
-    private void ErodeNewlyCoveredRows()
+    private void AdvanceFloodedRows()
     {
         if (board == null)
             return;
 
         int newTopRow = ComputeCurrentTopRow();
 
-        // Если эрозию ещё не инициализировали (например, Grow вызвали до Start),
-        // считаем, что текущий уровень — это «база» и сжигать пока нечего.
+        // Если ещё не инициализировали (например, Grow вызвали до Start),
+        // считаем, что текущий уровень — это «база».
         if (!erosionInitialized)
         {
             lastErodedRow = newTopRow;
@@ -223,10 +230,11 @@ public class DeathWaterController : MonoBehaviour
         if (newTopRow <= lastErodedRow)
             return;
 
-        int minRow = lastErodedRow + 1;
-        int maxRow = newTopRow;
-
-        board.EraseCellsInRowRange(minRow, maxRow);
+        // Раньше здесь стирались клетки блоков, оказавшихся под уровнем воды
+        // (board.EraseCellsInRowRange). Теперь уже поставленные блоки —
+        // и закреплённые блоки уровня, и блоки, которые игрок уронил, —
+        // под водой не разрушаются. Просто двигаем «верхнюю отметку» и
+        // проверяем, не дошла ли вода до двери.
         lastErodedRow = newTopRow;
 
         CheckDoorFlooded();
@@ -296,16 +304,56 @@ public class DeathWaterController : MonoBehaviour
         if (other == null)
             return;
 
-        // Если в воду заходит сам игрок — игрок умирает мгновенно и сцена
-        // перезагружается. Никакого HP, никаких чекпойнтов.
+        // Игрок при первом контакте с водой НЕ умирает мгновенно: он умирает
+        // только когда полностью погружён (см. OnTriggerStay2D ниже). Это даёт
+        // короткое окно, чтобы выпрыгнуть из воды до того, как голова уйдёт
+        // под уровень.
         PlayerFacade player = other.GetComponent<PlayerFacade>()
                               ?? other.GetComponentInParent<PlayerFacade>();
         if (player != null)
         {
-            LevelReloader.RequestReload();
+            TryKillPlayerIfSubmerged(other, player);
             return;
         }
 
+        TryHandleFallingBlock(other);
+    }
+
+    private void OnTriggerStay2D(Collider2D other)
+    {
+        if (other == null)
+            return;
+
+        // Пока игрок касается воды — на каждом физическом такте проверяем,
+        // ушёл ли он полностью под верхнюю границу. Только тогда — смерть.
+        PlayerFacade player = other.GetComponent<PlayerFacade>()
+                              ?? other.GetComponentInParent<PlayerFacade>();
+        if (player != null)
+            TryKillPlayerIfSubmerged(other, player);
+    }
+
+    private void TryKillPlayerIfSubmerged(Collider2D playerCollider, PlayerFacade player)
+    {
+        // «Полностью погружён» = верхняя грань коллайдера игрока находится
+        // НЕ ВЫШЕ текущей верхней границы воды. Маленький отрицательный
+        // допуск (epsilon) спасает от граничного «дребезжания» по float'у,
+        // когда игрок ровно по уровню воды.
+        const float submersionEpsilon = 0.02f;
+
+        if (playerCollider == null)
+            return;
+
+        float playerTopY = playerCollider.bounds.max.y;
+        float waterTopY = CurrentTopY;
+
+        if (playerTopY > waterTopY - submersionEpsilon)
+            return;
+
+        LevelReloader.RequestReload();
+    }
+
+    private void TryHandleFallingBlock(Collider2D other)
+    {
         // Реагируем только на ИГРОВОЙ падающий блок — статические платформы,
         // anchored-блоки уровня и уже застывшие блоки в воду не «проваливаются».
         TetrisBlockController controller = other.GetComponent<TetrisBlockController>()

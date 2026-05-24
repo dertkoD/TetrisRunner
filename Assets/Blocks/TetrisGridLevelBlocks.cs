@@ -8,7 +8,9 @@ using UnityEngine;
 ///     положения и поворота в сцене;
 ///   * привязывает блок к ближайшей клетке (snap к сетке);
 ///   * раскрашивает все блоки так, чтобы любые два соседних по сетке блока
-///     имели разные цвета (жадная раскраска графа соседства);
+///     имели разные цвета (жадная раскраска графа соседства); конкретные
+///     цвета выбираются случайно при каждом запуске/перезапуске уровня,
+///     поэтому одна и та же геометрия каждый раз выглядит по-разному;
 ///   * регистрирует блок в <see cref="TetrisGridBoard"/> как закреплённый
 ///     (anchored) TetrisPlacedBlock — он участвует в схлопывании по цвету,
 ///     но не падает по гравитации, поэтому конструкция уровня сохраняется.
@@ -352,12 +354,17 @@ public class TetrisGridLevelBlocks : MonoBehaviour
             }
         }
 
-        // Welsh-Powell: сортируем по убыванию степени, чтобы максимально "тяжёлые"
-        // вершины раскрашивались первыми.
+        // Сначала сортируем по убыванию степени (Welsh-Powell): чем больше у
+        // блока соседей, тем раньше его красим — иначе можно «застрять» в
+        // конце с блоком, у которого все соседи уже забрали палитру. Среди
+        // блоков с одинаковой степенью порядок выбираем случайно — это даёт
+        // разную раскраску на каждом перезапуске уровня.
         List<int> ordered = new List<int>(accepted);
+        ShuffleInPlace(ordered);
         ordered.Sort((a, b) => adjacency[b].Count.CompareTo(adjacency[a].Count));
 
         Dictionary<int, int> assignedColor = new Dictionary<int, int>();
+        List<int> candidates = paletteSize > 0 ? new List<int>(paletteSize) : null;
 
         foreach (int idx in ordered)
         {
@@ -373,19 +380,27 @@ public class TetrisGridLevelBlocks : MonoBehaviour
 
             if (paletteSize > 0)
             {
-                chosen = 0;
+                candidates.Clear();
                 for (int c = 0; c < paletteSize; c++)
                 {
                     if (!usedByNeighbors.Contains(c))
-                    {
-                        chosen = c;
-                        break;
-                    }
+                        candidates.Add(c);
                 }
 
-                // Если соседи покрыли всю палитру (палитра меньше количества
-                // соседей), всё равно берём 0 — лучше визуальная путаница, чем
-                // отказ от регистрации.
+                if (candidates.Count > 0)
+                {
+                    // Выбираем случайный цвет из тех, что не используются соседями —
+                    // главное правило (никаких одинаковых цветов рядом) сохраняется,
+                    // но при каждом перезапуске уровня раскраска получается другая.
+                    chosen = candidates[Random.Range(0, candidates.Count)];
+                }
+                else
+                {
+                    // Если соседи покрыли всю палитру (палитра меньше количества
+                    // соседей), всё равно берём какой-то цвет — лучше визуальная
+                    // путаница, чем отказ от регистрации.
+                    chosen = Random.Range(0, paletteSize);
+                }
             }
             else
             {
@@ -396,6 +411,21 @@ public class TetrisGridLevelBlocks : MonoBehaviour
         }
 
         return assignedColor;
+    }
+
+    private static void ShuffleInPlace(List<int> list)
+    {
+        if (list == null)
+            return;
+
+        for (int i = list.Count - 1; i > 0; i--)
+        {
+            int j = Random.Range(0, i + 1);
+            if (j == i) continue;
+            int tmp = list[i];
+            list[i] = list[j];
+            list[j] = tmp;
+        }
     }
 
     private void RegisterBlocks(List<BlockEntry> entries, List<int> accepted, Dictionary<int, int> assignedColor)
