@@ -164,6 +164,34 @@ public class TetrisGridBoard : MonoBehaviour
         return false;
     }
 
+    /// <summary>
+    /// True, если хотя бы одна клетка, занятая ИГРОВЫМ (упавшим и залоченным)
+    /// блоком, имеет Y &gt;= row. Статические препятствия (платформы, двери-лифты,
+    /// KillBlock и т.п.) и anchored-блоки уровня НЕ учитываются — иначе любая
+    /// поднявшаяся платформа над строкой спавна делала бы игру моментально
+    /// неиграбельной (например, GridLiftDoor, заехавшая выше точки спавна,
+    /// тут же ронял сцену при следующем локе).
+    /// </summary>
+    public bool HasPlayerBlockAtOrAbove(int row)
+    {
+        foreach (KeyValuePair<Vector2Int, TetrisPlacedBlock> kvp in cellsToBlock)
+        {
+            if (kvp.Key.y < row)
+                continue;
+
+            TetrisPlacedBlock block = kvp.Value;
+            if (block == null)
+                continue;
+
+            if (block.IsStatic || block.IsAnchored)
+                continue;
+
+            return true;
+        }
+
+        return false;
+    }
+
     public bool CanPlaceOffsets(Vector2Int pivotCell, Vector2Int[] offsets)
     {
         if (offsets == null)
@@ -452,6 +480,23 @@ public class TetrisGridBoard : MonoBehaviour
 
         for (int i = 0; i < toRemove.Count; i++)
             cellsToBlock.Remove(toRemove[i]);
+    }
+
+    /// <summary>
+    /// Снимает блок с карты сетки и тут же пытается уронить всё, что на нём
+    /// держалось. Нужен внешним «опорам» (статические платформы, двери, лифты,
+    /// KillBlock и т.п.), которые исчезают по своим причинам и без этого вызова
+    /// оставляли бы блоки игрока висеть в воздухе. Этот же путь корректно
+    /// «дораскладывает» сетку после исчезновения опоры, даже если матчинг
+    /// при этом не сработал.
+    /// </summary>
+    public void UnregisterBlockAndDropAbove(TetrisPlacedBlock block)
+    {
+        if (block == null)
+            return;
+
+        UnregisterBlock(block);
+        ApplyGravity();
     }
 
     /// <summary>

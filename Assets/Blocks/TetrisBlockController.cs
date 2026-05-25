@@ -170,23 +170,6 @@ public class TetrisBlockController : MonoBehaviour
         StackBlock();
     }
 
-    /// <summary>
-    /// Сообщает менеджеру, что блок попал в DeathWater и должен исчезнуть
-    /// прямо сейчас — без приземления и без регистрации в сетке. Делегирует
-    /// уничтожение и планирование следующего блока спавн-менеджеру, чтобы
-    /// игра не зависла без активного блока.
-    /// </summary>
-    public void NotifyFellIntoWater()
-    {
-        if (!initialized || locked)
-            return;
-
-        if (spawnManager == null)
-            return;
-
-        spawnManager.NotifyActiveBlockFellOff(this);
-    }
-
     private void ApplyControlledPhysics()
     {
         body.bodyType = RigidbodyType2D.Kinematic;

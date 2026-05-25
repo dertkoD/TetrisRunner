@@ -231,7 +231,12 @@ public class TetrisGridMovingPlatform : MonoBehaviour
         if (board == null || platformBlock == null)
             return;
 
-        board.UnregisterBlock(platformBlock);
+        // Если сцена ещё активна — после ухода платформы могут зависнуть
+        // блоки, которые на ней стояли. Просим сетку сразу их уронить.
+        if (gameObject.scene.isLoaded)
+            board.UnregisterBlockAndDropAbove(platformBlock);
+        else
+            board.UnregisterBlock(platformBlock);
     }
 
     private void Update()

@@ -467,7 +467,11 @@ public class TetrisBlockSpawnManager : MonoBehaviour
         if (spawnRow == int.MaxValue)
             return false;
 
-        if (!board.HasOccupiedCellAtOrAbove(spawnRow))
+        // Учитываем только ИГРОВЫЕ застывшие блоки. Статические препятствия
+        // (платформы, двери-лифты, KillBlock и т.п.) и anchored-блоки уровня
+        // могут законно занимать клетки на строке спавна, и сами по себе они
+        // не должны заваливать сцену.
+        if (!board.HasPlayerBlockAtOrAbove(spawnRow))
             return false;
 
         ReloadActiveScene();
