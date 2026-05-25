@@ -67,7 +67,14 @@ public class TetrisGridStaticPlatform : MonoBehaviour
         if (board == null || registeredBlock == null)
             return;
 
-        board.UnregisterBlock(registeredBlock);
+        // Если сцена ещё активна — снимаем себя с сетки и просим её уронить
+        // всё, что на нас опиралось. Иначе блоки, поставленные игроком сверху,
+        // зависнут в воздухе. При выгрузке сцены гравитацию запускать не надо
+        // (всё равно всё уничтожается).
+        if (gameObject.scene.isLoaded)
+            board.UnregisterBlockAndDropAbove(registeredBlock);
+        else
+            board.UnregisterBlock(registeredBlock);
 
         if (registeredBlock != null)
             Destroy(registeredBlock.gameObject);

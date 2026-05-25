@@ -180,7 +180,12 @@ public class GridLiftDoor : MonoBehaviour
         if (board == null || doorBlock == null)
             return;
 
-        board.UnregisterBlock(doorBlock);
+        // Сцена ещё жива — после исчезновения двери блоки, стоявшие на ней,
+        // должны упасть. На выгрузке сцены гравитация не нужна.
+        if (gameObject.scene.isLoaded)
+            board.UnregisterBlockAndDropAbove(doorBlock);
+        else
+            board.UnregisterBlock(doorBlock);
     }
 
     /// <summary>

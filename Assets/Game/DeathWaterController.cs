@@ -63,7 +63,6 @@ public class DeathWaterController : MonoBehaviour
     private int extraCellsAbove;
     private int lastErodedRow = int.MinValue;
     private bool erosionInitialized;
-    private readonly HashSet<TetrisBlockController> alreadyEntered = new HashSet<TetrisBlockController>();
 
     /// <summary>Текущая верхняя граница воды в мировых координатах Y.</summary>
     public float CurrentTopY => initialTopY + extraCellsAbove * CellSize;
@@ -129,22 +128,6 @@ public class DeathWaterController : MonoBehaviour
     public void HandleBlockLandedOnSameColor()
     {
         Shrink(config != null ? config.DeathWaterShrinkOnSameColorLanding : 1);
-    }
-
-    /// <summary>
-    /// Падающий блок попал прямо в DeathWater. Сам управляемый блок исчезает
-    /// мгновенно (через спавн-менеджер, чтобы корректно появился следующий),
-    /// плюс уровень воды поднимается на N клеток (значение N — из конфига).
-    /// </summary>
-    public void HandleBlockFellIntoWater(TetrisBlockController controller)
-    {
-        if (controller != null && !alreadyEntered.Add(controller))
-            return;
-
-        Grow(config != null ? config.DeathWaterGrowOnBlockEnteringWater : 1);
-
-        if (controller != null)
-            controller.NotifyFellIntoWater();
     }
 
     /// <summary>Поднимает воду на <paramref name="cells"/> клеток вверх.</summary>
@@ -316,7 +299,11 @@ public class DeathWaterController : MonoBehaviour
             return;
         }
 
-        TryHandleFallingBlock(other);
+        // Блоки (и активный управляемый, и уже залоченные/anchored) от
+        // соприкосновения с водой больше НЕ исчезают — игрок может свободно
+        // вести блок и под уровнем воды, а застывшие блоки спокойно стоят
+        // под водой. Блок исчезает только когда уходит за нижнюю границу
+        // сетки (TetrisBlockMovement.FellOffBoard / TryDropBlockOneStep).
     }
 
     private void OnTriggerStay2D(Collider2D other)
@@ -352,28 +339,4 @@ public class DeathWaterController : MonoBehaviour
         LevelReloader.RequestReload();
     }
 
-    private void TryHandleFallingBlock(Collider2D other)
-    {
-        // Реагируем только на ИГРОВОЙ падающий блок — статические платформы,
-        // anchored-блоки уровня и уже застывшие блоки в воду не «проваливаются».
-        TetrisBlockController controller = other.GetComponent<TetrisBlockController>()
-                                           ?? other.GetComponentInParent<TetrisBlockController>();
-
-        if (controller == null)
-            return;
-
-        if (controller.IsLocked || !controller.enabled)
-            return;
-
-        // Если объект уже зарегистрирован в сетке как застывший блок,
-        // он не считается «свежеупавшим» — это, например, anchored-блок
-        // уровня, которого вода накрыла при росте.
-        TetrisPlacedBlock placed = other.GetComponent<TetrisPlacedBlock>()
-                                   ?? other.GetComponentInParent<TetrisPlacedBlock>();
-
-        if (placed != null)
-            return;
-
-        HandleBlockFellIntoWater(controller);
-    }
 }

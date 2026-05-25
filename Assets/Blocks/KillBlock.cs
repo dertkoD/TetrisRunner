@@ -233,7 +233,14 @@ public class KillBlock : MonoBehaviour
 
     private void OnDestroy()
     {
-        if (board != null && placedBlock != null)
+        if (board == null || placedBlock == null)
+            return;
+
+        // Если KillBlock исчезает посреди игры — то, что на нём стояло, должно
+        // упасть. При выгрузке сцены гравитация не нужна.
+        if (gameObject.scene.isLoaded)
+            board.UnregisterBlockAndDropAbove(placedBlock);
+        else
             board.UnregisterBlock(placedBlock);
     }
 
@@ -717,9 +724,14 @@ public class KillBlock : MonoBehaviour
     {
         // Снимаем регистрацию в сетке заранее: после Destroy OnDestroy всё равно
         // снимет, но лучше освободить клетки до удаления связанных райдеров.
+        // Сразу же просим сетку уронить блоки, стоявшие на нас, иначе они
+        // останутся висеть в воздухе.
         if (board != null && placedBlock != null)
         {
-            board.UnregisterBlock(placedBlock);
+            if (gameObject.scene.isLoaded)
+                board.UnregisterBlockAndDropAbove(placedBlock);
+            else
+                board.UnregisterBlock(placedBlock);
             placedBlock = null;
         }
 
