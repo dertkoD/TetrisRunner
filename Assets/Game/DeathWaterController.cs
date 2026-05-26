@@ -1,11 +1,17 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
 /// Зона «воды», уровень которой меняется в зависимости от действий игрока:
-///  * каждый раз, когда падающий блок встал на блок ДРУГОГО цвета
-///    (т.е. матчинг не сработал) — вода поднимается;
-///  * каждый раз, когда падающий блок встал на блок ТАКОГО ЖЕ цвета
-///    (т.е. сработал матчинг) — вода опускается.
+///  * каждый раз, когда у только что приземлённого блока ЕСТЬ сосед того же
+///    цвета (по любой из 4 сторон) — это будет матчинг, блоки исчезнут, и
+///    вода ОПУСКАЕТСЯ;
+///  * в любом другом случае (блок встал на блок другого цвета, на статическую
+///    платформу или прямо на самую нижнюю клетку сетки) — матчинг не
+///    срабатывает и вода ПОДНИМАЕТСЯ;
+///  * блок, провалившийся за нижний край сетки, тоже считается «попавшим
+///    в воду» — вода поднимается на <see cref="TetrisBlockConfigSO.DeathWaterGrowOnBlockEnteringWater"/>
+///    клеток.
 ///
 /// Величина каждого изменения берётся из <see cref="TetrisBlockConfigSO"/>
 /// и масштабируется по <see cref="TetrisGridBoard.CellSize"/>: то есть
@@ -15,11 +21,13 @@ using UnityEngine;
 /// только её верхнюю границу. Внутри объекта сохраняется текущий «надбавок»
 /// в клетках, который применяется к Transform.position.y и Transform.localScale.y.
 ///
-/// Игрок и блоки в воде НЕ умирают и не разрушаются: и игровые блоки,
-/// и анкоры уровня, и сам игрок свободно проходят сквозь воду. Уровень
-/// перезапускается ТОЛЬКО когда вода поднимается до мировой Y-координаты
-/// метки <see cref="doorMarker"/> — это пустой GameObject в сцене,
-/// который явно говорит «до сюда вода может дойти, и не выше».
+/// Блоки сквозь воду свободно проходят и не разрушаются: и игровые блоки,
+/// и анкоры уровня остаются на своих клетках даже под водой. А вот игрок
+/// тонет: как только его pivot опускается ниже верхней границы воды,
+/// текущая сцена перезагружается (поведение управляется
+/// <see cref="killPlayerWhenSubmerged"/> и <see cref="playerSubmergeSlack"/>).
+/// Дополнительно, как и раньше, сцена перезапускается, когда вода
+/// поднимается до мировой Y-координаты метки <see cref="doorMarker"/>.
 /// </summary>
 [DisallowMultipleComponent]
 public class DeathWaterController : MonoBehaviour
@@ -46,6 +54,18 @@ public class DeathWaterController : MonoBehaviour
              "Если поле пустое — проверка двери выключена.")]
     [SerializeField] private Transform doorMarker;
 
+    [Header("Player Drowning")]
+    [Tooltip("Если true — игрок умирает (сцена перезагружается), как только его pivot " +
+             "оказывается ниже верхней границы воды. Без этого вода вообще не убивает " +
+             "игрока, даже если он полностью под водой.")]
+    [SerializeField] private bool killPlayerWhenSubmerged = true;
+
+    [Tooltip("Запас в мировых единицах: игрок считается утонувшим, когда его pivot " +
+             "опускается НИЖЕ (CurrentTopY − этот запас). 0 — как только pivot ушёл " +
+             "под уровень воды. Положительное значение означает «дать игроку немного " +
+             "уйти под воду, прежде чем убивать».")]
+    [SerializeField] private float playerSubmergeSlack = 0f;
+
     private static DeathWaterController instance;
 
     /// <summary>
@@ -61,6 +81,9 @@ public class DeathWaterController : MonoBehaviour
     private int extraCellsAbove;
     private int lastErodedRow = int.MinValue;
     private bool erosionInitialized;
+
+    private readonly List<PlayerFacade> playerCache = new List<PlayerFacade>();
+    private bool playerCacheValid;
 
     /// <summary>Текущая верхняя граница воды в мировых координатах Y.</summary>
     public float CurrentTopY => initialTopY + extraCellsAbove * CellSize;
@@ -114,6 +137,68 @@ public class DeathWaterController : MonoBehaviour
     {
         if (instance == this)
             instance = null;
+    }
+
+    private void Update()
+    {
+        if (killPlayerWhenSubmerged)
+            CheckPlayersDrowned();
+    }
+
+    /// <summary>
+    /// Проверяет всех игроков на сцене: если pivot игрока опустился ниже
+    /// верхней границы воды (с учётом запаса <see cref="playerSubmergeSlack"/>) —
+    /// перезагружает сцену. Раньше игрок мог быть полностью под водой и при
+    /// этом продолжать бегать и двигать блоки, потому что вода вообще не
+    /// проверяла его положение.
+    /// </summary>
+    private void CheckPlayersDrowned()
+    {
+        if (!playerCacheValid)
+            RebuildPlayerCache();
+
+        if (playerCache.Count == 0)
+            return;
+
+        float drownAtY = CurrentTopY - playerSubmergeSlack;
+
+        for (int i = 0; i < playerCache.Count; i++)
+        {
+            PlayerFacade player = playerCache[i];
+
+            // Игрока могли уничтожить или перезагрузить сцену между кадрами —
+            // в этом случае надо обновить кэш и выйти, чтобы не дёргать
+            // RequestReload по «мёртвой» ссылке.
+            if (player == null)
+            {
+                playerCacheValid = false;
+                return;
+            }
+
+            Vector3 pos = player.transform.position;
+            if (pos.y < drownAtY)
+            {
+                LevelReloader.RequestReload();
+                return;
+            }
+        }
+    }
+
+    private void RebuildPlayerCache()
+    {
+        playerCache.Clear();
+
+        PlayerFacade[] found = FindObjectsByType<PlayerFacade>(FindObjectsSortMode.None);
+        if (found != null)
+        {
+            for (int i = 0; i < found.Length; i++)
+            {
+                if (found[i] != null)
+                    playerCache.Add(found[i]);
+            }
+        }
+
+        playerCacheValid = true;
     }
 
     /// <summary>Падающий блок встал на блок другого цвета — поднимаем воду.</summary>
