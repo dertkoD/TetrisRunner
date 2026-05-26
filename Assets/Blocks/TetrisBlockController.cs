@@ -222,10 +222,13 @@ public class TetrisBlockController : MonoBehaviour
 
         board.RegisterBlock(placedBlock);
 
-        // Сообщаем DeathWater о контакте: блок встал на блок того же цвета —
-        // вода опустится, на блок другого цвета — вода поднимется. Делаем это
-        // ДО ResolveMatches, иначе блок-сосед, с которым произошёл матчинг,
-        // уже окажется уничтожен и мы не сможем сравнить цвета.
+        // Сообщаем DeathWater о контакте: если у нового блока есть сосед
+        // того же цвета (в любой из 4 сторон) — сейчас сработает матчинг и
+        // вода опустится; в любом другом случае (блок встал на блок другого
+        // цвета, на статическую платформу или на самую нижнюю клетку сетки) —
+        // вода поднимется. Делаем это ДО ResolveMatches, иначе сосед, с
+        // которым произошёл матчинг, уже окажется уничтожен и мы не сможем
+        // сравнить цвета.
         NotifyDeathWaterAboutLanding(placedBlock);
 
         // Проверяем совпадения: если рядом стоит блок такого же цвета — оба
@@ -237,12 +240,28 @@ public class TetrisBlockController : MonoBehaviour
         enabled = false;
     }
 
+    private static readonly Vector2Int[] FourNeighbors =
+    {
+        new Vector2Int( 1,  0),
+        new Vector2Int(-1,  0),
+        new Vector2Int( 0,  1),
+        new Vector2Int( 0, -1),
+    };
+
     /// <summary>
-    /// После приземления блока сравнивает его цвет с цветами блоков, на
-    /// которые он встал (т.е. блоков, стоящих ровно под его клетками-«ножками»).
-    /// При попадании на блок такого же цвета — сообщает DeathWater про шринк,
-    /// при попадании на блок другого цвета — про рост. Статические блоки
-    /// (платформы) в подсчёте не участвуют, т.к. у них нет цвета.
+    /// После приземления блока решает, что должно произойти с DeathWater:
+    ///   * если у только что залоченного блока есть сосед ТАКОГО ЖЕ цвета по
+    ///     любой из 4 сторон (т.е. сейчас сработает матчинг и блоки исчезнут) —
+    ///     вода ОПУСКАЕТСЯ;
+    ///   * иначе (нет ни одного цветного соседа того же цвета, в т.ч. блок
+    ///     просто встал на блок другого цвета, на статическую платформу
+    ///     или на самую нижнюю клетку сетки) — вода ПОДНИМАЕТСЯ.
+    ///
+    /// Сравнение идёт по соседям со ВСЕХ сторон, а не только снизу: иначе,
+    /// если матчинг сработал сбоку (например, блок съехал по сетке и встал
+    /// рядом с блоком того же цвета), вода не реагировала бы вообще.
+    /// Статические препятствия (платформы) в подсчёте не участвуют — у них
+    /// нет цвета.
     /// </summary>
     private void NotifyDeathWaterAboutLanding(TetrisPlacedBlock placedBlock)
     {
@@ -260,51 +279,54 @@ public class TetrisBlockController : MonoBehaviour
         for (int i = 0; i < ownOffsets.Length; i++)
             ownCells.Add(pivot + ownOffsets[i]);
 
-        HashSet<TetrisPlacedBlock> belowOthers = new HashSet<TetrisPlacedBlock>();
+        bool hasSameColorNeighbor = false;
 
-        for (int i = 0; i < ownOffsets.Length; i++)
+        for (int i = 0; i < ownOffsets.Length && !hasSameColorNeighbor; i++)
         {
-            Vector2Int cellBelow = pivot + ownOffsets[i] + Vector2Int.down;
+            Vector2Int cell = pivot + ownOffsets[i];
 
-            // Если эта клетка тоже принадлежит самому новому блоку — это его
-            // же «внутренняя» соседка, она не считается контактом с другим блоком.
-            if (ownCells.Contains(cellBelow))
-                continue;
+            for (int n = 0; n < FourNeighbors.Length; n++)
+            {
+                Vector2Int neighborCell = cell + FourNeighbors[n];
 
-            if (!board.IsInside(cellBelow))
-                continue;
+                // Соседняя клетка принадлежит самому новому блоку — это его
+                // внутренняя сторона, она не считается контактом с другим блоком.
+                if (ownCells.Contains(neighborCell))
+                    continue;
 
-            TetrisPlacedBlock occupant = board.GetBlockAt(cellBelow);
-            if (occupant == null || occupant == placedBlock)
-                continue;
+                if (!board.IsInside(neighborCell))
+                    continue;
 
-            // Статические платформы цвета не имеют (colorIndex = -1), поэтому
-            // приземление на них не считается ни матчингом, ни мисматчингом.
-            if (occupant.IsStatic)
-                continue;
+                TetrisPlacedBlock occupant = board.GetBlockAt(neighborCell);
+                if (occupant == null || occupant == placedBlock)
+                    continue;
 
-            belowOthers.Add(occupant);
+                // Статические платформы цвета не имеют (colorIndex = -1),
+                // поэтому к матчингу не приводят.
+                if (occupant.IsStatic)
+                    continue;
+
+                if (occupant.ColorIndex != placedBlock.ColorIndex)
+                    continue;
+
+                hasSameColorNeighbor = true;
+                break;
+            }
         }
 
-        if (belowOthers.Count == 0)
-            return;
-
-        bool anySameColor = false;
-        bool anyDifferentColor = false;
-
-        foreach (TetrisPlacedBlock other in belowOthers)
+        if (hasSameColorNeighbor)
         {
-            if (other.ColorIndex == placedBlock.ColorIndex)
-                anySameColor = true;
-            else
-                anyDifferentColor = true;
-        }
-
-        if (anySameColor)
+            // Сейчас ResolveMatches уберёт оба блока — это успех игрока,
+            // и вода уходит вниз.
             dw.HandleBlockLandedOnSameColor();
-
-        if (anyDifferentColor)
+        }
+        else
+        {
+            // Блок просто застрял в стопке: встал на блок другого цвета,
+            // на статическую платформу или прямо на нижнюю клетку сетки —
+            // во всех этих случаях ничего не схлопнется, и вода поднимается.
             dw.HandleBlockLandedOnDifferentColor();
+        }
     }
 
     private void StopMotion()

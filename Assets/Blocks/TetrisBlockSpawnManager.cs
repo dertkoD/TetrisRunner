@@ -198,6 +198,9 @@ public class TetrisBlockSpawnManager : MonoBehaviour
     /// Сообщает менеджеру, что текущий активный блок вышел за нижнюю границу
     /// сетки и под ним нет ни ground, ни другого блока. Блок уничтожается,
     /// после чего запускается обычная задержка перед следующим спавном.
+    /// Дополнительно поднимаем уровень воды: блок «упал в саму DeathWater»
+    /// (или, что то же самое в этой игре, в дно сетки) — это считается
+    /// промахом игрока, и вода должна вырасти.
     /// </summary>
     public void NotifyActiveBlockFellOff(TetrisBlockController block)
     {
@@ -208,6 +211,17 @@ public class TetrisBlockSpawnManager : MonoBehaviour
             return;
 
         activeBlock = null;
+
+        DeathWaterController dw = DeathWaterController.Instance;
+        if (dw != null)
+        {
+            int growCells = config != null
+                ? Mathf.Max(0, config.DeathWaterGrowOnBlockEnteringWater)
+                : 1;
+
+            if (growCells > 0)
+                dw.Grow(growCells);
+        }
 
         if (block.gameObject != null)
             Destroy(block.gameObject);

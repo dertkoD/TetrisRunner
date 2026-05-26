@@ -1330,7 +1330,7 @@ MonoBehaviour:
   cellSize: 1
   lineMaterial: {fileID: 2100000, guid: 2b86681ba76b1e14bb408e859d4242ea, type: 2}
   lineWidth: 0.08
-  lineColor: {r: 0, g: 0, b: 0, a: 1}
+  lineColor: {r: 0, g: 0, b: 0, a: 0}
 --- !u!4 &1285392920
 Transform:
   m_ObjectHideFlags: 0
