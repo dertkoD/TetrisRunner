@@ -1,5 +1,15 @@
 {
   "dependencies": {
+    "com.ruccho.water-rw": {
+      "version": "https://github.com/ruccho/WaterRW.git?path=/Packages/com.ruccho.water-rw",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {
+        "com.unity.burst": "1.8.12",
+        "com.unity.mathematics": "1.2.6"
+      },
+      "hash": "bc543320793101aabadf155b2153f7adacf7d122"
+    },
     "com.unity.2d.animation": {
       "version": "14.0.3",
       "depth": 0,
@@ -101,7 +111,7 @@
     },
     "com.unity.burst": {
       "version": "1.8.29",
-      "depth": 2,
+      "depth": 1,
       "source": "registry",
       "dependencies": {
         "com.unity.mathematics": "1.2.1",

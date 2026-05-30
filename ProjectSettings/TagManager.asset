@@ -41,6 +41,9 @@ TagManager:
   - name: Default
     uniqueID: 0
     locked: 0
+  - name: Front
+    uniqueID: 2270476277
+    locked: 0
   m_RenderingLayers:
   - Default
   m_MigratedRenderPipelines: []

@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "com.ruccho.water-rw": "https://github.com/ruccho/WaterRW.git?path=/Packages/com.ruccho.water-rw",
     "com.unity.2d.animation": "14.0.3",
     "com.unity.2d.aseprite": "4.0.1",
     "com.unity.2d.psdimporter": "13.0.2",
