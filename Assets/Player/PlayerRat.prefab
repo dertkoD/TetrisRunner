@@ -112,6 +112,7 @@ GameObject:
   - component: {fileID: 5906303095269641941}
   - component: {fileID: 7910382128149784218}
   - component: {fileID: 2004166036962406189}
+  - component: {fileID: 7421998137204385612}
   m_Layer: 8
   m_Name: PlayerRat
   m_TagString: Player
@@ -379,3 +380,21 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &7421998137204385612
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5964196997121620218}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a6d04a2db3fc4bc6a94b0550b9fd391e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerAnimation
+  animator: {fileID: 2004166036962406189}
+  facade: {fileID: 1411825408705767906}
+  runThreshold: 0.05
+  xVelocityDampTime: 0.05
+  yVelocityDampTime: 0.02
+  yVelocityReference: 0
