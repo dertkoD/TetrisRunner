@@ -82,11 +82,11 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _NormalA:
-        m_Texture: {fileID: 2800000, guid: f5b2019dc2e49264882ef6d12a74272e, type: 3}
+        m_Texture: {fileID: 2800000, guid: d79c8b4ce9925eb49b286e8bb2768de6, type: 3}
         m_Scale: {x: 2, y: 8}
         m_Offset: {x: 0, y: 0}
     - _NormalB:
-        m_Texture: {fileID: 2800000, guid: 0459b148738ef404a97faa33506eef1d, type: 3}
+        m_Texture: {fileID: 2800000, guid: ec184ce5ce128034d82ae7239289071e, type: 3}
         m_Scale: {x: 2, y: 8}
         m_Offset: {x: 0, y: 0}
     - _OcclusionMap:
@@ -119,6 +119,7 @@ Material:
     - _Cutoff: 0.5
     - _DetailNormalMapScale: 1
     - _DstBlend: 0
+    - _ENABLE_LIGHTING: 0
     - _EnableExternalAlpha: 0
     - _FadeDistance: 128
     - _GlossMapScale: 1
@@ -134,7 +135,7 @@ Material:
     - _NormalBSpeed: 1
     - _OcclusionStrength: 1
     - _Parallax: 0.02
-    - _Reflection: 1
+    - _Reflection: 0.1
     - _ScreenHeight: 360
     - _ScreenWidth: 640
     - _SmoothBufferEdge: 0.5
@@ -153,14 +154,15 @@ Material:
     - _WaveTimeFreq: 18.5
     - _ZWrite: 1
     m_Colors:
-    - _Addend: {r: 0.08877714, g: 0.24971825, b: 0.3301887, a: 0}
+    - White: {r: 1, g: 1, b: 1, a: 1}
+    - _Addend: {r: 0.121568635, g: 0.27450982, b: 0.08627451, a: 0}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _Flip: {r: 1, g: 1, b: 1, a: 1}
-    - _Multiplier: {r: 0.6933962, g: 0.9382677, b: 1, a: 1}
+    - _Multiplier: {r: 0.74509805, g: 0.95294124, b: 0.97647065, a: 1}
     - _NormalASpeed: {r: 0.2, g: 0.2, b: 0, a: 0}
     - _NormalBSpeed: {r: -0.3, g: 0.3, b: 0, a: 0}
     - _RendererColor: {r: 1, g: 1, b: 1, a: 1}
-    - _SurfaceColor: {r: 0.43761122, g: 0.488537, b: 0.62264144, a: 0.8117647}
+    - _SurfaceColor: {r: 0.43921572, g: 0.4901961, b: 0.62352943, a: 0.8117647}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
