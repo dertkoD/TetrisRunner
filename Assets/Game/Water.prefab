@@ -16,6 +16,7 @@ GameObject:
   - component: {fileID: 8593323793185207502}
   - component: {fileID: 5451685048325756896}
   - component: {fileID: 3966064043013458192}
+  - component: {fileID: 4621957831028544770}
   m_Layer: 0
   m_Name: Water
   m_TagString: Untagged
@@ -119,7 +120,7 @@ MonoBehaviour:
   enableInteraction: 1
   layersToInteractWith:
     serializedVersion: 2
-    m_Bits: 1
+    m_Bits: 385
   spatialScale: 0.125
   maxInteractionItems: 32
   waveBufferPixelsPerUnit: 4
@@ -211,7 +212,7 @@ BuoyancyEffector2D:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 769020817781893487}
-  m_Enabled: 1
+  m_Enabled: 0
   m_UseColliderMask: 1
   m_ColliderMask:
     serializedVersion: 2
@@ -223,3 +224,37 @@ BuoyancyEffector2D:
   m_FlowAngle: 0
   m_FlowMagnitude: 0
   m_FlowVariation: 0
+--- !u!114 &4621957831028544770
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 769020817781893487}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4075493d75e4df586cea4777d99e9c1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WaterDynamicEffects
+  splashParticlesOverride: {fileID: 0}
+  reactiveLayers:
+    serializedVersion: 2
+    m_Bits: 384
+  minImpactSpeed: 1.5
+  burstCountPerImpulse: 1.5
+  baseBurstCount: 8
+  maxBurstCount: 40
+  dropletMinSpeed: 2
+  dropletInterval: 0.08
+  dropletBurstCount: 3
+  startColor: {r: 0.7, g: 0.9, b: 1, a: 0.85}
+  minLifetime: 0.35
+  maxLifetime: 0.75
+  minStartSpeed: 2.5
+  maxStartSpeed: 5.5
+  minStartSize: 0.06
+  maxStartSize: 0.18
+  gravityModifier: 1
+  spreadHalfAngleDegrees: 35
+  sortingLayerName: 
+  sortingOrder: 1
