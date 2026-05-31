@@ -90,6 +90,22 @@ public sealed class TetrisBlockConfigSO : ScriptableObject
              "проваливается в саму DeathWater.")]
     [SerializeField, Min(0)] private int deathWaterGrowOnBlockEnteringWater = 1;
 
+    [Tooltip("Сколько секунд занимает плавный подъём DeathWater на ОДНУ клетку. " +
+             "0 — мгновенно (как старое поведение). Например 1.5 = одна клетка " +
+             "поднимается полторы секунды. Если событий несколько подряд, целевая " +
+             "высота просто становится больше, а вода едет к ней без остановок.")]
+    [SerializeField, Min(0f)] private float deathWaterGrowSecondsPerCell = 1.5f;
+
+    [Tooltip("Сколько секунд занимает плавное опускание DeathWater на ОДНУ клетку " +
+             "при матчинге. 0 — мгновенно.")]
+    [SerializeField, Min(0f)] private float deathWaterShrinkSecondsPerCell = 0.6f;
+
+    [Tooltip("Максимальная скорость движения уровня воды в клетках в секунду. " +
+             "0 — без верхнего предела (полностью определяется *SecondsPerCell). " +
+             "Полезно, чтобы при большом скоплении событий вода не уезжала слишком " +
+             "быстро, даже если рассчитанная скорость велика.")]
+    [SerializeField, Min(0f)] private float deathWaterMaxCellsPerSecond = 0f;
+
     public InputActionReference ToggleSpawnAction => toggleSpawnAction;
     public InputActionReference MoveAction => moveAction;
     public InputActionReference RotateLeftAction => rotateLeftAction;
@@ -133,6 +149,9 @@ public sealed class TetrisBlockConfigSO : ScriptableObject
     public int DeathWaterGrowOnDifferentColorLanding => deathWaterGrowOnDifferentColorLanding;
     public int DeathWaterShrinkOnSameColorLanding => deathWaterShrinkOnSameColorLanding;
     public int DeathWaterGrowOnBlockEnteringWater => deathWaterGrowOnBlockEnteringWater;
+    public float DeathWaterGrowSecondsPerCell => deathWaterGrowSecondsPerCell;
+    public float DeathWaterShrinkSecondsPerCell => deathWaterShrinkSecondsPerCell;
+    public float DeathWaterMaxCellsPerSecond => deathWaterMaxCellsPerSecond;
 
     public Color[] CellColorPalette => cellColorPalette;
 }
