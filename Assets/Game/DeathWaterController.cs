@@ -17,6 +17,14 @@ using UnityEngine;
 /// и масштабируется по <see cref="TetrisGridBoard.CellSize"/>: то есть
 /// «+1 клетка» = +1 клетке сетки в мировых единицах.
 ///
+/// Подъём и опускание уровня воды теперь происходят НЕ мгновенно: вода
+/// плавно «доезжает» до целевой высоты со скоростью, заданной в SO
+/// (<see cref="TetrisBlockConfigSO.DeathWaterGrowSecondsPerCell"/> и
+/// <see cref="TetrisBlockConfigSO.DeathWaterShrinkSecondsPerCell"/>).
+/// События ставятся в очередь не явно, а через накопление целевого
+/// уровня: если игрок поставил подряд несколько «плохих» блоков, целевая
+/// высота вырастет суммарно, а реальный уровень плавно поднимется до неё.
+///
 /// Бэйз-уровень воды (низ) фиксируется на старте: рост и падение меняют
 /// только её верхнюю границу. Внутри объекта сохраняется текущий «надбавок»
 /// в клетках, который применяется к Transform.position.y и Transform.localScale.y.
@@ -37,7 +45,8 @@ public class DeathWaterController : MonoBehaviour
     [SerializeField] private TetrisGridBoard board;
 
     [Tooltip("Конфиг тетриса. Из него берутся значения, на сколько клеток " +
-             "поднимать/опускать DeathWater на каждое событие.")]
+             "поднимать/опускать DeathWater на каждое событие, а также скорость " +
+             "плавного подъёма/опускания (секунды на клетку).")]
     [SerializeField] private TetrisBlockConfigSO config;
 
     [Header("Behaviour")]
@@ -78,18 +87,34 @@ public class DeathWaterController : MonoBehaviour
     private Vector3 initialScale;
     private float initialBottomY;
     private float initialTopY;
+    // Целевая высота воды (в клетках) — куда уровень ДОЛЖЕН доехать.
     private int extraCellsAbove;
+    // Видимая (анимированная) высота воды (в клетках) — где она на самом деле
+    // сейчас. Плавно подтягивается к extraCellsAbove в AnimateWaterLevel.
+    private float displayedExtraCells;
     private int lastErodedRow = int.MinValue;
     private bool erosionInitialized;
 
     private readonly List<PlayerFacade> playerCache = new List<PlayerFacade>();
     private bool playerCacheValid;
 
-    /// <summary>Текущая верхняя граница воды в мировых координатах Y.</summary>
-    public float CurrentTopY => initialTopY + extraCellsAbove * CellSize;
+    /// <summary>
+    /// Текущая (визуальная) верхняя граница воды в мировых координатах Y —
+    /// с учётом плавной анимации. Игрок тонет именно по этой границе.
+    /// </summary>
+    public float CurrentTopY => initialTopY + displayedExtraCells * CellSize;
 
-    /// <summary>Сколько клеток сейчас «надстроено» сверху относительно стартового объёма.</summary>
+    /// <summary>
+    /// Целевая верхняя граница воды (куда уровень должен доехать) в мировых
+    /// координатах Y. До неё пока может оставаться плавный подъём.
+    /// </summary>
+    public float TargetTopY => initialTopY + extraCellsAbove * CellSize;
+
+    /// <summary>Сколько клеток сейчас «надстроено» сверху относительно стартового объёма (цель).</summary>
     public int ExtraCellsAbove => extraCellsAbove;
+
+    /// <summary>Сколько клеток сейчас «надстроено» по факту с учётом плавной анимации.</summary>
+    public float DisplayedExtraCells => displayedExtraCells;
 
     private float CellSize => board != null ? board.CellSize : 1f;
 
@@ -119,6 +144,7 @@ public class DeathWaterController : MonoBehaviour
         // На старте «дельта» нулевая — DeathWater остаётся в той форме,
         // в которой расставлена в сцене.
         extraCellsAbove = 0;
+        displayedExtraCells = 0f;
     }
 
     private void Start()
@@ -141,8 +167,82 @@ public class DeathWaterController : MonoBehaviour
 
     private void Update()
     {
+        AnimateWaterLevel(Time.deltaTime);
+
+        // Дверь триггерим по ВИДИМОМУ уровню воды, чтобы перезагрузка сцены
+        // ждала, пока поднимающаяся вода реально доедет до метки двери, а не
+        // срабатывала в момент постановки блока.
+        CheckDoorFlooded();
+
         if (killPlayerWhenSubmerged)
             CheckPlayersDrowned();
+    }
+
+    /// <summary>
+    /// Плавно подгоняет видимый уровень воды (<see cref="displayedExtraCells"/>)
+    /// к целевому (<see cref="extraCellsAbove"/>). Скорость движения берётся
+    /// из <see cref="TetrisBlockConfigSO"/>: отдельно секунд-на-клетку для
+    /// подъёма и для опускания, плюс общий потолок в клетках в секунду.
+    /// Если конфиг не задан или скорость нулевая — поведение мгновенное (как
+    /// раньше).
+    /// </summary>
+    private void AnimateWaterLevel(float deltaTime)
+    {
+        if (deltaTime <= 0f)
+            return;
+
+        float diff = extraCellsAbove - displayedExtraCells;
+        if (Mathf.Abs(diff) < 1e-5f)
+        {
+            if (displayedExtraCells != extraCellsAbove)
+            {
+                displayedExtraCells = extraCellsAbove;
+                ApplyTransform();
+            }
+            return;
+        }
+
+        float cellsPerSecond = ComputeAnimationSpeed(diff > 0f);
+
+        if (cellsPerSecond <= 0f)
+        {
+            displayedExtraCells = extraCellsAbove;
+            ApplyTransform();
+            return;
+        }
+
+        float step = cellsPerSecond * deltaTime;
+        if (step >= Mathf.Abs(diff))
+            displayedExtraCells = extraCellsAbove;
+        else
+            displayedExtraCells += Mathf.Sign(diff) * step;
+
+        ApplyTransform();
+    }
+
+    /// <summary>
+    /// Возвращает скорость анимации уровня воды в клетках-в-секунду для
+    /// заданного направления. 0 — анимация выключена (двигаемся мгновенно).
+    /// </summary>
+    private float ComputeAnimationSpeed(bool growing)
+    {
+        if (config == null)
+            return 0f;
+
+        float secondsPerCell = growing
+            ? config.DeathWaterGrowSecondsPerCell
+            : config.DeathWaterShrinkSecondsPerCell;
+
+        if (secondsPerCell <= 0f)
+            return 0f;
+
+        float cellsPerSecond = 1f / secondsPerCell;
+
+        float maxPerSecond = config.DeathWaterMaxCellsPerSecond;
+        if (maxPerSecond > 0f && cellsPerSecond > maxPerSecond)
+            cellsPerSecond = maxPerSecond;
+
+        return cellsPerSecond;
     }
 
     /// <summary>
@@ -213,7 +313,7 @@ public class DeathWaterController : MonoBehaviour
         Shrink(config != null ? config.DeathWaterShrinkOnSameColorLanding : 1);
     }
 
-    /// <summary>Поднимает воду на <paramref name="cells"/> клеток вверх.</summary>
+    /// <summary>Поднимает воду на <paramref name="cells"/> клеток вверх (целевую высоту).</summary>
     public void Grow(int cells)
     {
         if (cells <= 0)
@@ -222,7 +322,7 @@ public class DeathWaterController : MonoBehaviour
         SetExtraCellsAbove(extraCellsAbove + cells);
     }
 
-    /// <summary>Опускает воду на <paramref name="cells"/> клеток вниз.</summary>
+    /// <summary>Опускает воду на <paramref name="cells"/> клеток вниз (целевую высоту).</summary>
     public void Shrink(int cells)
     {
         if (cells <= 0)
@@ -254,52 +354,62 @@ public class DeathWaterController : MonoBehaviour
 
         int previousExtra = extraCellsAbove;
         extraCellsAbove = target;
-        ApplyTransform();
 
-        // После того как вода поднялась — отмечаем строки, которые ушли под
-        // воду, и проверяем триггер двери. Сами блоки при этом НЕ стираются:
-        // всё, что игрок или уровень уже поставили в сетку, остаётся на месте
-        // даже если оказалось под водой.
+        // Если плавная анимация выключена (нет конфига или скорость = 0) —
+        // сразу подтягиваем «отображаемое» значение к цели, чтобы вода
+        // обновилась немедленно, как было раньше. Иначе AnimateWaterLevel
+        // каждый кадр будет плавно подтаскивать displayedExtraCells.
+        if (ComputeAnimationSpeed(target > previousExtra) <= 0f)
+        {
+            displayedExtraCells = extraCellsAbove;
+            ApplyTransform();
+        }
+
+        // После того как ЦЕЛЬ выросла — отмечаем строки, которые попадут
+        // под воду. Сами блоки при этом НЕ стираются: всё, что игрок или
+        // уровень уже поставили в сетку, остаётся на месте даже если
+        // оказалось под водой. Триггер двери теперь проверяется каждый кадр
+        // в Update() по ВИДИМОМУ уровню воды (см. CheckDoorFlooded), чтобы
+        // перезагрузка ждала, пока вода реально дойдёт до метки.
         if (target > previousExtra)
             AdvanceFloodedRows();
     }
 
     /// <summary>
     /// Текущая верхняя строка сетки, центр которой находится под уровнем воды.
-    /// Используется при росте воды (для проверки двери и обновления отметки
-    /// «затопленного» ряда) и при старте сцены (фиксируем начальный уровень).
+    /// Используется при росте воды (для обновления отметки «затопленного» ряда)
+    /// и при старте сцены (фиксируем начальный уровень). Сравнение идёт по
+    /// целевой высоте, чтобы игровая логика не зависела от анимации.
     /// </summary>
     private int ComputeCurrentTopRow()
     {
         if (board == null)
             return int.MinValue;
 
-        return board.GetHighestRowAtOrBelowWorldY(CurrentTopY);
+        return board.GetHighestRowAtOrBelowWorldY(TargetTopY);
     }
 
     private void AdvanceFloodedRows()
     {
-        if (board != null)
-        {
-            int newTopRow = ComputeCurrentTopRow();
+        if (board == null)
+            return;
 
-            if (!erosionInitialized)
-            {
-                lastErodedRow = newTopRow;
-                erosionInitialized = true;
-            }
-            else if (newTopRow > lastErodedRow)
-            {
-                lastErodedRow = newTopRow;
-            }
+        int newTopRow = ComputeCurrentTopRow();
+
+        if (!erosionInitialized)
+        {
+            lastErodedRow = newTopRow;
+            erosionInitialized = true;
+        }
+        else if (newTopRow > lastErodedRow)
+        {
+            lastErodedRow = newTopRow;
         }
 
         // Уже поставленные блоки под водой не разрушаются (ни залоченные
-        // игроком, ни закреплённые блоки уровня). Дверь — единственный
-        // триггер game-over по воде; проверяем её на каждое изменение
-        // уровня воды, чтобы перезапуск произошёл точно тогда, когда вода
-        // дошла до метки.
-        CheckDoorFlooded();
+        // игроком, ни закреплённые блоки уровня). Триггер двери крутится
+        // каждый кадр в Update() по ВИДИМОМУ уровню воды — здесь его
+        // дополнительно вызывать не нужно.
     }
 
     /// <summary>
@@ -307,7 +417,8 @@ public class DeathWaterController : MonoBehaviour
     /// мировой Y-координаты — перезагружаем сцену. Сравнение идёт напрямую
     /// по мировой высоте, а не по клеткам сетки: куда игрок поставил пустой
     /// GameObject — ровно туда вода и должна «затопить» сцену, не раньше.
-    /// Это единственный триггер game-over по воде.
+    /// Сравнивается ВИДИМЫЙ уровень, чтобы перезагрузка дождалась, пока
+    /// плавно поднимающаяся вода реально доедет до двери.
     /// </summary>
     private void CheckDoorFlooded()
     {
@@ -343,7 +454,7 @@ public class DeathWaterController : MonoBehaviour
     private void ApplyTransform()
     {
         float cellSize = CellSize;
-        float newTopY = initialTopY + extraCellsAbove * cellSize;
+        float newTopY = initialTopY + displayedExtraCells * cellSize;
         float newHeight = newTopY - initialBottomY;
 
         if (newHeight < 0f) newHeight = 0f;

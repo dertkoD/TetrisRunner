@@ -62,3 +62,6 @@ MonoBehaviour:
   deathWaterGrowOnDifferentColorLanding: 1
   deathWaterShrinkOnSameColorLanding: 1
   deathWaterGrowOnBlockEnteringWater: 1
+  deathWaterGrowSecondsPerCell: 1.5
+  deathWaterShrinkSecondsPerCell: 0.6
+  deathWaterMaxCellsPerSecond: 0
