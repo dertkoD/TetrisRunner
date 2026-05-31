@@ -211,14 +211,55 @@ public class BlockJuiceController : MonoBehaviour
         if (config == null || config.ShockWaveRenderPrefab == null)
             return;
 
-        GameObject instanceGo = Instantiate(config.ShockWaveRenderPrefab, transform);
-        instanceGo.name = "ShockWaveRender (auto)";
+        // Если в сцене уже стоит спрайт волны (пользователь поставил его сам по
+        // инструкции ассета) — используем его, а не плодим второй полноэкранный
+        // спрайт. Узнаём такой спрайт по шейдеру материала из префаба.
+        GameObject host = FindExistingShockWaveObject();
 
-        ShockWaveController controller = instanceGo.GetComponent<ShockWaveController>();
+        if (host == null)
+        {
+            host = Instantiate(config.ShockWaveRenderPrefab, transform);
+            host.name = "ShockWaveRender (auto)";
+        }
+
+        ShockWaveController controller = host.GetComponent<ShockWaveController>();
         if (controller == null)
-            controller = instanceGo.AddComponent<ShockWaveController>();
+            controller = host.AddComponent<ShockWaveController>();
 
         controller.Initialize(config);
         shockWave = controller;
+    }
+
+    /// <summary>
+    /// Ищет в сцене уже расставленный спрайт ударной волны: спрайт-рендерер,
+    /// материал которого использует тот же шейдер, что и материал на префабе
+    /// ShockWaveRender (ShockMat / ShockWaveSprite). Так пользовательский
+    /// экземпляр на сцене не дублируется рантайм-копией.
+    /// </summary>
+    private GameObject FindExistingShockWaveObject()
+    {
+        SpriteRenderer prefabRenderer = config.ShockWaveRenderPrefab.GetComponentInChildren<SpriteRenderer>(true);
+        if (prefabRenderer == null || prefabRenderer.sharedMaterial == null)
+            return null;
+
+        Shader shockShader = prefabRenderer.sharedMaterial.shader;
+        if (shockShader == null)
+            return null;
+
+        SpriteRenderer[] renderers = FindObjectsByType<SpriteRenderer>(FindObjectsSortMode.None);
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            SpriteRenderer renderer = renderers[i];
+            if (renderer == null)
+                continue;
+
+            // Не цепляем собственные авто-объекты (их ещё нет на этом шаге) и
+            // спрайты других назначений — только совпадающие по шейдеру волны.
+            Material mat = renderer.sharedMaterial;
+            if (mat != null && mat.shader == shockShader)
+                return renderer.gameObject;
+        }
+
+        return null;
     }
 }

@@ -40,6 +40,15 @@ public class ShockWaveController : MonoBehaviour
         public Action OnComplete;
     }
 
+    /// <summary>
+    /// Имя сортировочного слоя, на котором ОБЯЗАН находиться спрайт волны.
+    /// Он должен быть ВЫШЕ слоя, до которого захватывается
+    /// <c>_CameraSortingLayerTexture</c> (Foremost Sorting Layer в Renderer2D).
+    /// Иначе полноэкранный непрозрачный спрайт волны перекроет всё, что не
+    /// попало в эту текстуру (например, воду), и оно «пропадёт» на время волны.
+    /// </summary>
+    private const string ShockWaveSortingLayer = "ShockWave";
+
     public void Initialize(TetrisBlockConfigSO config)
     {
         this.config = config;
@@ -53,7 +62,30 @@ public class ShockWaveController : MonoBehaviour
             // material (а не sharedMaterial) — создаёт инстанс, чтобы анимация
             // не писала в общий ассет ShockMat на диске.
             material = spriteRenderer.material;
+
+            // Принудительно кладём спрайт на верхний слой ShockWave, чтобы он
+            // рисовался ПОВЕРХ захваченной _CameraSortingLayerTexture, а не
+            // перекрывал не попавший в неё контент (воду и т.п.).
+            ForceTopSortingLayer();
+
             spriteRenderer.enabled = false;
+        }
+    }
+
+    private void ForceTopSortingLayer()
+    {
+        if (spriteRenderer == null)
+            return;
+
+        SortingLayer[] layers = SortingLayer.layers;
+        for (int i = 0; i < layers.Length; i++)
+        {
+            if (layers[i].name == ShockWaveSortingLayer)
+            {
+                spriteRenderer.sortingLayerID = layers[i].id;
+                spriteRenderer.sortingOrder = 32000;
+                return;
+            }
         }
     }
 
