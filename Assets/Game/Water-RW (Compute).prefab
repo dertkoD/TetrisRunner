@@ -119,7 +119,7 @@ MonoBehaviour:
   enableInteraction: 1
   layersToInteractWith:
     serializedVersion: 2
-    m_Bits: 1
+    m_Bits: 385
   spatialScale: 0.125
   maxInteractionItems: 32
   waveBufferPixelsPerUnit: 4
