@@ -115,7 +115,9 @@ public class TetrisBlockMovement : MonoBehaviour
             fallStepTimer = config.FallStepInterval;
         }
 
+        Vector2 priorPosition = body.position;
         body.MovePosition(nextPosition);
+        WriteSyntheticVelocity(body, priorPosition, nextPosition);
     }
 
     private int GetStepDirection(float horizontalInput)
@@ -212,7 +214,16 @@ public class TetrisBlockMovement : MonoBehaviour
 
         if (nextPivotCell != pivotCell)
         {
-            body.MovePosition(board.CellToWorld(nextPivotCell));
+            Vector2 priorPosition = body.position;
+            Vector2 targetWorld = (Vector2)board.CellToWorld(nextPivotCell);
+            body.MovePosition(targetWorld);
+            WriteSyntheticVelocity(body, priorPosition, targetWorld);
+        }
+        else
+        {
+            // Шага не было — гасим скорость, иначе стоящий блок будет
+            // оставлять «фантомные» волны в воде от предыдущего шага.
+            body.linearVelocity = Vector2.zero;
         }
 
         body.rotation = 0f;
@@ -224,6 +235,30 @@ public class TetrisBlockMovement : MonoBehaviour
             return TetrisBlockMoveResult.BlockedDown;
 
         return TetrisBlockMoveResult.Moving;
+    }
+
+    /// <summary>
+    /// Kinematic-тело двигается через <see cref="Rigidbody2D.MovePosition"/>,
+    /// и Unity при этом не обновляет <see cref="Rigidbody2D.linearVelocity"/>
+    /// сам. А WaterRW (его линейкаст по поверхности воды берёт скорость с
+    /// <c>rigidbody.velocity</c>) и наш <c>WaterDynamicEffects</c> (читает
+    /// то же самое) без этого видят у блоков velocity = 0 и не реагируют:
+    /// волны не появляются и брызги не бьются. Поэтому здесь после каждого
+    /// шага мы вручную выставляем «синтетическую» скорость по фактической
+    /// дельте за этот FixedUpdate. Если шага не было — выставляется 0
+    /// в вызывающем коде.
+    /// </summary>
+    private static void WriteSyntheticVelocity(
+        Rigidbody2D body, Vector2 priorPosition, Vector2 nextPosition)
+    {
+        float dt = Time.fixedDeltaTime;
+        if (dt <= 0f || nextPosition == priorPosition)
+        {
+            body.linearVelocity = Vector2.zero;
+            return;
+        }
+
+        body.linearVelocity = (nextPosition - priorPosition) / dt;
     }
 
     private static bool WouldFallOffBottom(

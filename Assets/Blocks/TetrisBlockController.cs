@@ -62,6 +62,15 @@ public class TetrisBlockController : MonoBehaviour
         if (contactReporter != null)
             contactReporter.Initialize(config, this);
 
+        // Кинематические блоки двигаются через MovePosition, поэтому
+        // WaterRW (он читает rigidbody.velocity по линейкасту вдоль
+        // поверхности) их не видит, когда они полностью под водой.
+        // BlockWaveProxy сам поднимает прокси у самой поверхности и
+        // отдаёт волне реальную скорость блока. Если по какой-то причине
+        // компонент уже сидит на префабе — повторно не добавляем.
+        if (body != null && body.GetComponent<BlockWaveProxy>() == null)
+            body.gameObject.AddComponent<BlockWaveProxy>();
+
         locked = false;
         controlled = false;
         moveInput = Vector2.zero;
