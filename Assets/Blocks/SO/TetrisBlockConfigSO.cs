@@ -106,6 +106,62 @@ public sealed class TetrisBlockConfigSO : ScriptableObject
              "быстро, даже если рассчитанная скорость велика.")]
     [SerializeField, Min(0f)] private float deathWaterMaxCellsPerSecond = 0f;
 
+    [Header("Juice — Dissolve (схлопывание одинаковых блоков)")]
+    [Tooltip("Материал DisMat (DissolveShaderGraph). Ставится на все ячейки блоков. " +
+             "Когда блоки одного цвета схлопываются — на них проигрывается dissolve и " +
+             "только после этого они исчезают. Если пусто — блоки исчезают мгновенно.")]
+    [SerializeField] private Material blockDissolveMaterial;
+
+    [Tooltip("Сколько секунд длится эффект растворения перед удалением блока.")]
+    [SerializeField, Min(0.05f)] private float dissolveDuration = 0.55f;
+
+    [Tooltip("Значение _DisolveAmount, при котором блок полностью виден (старт анимации).")]
+    [SerializeField] private float dissolveStartAmount = 1.1f;
+
+    [Tooltip("Значение _DisolveAmount, при котором блок полностью растворён (конец анимации).")]
+    [SerializeField] private float dissolveEndAmount = 0f;
+
+    [Tooltip("Максимальная толщина контура (_OutlineThickness) во время растворения.")]
+    [SerializeField, Min(0f)] private float dissolveOutlineThickness = 0.15f;
+
+    [Tooltip("Цвет контура растворения (_OutlineColor).")]
+    [SerializeField] private Color dissolveOutlineColor = new Color(0f, 1f, 0.95f, 1f);
+
+    [Tooltip("Множитель яркости контура (эмуляция HDR-интенсивности из примера).")]
+    [SerializeField, Min(0f)] private float dissolveOutlineIntensity = 4f;
+
+    [Header("Juice — Shock Wave (разные цвета / потеря блока)")]
+    [Tooltip("Префаб ShockWaveRender (полноэкранный спрайт с материалом ShockMat / " +
+             "ShockWaveSprite shader). Когда блок встал на блок ДРУГОГО цвета или " +
+             "пропал за нижним краем сетки — из этого места запускается ударная волна, " +
+             "и только после неё поднимается вода. Если пусто — вода поднимается сразу.")]
+    [SerializeField] private GameObject shockWaveRenderPrefab;
+
+    [Tooltip("Длительность ударной волны (секунды).")]
+    [SerializeField, Min(0.05f)] private float shockWaveDuration = 0.7f;
+
+    [Tooltip("До какого значения доезжает _WaveDistanceFromCenter (радиус волны).")]
+    [SerializeField, Min(0f)] private float shockWaveMaxDistance = 1f;
+
+    [Tooltip("Толщина кольца волны (_Size).")]
+    [SerializeField, Min(0f)] private float shockWaveSize = 0.1f;
+
+    [Tooltip("Сила искажения волны (_ShockWaveStrength).")]
+    [SerializeField] private float shockWaveStrength = -0.08f;
+
+    [Header("Juice — Stack Particles")]
+    [Tooltip("Сколько частиц вылетает при стакинге блока (цвет совпадает с цветом блока).")]
+    [SerializeField, Min(0)] private int stackParticleCount = 16;
+
+    [Tooltip("Стартовая скорость частиц стакинга.")]
+    [SerializeField, Min(0f)] private float stackParticleSpeed = 4f;
+
+    [Tooltip("Время жизни частиц стакинга (секунды).")]
+    [SerializeField, Min(0.05f)] private float stackParticleLifetime = 0.6f;
+
+    [Tooltip("Размер частиц стакинга.")]
+    [SerializeField, Min(0.005f)] private float stackParticleSize = 0.18f;
+
     public InputActionReference ToggleSpawnAction => toggleSpawnAction;
     public InputActionReference MoveAction => moveAction;
     public InputActionReference RotateLeftAction => rotateLeftAction;
@@ -152,6 +208,25 @@ public sealed class TetrisBlockConfigSO : ScriptableObject
     public float DeathWaterGrowSecondsPerCell => deathWaterGrowSecondsPerCell;
     public float DeathWaterShrinkSecondsPerCell => deathWaterShrinkSecondsPerCell;
     public float DeathWaterMaxCellsPerSecond => deathWaterMaxCellsPerSecond;
+
+    public Material BlockDissolveMaterial => blockDissolveMaterial;
+    public float DissolveDuration => dissolveDuration;
+    public float DissolveStartAmount => dissolveStartAmount;
+    public float DissolveEndAmount => dissolveEndAmount;
+    public float DissolveOutlineThickness => dissolveOutlineThickness;
+    public Color DissolveOutlineColor => dissolveOutlineColor;
+    public float DissolveOutlineIntensity => dissolveOutlineIntensity;
+
+    public GameObject ShockWaveRenderPrefab => shockWaveRenderPrefab;
+    public float ShockWaveDuration => shockWaveDuration;
+    public float ShockWaveMaxDistance => shockWaveMaxDistance;
+    public float ShockWaveSize => shockWaveSize;
+    public float ShockWaveStrength => shockWaveStrength;
+
+    public int StackParticleCount => stackParticleCount;
+    public float StackParticleSpeed => stackParticleSpeed;
+    public float StackParticleLifetime => stackParticleLifetime;
+    public float StackParticleSize => stackParticleSize;
 
     public Color[] CellColorPalette => cellColorPalette;
 }

@@ -59,6 +59,11 @@ public class TetrisBlockController : MonoBehaviour
         movement.Initialize();
         blockCells.Initialize(board.CellSize, config != null ? config.CellColorPalette : null);
 
+        // Ставим на все ячейки материал растворения (DisMat), чтобы при
+        // схлопывании одинаковых блоков можно было проиграть dissolve.
+        if (config != null && config.BlockDissolveMaterial != null)
+            blockCells.SetCellMaterial(config.BlockDissolveMaterial);
+
         if (contactReporter != null)
             contactReporter.Initialize(config, this);
 
@@ -231,6 +236,9 @@ public class TetrisBlockController : MonoBehaviour
 
         board.RegisterBlock(placedBlock);
 
+        // Juice: фонтанчик частиц цвета блока в момент стакинга (как брызги воды).
+        EmitStackParticles(placedBlock);
+
         // Сообщаем DeathWater о контакте: если у нового блока есть сосед
         // того же цвета (в любой из 4 сторон) — сейчас сработает матчинг и
         // вода опустится; в любом другом случае (блок встал на блок другого
@@ -256,6 +264,38 @@ public class TetrisBlockController : MonoBehaviour
         new Vector2Int( 0,  1),
         new Vector2Int( 0, -1),
     };
+
+    /// <summary>
+    /// Выбрасывает частицы цвета блока в его центре в момент стакинга.
+    /// </summary>
+    private void EmitStackParticles(TetrisPlacedBlock placedBlock)
+    {
+        BlockJuiceController juice = BlockJuiceController.Instance;
+        if (juice == null)
+            return;
+
+        Color color = blockCells != null ? blockCells.GetColor(0) : Color.white;
+        juice.EmitStackParticles(ComputeBlockCenter(placedBlock), color);
+    }
+
+    /// <summary>
+    /// Центр блока в мировых координатах: берём центр коллайдера, а если его
+    /// нет — позицию тела.
+    /// </summary>
+    private Vector3 ComputeBlockCenter(TetrisPlacedBlock placedBlock)
+    {
+        Collider2D collider = GetComponent<Collider2D>();
+        if (collider == null)
+            collider = GetComponentInChildren<Collider2D>();
+
+        if (collider != null)
+            return collider.bounds.center;
+
+        if (body != null)
+            return body.position;
+
+        return transform.position;
+    }
 
     /// <summary>
     /// После приземления блока решает, что должно произойти с DeathWater:
@@ -333,8 +373,20 @@ public class TetrisBlockController : MonoBehaviour
         {
             // Блок просто застрял в стопке: встал на блок другого цвета,
             // на статическую платформу или прямо на нижнюю клетку сетки —
-            // во всех этих случаях ничего не схлопнется, и вода поднимается.
-            dw.HandleBlockLandedOnDifferentColor();
+            // во всех этих случаях ничего не схлопнется. Сначала из места
+            // приземления расходится ударная волна, и только после неё
+            // поднимается вода.
+            BlockJuiceController juice = BlockJuiceController.Instance;
+
+            if (juice != null)
+            {
+                Vector3 origin = ComputeBlockCenter(placedBlock);
+                juice.PlayShockWave(origin, dw.HandleBlockLandedOnDifferentColor);
+            }
+            else
+            {
+                dw.HandleBlockLandedOnDifferentColor();
+            }
         }
     }
 

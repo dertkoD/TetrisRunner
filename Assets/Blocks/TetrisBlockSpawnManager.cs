@@ -82,6 +82,11 @@ public class TetrisBlockSpawnManager : MonoBehaviour
             return;
         }
 
+        // Поднимаем singleton с эффектами (частицы стакинга + ударная волна).
+        // Делаем это в Awake, чтобы он уже существовал к моменту, когда блоки
+        // уровня (TetrisGridLevelBlocks) и спавнящиеся блоки начнут стакаться.
+        BlockJuiceController.Ensure(config);
+
         toggleSpawnAction = config.ToggleSpawnAction != null ? config.ToggleSpawnAction.action : null;
         moveAction = config.MoveAction != null ? config.MoveAction.action : null;
         rotateLeftAction = config.RotateLeftAction != null ? config.RotateLeftAction.action : null;
@@ -212,6 +217,9 @@ public class TetrisBlockSpawnManager : MonoBehaviour
 
         activeBlock = null;
 
+        // Запоминаем место, где блок пропал — оттуда стартует ударная волна.
+        Vector3 lostPosition = block.transform.position;
+
         DeathWaterController dw = DeathWaterController.Instance;
         if (dw != null)
         {
@@ -220,7 +228,20 @@ public class TetrisBlockSpawnManager : MonoBehaviour
                 : 1;
 
             if (growCells > 0)
-                dw.Grow(growCells);
+            {
+                BlockJuiceController juice = BlockJuiceController.Instance;
+
+                if (juice != null)
+                {
+                    // Сначала волна из места исчезновения блока, потом вода
+                    // поднимается.
+                    juice.PlayShockWave(lostPosition, () => dw.Grow(growCells));
+                }
+                else
+                {
+                    dw.Grow(growCells);
+                }
+            }
         }
 
         if (block.gameObject != null)

@@ -53,10 +53,10 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _DisolveAmount: 0.473
+    - _DisolveAmount: 1.1
     - _DisolveScale: 30
     - _EnableExternalAlpha: 0
-    - _OutlineThickness: 0.1
+    - _OutlineThickness: 0
     - _SpiralStrenght: 5
     - _VerticalDisolve: 0
     - _ZWrite: 0

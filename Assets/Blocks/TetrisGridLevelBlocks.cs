@@ -315,6 +315,11 @@ public class TetrisGridLevelBlocks : MonoBehaviour
 
             cells.OverrideStartOffsets(e.offsets);
             cells.Initialize(board.CellSize, palette, assignRandomColors: false);
+
+            // Блоки уровня тоже участвуют в схлопывании по цвету, поэтому им
+            // нужен материал растворения, чтобы dissolve проигрывался и на них.
+            if (config != null && config.BlockDissolveMaterial != null)
+                cells.SetCellMaterial(config.BlockDissolveMaterial);
         }
     }
 

@@ -97,6 +97,32 @@ public class TetrisBlockCells : MonoBehaviour
         return cellRenderers[index];
     }
 
+    /// <summary>
+    /// Ставит общий материал (например, DisMat с шейдером растворения) на все
+    /// спрайт-рендереры ячеек блока. Цвет ячеек по-прежнему задаётся через
+    /// <see cref="SpriteRenderer.color"/> (vertex color), поэтому материал
+    /// можно безопасно шарить между всеми блоками — анимация растворения
+    /// идёт per-renderer через MaterialPropertyBlock. Вызывать после
+    /// <see cref="Initialize(float, Color[], bool)"/>.
+    /// </summary>
+    public void SetCellMaterial(Material material)
+    {
+        if (material == null)
+            return;
+
+        if (cellRenderers == null)
+            CacheCellRenderers();
+
+        if (cellRenderers == null)
+            return;
+
+        for (int i = 0; i < cellRenderers.Length; i++)
+        {
+            if (cellRenderers[i] != null)
+                cellRenderers[i].sharedMaterial = material;
+        }
+    }
+
     public void Initialize(float cellSize, Color[] palette)
     {
         Initialize(cellSize, palette, assignRandomColors: true);

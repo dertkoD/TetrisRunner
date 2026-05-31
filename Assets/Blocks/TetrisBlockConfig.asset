@@ -65,3 +65,20 @@ MonoBehaviour:
   deathWaterGrowSecondsPerCell: 1.5
   deathWaterShrinkSecondsPerCell: 0.6
   deathWaterMaxCellsPerSecond: 0
+  blockDissolveMaterial: {fileID: 2100000, guid: c2053fdcb2d49634c9de0e1b15b9449d, type: 2}
+  dissolveDuration: 0.55
+  dissolveStartAmount: 1.1
+  dissolveEndAmount: 0
+  dissolveOutlineThickness: 0.15
+  dissolveOutlineColor: {r: 0, g: 1, b: 0.95, a: 1}
+  dissolveOutlineIntensity: 4
+  shockWaveRenderPrefab: {fileID: 5426542480925460179, guid: c4053552fa1b5574c8b68c1145ac5266,
+    type: 3}
+  shockWaveDuration: 0.7
+  shockWaveMaxDistance: 1
+  shockWaveSize: 0.1
+  shockWaveStrength: -0.08
+  stackParticleCount: 16
+  stackParticleSpeed: 4
+  stackParticleLifetime: 0.6
+  stackParticleSize: 0.18
