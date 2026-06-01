@@ -14,6 +14,26 @@ public class TetrisBlockCells : MonoBehaviour
     [Header("Rotation")]
     [SerializeField] private bool canRotate = true;
 
+    [Header("Main Sprite (single artist-drawn block)")]
+    [Tooltip("Спрайт-рендерер, на котором рисуется цельный нарисованный блок. " +
+             "Если пусто — будет найден дочерний объект с именем 'Rendering' " +
+             "(или первый включённый SpriteRenderer среди детей).")]
+    [SerializeField] private SpriteRenderer mainRenderer;
+
+    [Tooltip("6 спрайтов этого блока — по одному на каждый индекс цвета из палитры. " +
+             "Порядок ДОЛЖЕН совпадать с порядком cellColorPalette в конфиге: " +
+             "элемент [i] — это блок цвета i. Когда блок спавнится, выбирается " +
+             "случайный индекс и сюда подставляется нужный спрайт.")]
+    [SerializeField] private Sprite[] colorSprites;
+
+    [Tooltip("Ручная поправка ориентации спрайта (шаги по 90°), если художник " +
+             "нарисовал фигуру повёрнутой относительно её формы (offsets). " +
+             "Обычно 0 — поворот по разнице габаритов вычисляется автоматически.")]
+    [SerializeField] private int spriteRotationOffsetSteps = 0;
+
+    [Tooltip("Отразить спрайт по X (если зеркальная фигура нарисована наоборот).")]
+    [SerializeField] private bool flipSprite = false;
+
     [Header("Parent Collider")]
     [Tooltip("PolygonCollider2D, которым описываются клетки блока. " +
              "Если оставить пустым, он будет найден или создан автоматически.")]
@@ -27,6 +47,24 @@ public class TetrisBlockCells : MonoBehaviour
     private int[] cellColorIndices;
     private SpriteRenderer[] cellRenderers;
     private Color[] activePalette;
+
+    // Состояние одиночного спрайта блока.
+    private SpriteRenderer resolvedMainRenderer;
+    private Vector2 homeCenterCells;     // центр габаритов фигуры (в клетках) при ориентации 0
+    private int baseRotationSteps;       // авто-поворот, выравнивающий арт под форму (0/1)
+    private int rotationStep;            // накопленный игровой поворот в шагах CCW (+1 = 90° CCW)
+    private float currentCellSize = 1f;
+    private MaterialPropertyBlock mainMpb;
+
+    private static readonly int DisolveAmountId = Shader.PropertyToID("_DisolveAmount");
+    private static readonly int OutlineThicknessId = Shader.PropertyToID("_OutlineThickness");
+
+    // _DisolveAmount, при котором блок полностью виден. Материал DisMat могут
+    // оставить в любом «промежуточном» состоянии (например, для предпросмотра
+    // dissolve), поэтому в покое мы принудительно задаём «целое» состояние
+    // per-renderer; анимация растворения (BlockDissolveEffect) временно
+    // переопределяет это значение во время схлопывания.
+    private const float SolidDisolveAmount = 1.1f;
 
     public bool CanRotate => canRotate;
     public Vector2Int[] CurrentOffsets => currentOffsets;
@@ -97,32 +135,6 @@ public class TetrisBlockCells : MonoBehaviour
         return cellRenderers[index];
     }
 
-    /// <summary>
-    /// Ставит общий материал (например, DisMat с шейдером растворения) на все
-    /// спрайт-рендереры ячеек блока. Цвет ячеек по-прежнему задаётся через
-    /// <see cref="SpriteRenderer.color"/> (vertex color), поэтому материал
-    /// можно безопасно шарить между всеми блоками — анимация растворения
-    /// идёт per-renderer через MaterialPropertyBlock. Вызывать после
-    /// <see cref="Initialize(float, Color[], bool)"/>.
-    /// </summary>
-    public void SetCellMaterial(Material material)
-    {
-        if (material == null)
-            return;
-
-        if (cellRenderers == null)
-            CacheCellRenderers();
-
-        if (cellRenderers == null)
-            return;
-
-        for (int i = 0; i < cellRenderers.Length; i++)
-        {
-            if (cellRenderers[i] != null)
-                cellRenderers[i].sharedMaterial = material;
-        }
-    }
-
     public void Initialize(float cellSize, Color[] palette)
     {
         Initialize(cellSize, palette, assignRandomColors: true);
@@ -149,6 +161,11 @@ public class TetrisBlockCells : MonoBehaviour
             currentOffsets[i] = effectiveOffsets[i];
 
         CacheCellRenderers();
+
+        currentCellSize = cellSize;
+        rotationStep = 0;
+        ResolveMainRenderer();
+        ComputeHomePose();
 
         if (assignRandomColors)
             AssignRandomColors();
@@ -416,6 +433,9 @@ public class TetrisBlockCells : MonoBehaviour
 
     private void ApplyColors()
     {
+        // Цельный спрайт: вместо покраски ячеек подставляем спрайт нужного цвета.
+        ApplyMainSprite();
+
         if (cellRenderers == null || activePalette == null || activePalette.Length == 0)
             return;
 
@@ -428,9 +448,214 @@ public class TetrisBlockCells : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Находит спрайт-рендерер цельного блока: либо заданный в инспекторе, либо
+    /// дочерний объект с именем "Rendering", либо первый SpriteRenderer среди
+    /// детей, который не входит в список поячеечных визуалов.
+    /// </summary>
+    private void ResolveMainRenderer()
+    {
+        if (mainRenderer != null)
+        {
+            resolvedMainRenderer = mainRenderer;
+            return;
+        }
+
+        Transform renderingChild = transform.Find("Rendering");
+        if (renderingChild != null)
+        {
+            SpriteRenderer sr = renderingChild.GetComponent<SpriteRenderer>();
+            if (sr != null)
+            {
+                resolvedMainRenderer = sr;
+                return;
+            }
+        }
+
+        SpriteRenderer[] all = GetComponentsInChildren<SpriteRenderer>(true);
+        for (int i = 0; i < all.Length; i++)
+        {
+            if (all[i] != null && !IsCellRenderer(all[i]))
+            {
+                resolvedMainRenderer = all[i];
+                return;
+            }
+        }
+
+        resolvedMainRenderer = null;
+    }
+
+    private bool IsCellRenderer(SpriteRenderer renderer)
+    {
+        if (cellVisuals == null || renderer == null)
+            return false;
+
+        for (int i = 0; i < cellVisuals.Length; i++)
+        {
+            if (cellVisuals[i] != null && renderer.transform == cellVisuals[i])
+                return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Считает «домашнюю» позу спрайта: центр габаритов фигуры (в клетках) и
+    /// базовый поворот, выравнивающий нарисованный спрайт под форму, если они
+    /// различаются по ориентации (например, арт нарисован горизонтально, а
+    /// фигура вертикальная).
+    /// </summary>
+    private void ComputeHomePose()
+    {
+        homeCenterCells = Vector2.zero;
+        baseRotationSteps = 0;
+
+        if (currentOffsets == null || currentOffsets.Length == 0)
+            return;
+
+        int minX = int.MaxValue, maxX = int.MinValue, minY = int.MaxValue, maxY = int.MinValue;
+
+        for (int i = 0; i < currentOffsets.Length; i++)
+        {
+            Vector2Int o = currentOffsets[i];
+            if (o.x < minX) minX = o.x;
+            if (o.x > maxX) maxX = o.x;
+            if (o.y < minY) minY = o.y;
+            if (o.y > maxY) maxY = o.y;
+        }
+
+        homeCenterCells = new Vector2((minX + maxX) * 0.5f, (minY + maxY) * 0.5f);
+
+        int shapeWidth = maxX - minX + 1;
+        int shapeHeight = maxY - minY + 1;
+
+        Sprite sprite = ResolveSampleSprite();
+        if (sprite == null)
+            return;
+
+        Vector2 artSize = sprite.bounds.size;
+        bool artLandscape = artSize.x > artSize.y * 1.01f;
+        bool artPortrait = artSize.y > artSize.x * 1.01f;
+        bool shapeLandscape = shapeWidth > shapeHeight;
+        bool shapePortrait = shapeHeight > shapeWidth;
+
+        // Если арт и форма «перевёрнуты» друг относительно друга по габаритам —
+        // доворачиваем спрайт на 90°, чтобы он лёг по форме.
+        if ((artLandscape && shapePortrait) || (artPortrait && shapeLandscape))
+            baseRotationSteps = 1;
+    }
+
+    private Sprite ResolveSampleSprite()
+    {
+        if (resolvedMainRenderer != null && resolvedMainRenderer.sprite != null)
+            return resolvedMainRenderer.sprite;
+
+        if (colorSprites != null)
+        {
+            for (int i = 0; i < colorSprites.Length; i++)
+            {
+                if (colorSprites[i] != null)
+                    return colorSprites[i];
+            }
+        }
+
+        return null;
+    }
+
+    private void ApplyMainSprite()
+    {
+        if (resolvedMainRenderer == null || colorSprites == null || colorSprites.Length == 0)
+            return;
+
+        int idx = (cellColorIndices != null && cellColorIndices.Length > 0) ? cellColorIndices[0] : 0;
+        idx = ((idx % colorSprites.Length) + colorSprites.Length) % colorSprites.Length;
+
+        if (colorSprites[idx] != null)
+            resolvedMainRenderer.sprite = colorSprites[idx];
+
+        ApplySolidMainSpriteState();
+    }
+
+    /// <summary>
+    /// Принудительно выставляет «целое» (не растворённое, без контура) состояние
+    /// спрайта через MaterialPropertyBlock — на случай, если у общего материала
+    /// DisMat _DisolveAmount/_OutlineThickness оставлены в произвольном значении.
+    /// </summary>
+    private void ApplySolidMainSpriteState()
+    {
+        if (resolvedMainRenderer == null)
+            return;
+
+        if (mainMpb == null)
+            mainMpb = new MaterialPropertyBlock();
+
+        resolvedMainRenderer.GetPropertyBlock(mainMpb);
+        mainMpb.SetFloat(DisolveAmountId, SolidDisolveAmount);
+        mainMpb.SetFloat(OutlineThicknessId, 0f);
+        resolvedMainRenderer.SetPropertyBlock(mainMpb);
+    }
+
+    /// <summary>
+    /// Ставит спрайт по центру габаритов фигуры с учётом базового авто-поворота
+    /// и накопленного игрового поворота. Масштаб НЕ трогаем — арт нарисован в
+    /// тех же единицах, что и клетки (PPU = размер клетки).
+    /// </summary>
+    private void ApplyMainSpriteTransform()
+    {
+        if (resolvedMainRenderer == null)
+            return;
+
+        Transform t = resolvedMainRenderer.transform;
+
+        float orbitAngle = rotationStep * 90f;
+        float spriteAngle = (baseRotationSteps + spriteRotationOffsetSteps + rotationStep) * 90f;
+
+        Vector3 home = new Vector3(
+            homeCenterCells.x * currentCellSize,
+            homeCenterCells.y * currentCellSize,
+            0f);
+
+        // Игровой поворот «орбитой» переносит центр габаритов вокруг пивота (0,0),
+        // ровно как смещаются клетки фигуры при повороте.
+        Vector3 orbited = Quaternion.Euler(0f, 0f, orbitAngle) * home;
+
+        t.localPosition = new Vector3(orbited.x, orbited.y, t.localPosition.z);
+        t.localRotation = Quaternion.Euler(0f, 0f, spriteAngle);
+
+        resolvedMainRenderer.flipX = flipSprite;
+    }
+
+    /// <summary>
+    /// Сообщает визуалу, что фигуру повернули в игре. direction &gt; 0 — по часовой
+    /// (как в <see cref="GetRotatedOffsets"/>), &lt; 0 — против часовой.
+    /// </summary>
+    public void RegisterRotation(int direction)
+    {
+        if (direction > 0)
+            rotationStep--;
+        else if (direction < 0)
+            rotationStep++;
+
+        ApplyMainSpriteTransform();
+    }
+
     private void ApplyShape(float cellSize)
     {
-        ApplyVisualPositions(cellSize);
+        currentCellSize = cellSize;
+
+        if (resolvedMainRenderer != null)
+        {
+            // Новый режим: цельный спрайт. Старые поячеечные визуалы не трогаем
+            // (они выключены), только располагаем единый спрайт по форме.
+            ApplyMainSpriteTransform();
+        }
+        else
+        {
+            ApplyVisualPositions(cellSize);
+        }
+
+        // Коллайдер строится по offsets независимо от режима отрисовки —
+        // именно он задаёт занимаемые клетки, форму и физику.
         ApplyPolygonCollider(cellSize);
     }
 

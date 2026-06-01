@@ -162,6 +162,15 @@ MonoBehaviour:
   canRotate: 1
   polygonCollider: {fileID: 0}
   disableLegacyBoxColliders: 1
+  colorSprites:
+  - {fileID: -6367690425027240255, guid: 0a47d3f5e1ee98b4f9c552b2fc379e76, type: 3}
+  - {fileID: 1487245852481272321, guid: 0a47d3f5e1ee98b4f9c552b2fc379e76, type: 3}
+  - {fileID: -7376888300732957779, guid: 0a47d3f5e1ee98b4f9c552b2fc379e76, type: 3}
+  - {fileID: -1429609609207243153, guid: 0a47d3f5e1ee98b4f9c552b2fc379e76, type: 3}
+  - {fileID: -8677967588220032034, guid: 0a47d3f5e1ee98b4f9c552b2fc379e76, type: 3}
+  - {fileID: -7189312268627891252, guid: 0a47d3f5e1ee98b4f9c552b2fc379e76, type: 3}
+  spriteRotationOffsetSteps: 0
+  flipSprite: 0
 --- !u!1 &614004934148876750
 GameObject:
   m_ObjectHideFlags: 0

@@ -59,11 +59,6 @@ public class TetrisBlockController : MonoBehaviour
         movement.Initialize();
         blockCells.Initialize(board.CellSize, config != null ? config.CellColorPalette : null);
 
-        // Ставим на все ячейки материал растворения (DisMat), чтобы при
-        // схлопывании одинаковых блоков можно было проиграть dissolve.
-        if (config != null && config.BlockDissolveMaterial != null)
-            blockCells.SetCellMaterial(config.BlockDissolveMaterial);
-
         if (contactReporter != null)
             contactReporter.Initialize(config, this);
 
