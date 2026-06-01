@@ -53,15 +53,31 @@ MonoBehaviour:
   snapRotationWhenStacking: 1
   gridCellSize: 1
   cellColorPalette:
-  - {r: 0.95, g: 0.3, b: 0.3, a: 1}
-  - {r: 0.3, g: 0.75, b: 0.95, a: 1}
-  - {r: 0.95, g: 0.85, b: 0.3, a: 1}
-  - {r: 0.4, g: 0.85, b: 0.4, a: 1}
-  - {r: 0.75, g: 0.45, b: 0.95, a: 1}
-  - {r: 0.95, g: 0.65, b: 0.3, a: 1}
+  - {r: 0.93725497, g: 0.882353, b: 0.4666667, a: 1}
+  - {r: 0.9803922, g: 0.68235296, b: 0.4156863, a: 1}
+  - {r: 0.7960785, g: 0.36078432, b: 0.38823533, a: 1}
+  - {r: 0.52156866, g: 0.34117648, b: 0.427451, a: 1}
+  - {r: 0.68235296, g: 0.74509805, b: 0.5529412, a: 1}
+  - {r: 0.9333334, g: 0.6901961, b: 0.6392157, a: 1}
   deathWaterGrowOnDifferentColorLanding: 2
   deathWaterShrinkOnSameColorLanding: 1
   deathWaterGrowOnBlockEnteringWater: 2
   deathWaterGrowSecondsPerCell: 1.5
   deathWaterShrinkSecondsPerCell: 0.6
   deathWaterMaxCellsPerSecond: 0
+  blockDissolveMaterial: {fileID: 2100000, guid: c2053fdcb2d49634c9de0e1b15b9449d, type: 2}
+  dissolveDuration: 1
+  dissolveStartAmount: 0
+  dissolveEndAmount: 1.1
+  dissolveOutlineThickness: 0.093
+  dissolveOutlineColor: {r: 0, g: 1, b: 0.95, a: 1}
+  dissolveOutlineIntensity: 1.1
+  shockWaveRenderPrefab: {fileID: 5426542480925460179, guid: c4053552fa1b5574c8b68c1145ac5266, type: 3}
+  shockWaveDuration: 0.7
+  shockWaveMaxDistance: 1
+  shockWaveSize: 0.1
+  shockWaveStrength: -0.08
+  stackParticleCount: 16
+  stackParticleSpeed: 4
+  stackParticleLifetime: 0.6
+  stackParticleSize: 0.18

@@ -135,6 +135,11 @@ public class DeathWaterController : MonoBehaviour
         if (board == null)
             board = FindFirstObjectByType<TetrisGridBoard>();
 
+        // Подстраховка: если по какой-то причине BlockJuiceController ещё не
+        // создан спавн-менеджером, поднимаем его здесь (у воды тоже есть конфиг).
+        if (config != null)
+            BlockJuiceController.Ensure(config);
+
         Transform t = transform;
         initialPosition = t.localPosition;
         initialScale = t.localScale;

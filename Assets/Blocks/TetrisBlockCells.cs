@@ -14,6 +14,26 @@ public class TetrisBlockCells : MonoBehaviour
     [Header("Rotation")]
     [SerializeField] private bool canRotate = true;
 
+    [Header("Main Sprite (single artist-drawn block)")]
+    [Tooltip("Спрайт-рендерер, на котором рисуется цельный нарисованный блок. " +
+             "Если пусто — будет найден дочерний объект с именем 'Rendering' " +
+             "(или первый включённый SpriteRenderer среди детей).")]
+    [SerializeField] private SpriteRenderer mainRenderer;
+
+    [Tooltip("6 спрайтов этого блока — по одному на каждый индекс цвета из палитры. " +
+             "Порядок ДОЛЖЕН совпадать с порядком cellColorPalette в конфиге: " +
+             "элемент [i] — это блок цвета i. Когда блок спавнится, выбирается " +
+             "случайный индекс и сюда подставляется нужный спрайт.")]
+    [SerializeField] private Sprite[] colorSprites;
+
+    [Tooltip("Ручная поправка ориентации спрайта (шаги по 90°), если художник " +
+             "нарисовал фигуру повёрнутой относительно её формы (offsets). " +
+             "Обычно 0 — поворот по разнице габаритов вычисляется автоматически.")]
+    [SerializeField] private int spriteRotationOffsetSteps = 0;
+
+    [Tooltip("Отразить спрайт по X (если зеркальная фигура нарисована наоборот).")]
+    [SerializeField] private bool flipSprite = false;
+
     [Header("Parent Collider")]
     [Tooltip("PolygonCollider2D, которым описываются клетки блока. " +
              "Если оставить пустым, он будет найден или создан автоматически.")]
@@ -27,6 +47,14 @@ public class TetrisBlockCells : MonoBehaviour
     private int[] cellColorIndices;
     private SpriteRenderer[] cellRenderers;
     private Color[] activePalette;
+
+    // Состояние одиночного спрайта блока.
+    private SpriteRenderer resolvedMainRenderer;
+    private Vector2 homeCenterCells;     // центр габаритов фигуры (в клетках) при ориентации 0
+    private float homeSpriteAngle;       // авторский поворот спрайта из префаба (град.)
+    private bool homeFlipX;              // авторский flipX из префаба
+    private int rotationStep;            // накопленный игровой поворот в шагах CCW (+1 = 90° CCW)
+    private float currentCellSize = 1f;
 
     public bool CanRotate => canRotate;
     public Vector2Int[] CurrentOffsets => currentOffsets;
@@ -123,6 +151,12 @@ public class TetrisBlockCells : MonoBehaviour
             currentOffsets[i] = effectiveOffsets[i];
 
         CacheCellRenderers();
+
+        currentCellSize = cellSize;
+        rotationStep = 0;
+        ResolveMainRenderer();
+        CaptureHomeSpritePose();
+        ComputeHomePose();
 
         if (assignRandomColors)
             AssignRandomColors();
@@ -390,6 +424,9 @@ public class TetrisBlockCells : MonoBehaviour
 
     private void ApplyColors()
     {
+        // Цельный спрайт: вместо покраски ячеек подставляем спрайт нужного цвета.
+        ApplyMainSprite();
+
         if (cellRenderers == null || activePalette == null || activePalette.Length == 0)
             return;
 
@@ -402,9 +439,224 @@ public class TetrisBlockCells : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Находит спрайт-рендерер цельного блока: либо заданный в инспекторе, либо
+    /// дочерний объект с именем "Rendering", либо первый SpriteRenderer среди
+    /// детей, который не входит в список поячеечных визуалов.
+    /// </summary>
+    private void ResolveMainRenderer()
+    {
+        if (mainRenderer != null)
+        {
+            resolvedMainRenderer = mainRenderer;
+            return;
+        }
+
+        Transform renderingChild = transform.Find("Rendering");
+        if (renderingChild != null)
+        {
+            SpriteRenderer sr = renderingChild.GetComponent<SpriteRenderer>();
+            if (sr != null)
+            {
+                resolvedMainRenderer = sr;
+                return;
+            }
+        }
+
+        SpriteRenderer[] all = GetComponentsInChildren<SpriteRenderer>(true);
+        for (int i = 0; i < all.Length; i++)
+        {
+            if (all[i] != null && !IsCellRenderer(all[i]))
+            {
+                resolvedMainRenderer = all[i];
+                return;
+            }
+        }
+
+        resolvedMainRenderer = null;
+    }
+
+    private bool IsCellRenderer(SpriteRenderer renderer)
+    {
+        if (cellVisuals == null || renderer == null)
+            return false;
+
+        for (int i = 0; i < cellVisuals.Length; i++)
+        {
+            if (cellVisuals[i] != null && renderer.transform == cellVisuals[i])
+                return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Запоминает «домашнюю» ОРИЕНТАЦИЮ спрайта так, как её выставил художник в
+    /// префабе (поворот + flipX). Игровой/постановочный поворот добавляется уже
+    /// поверх этого значения, поэтому ориентация арта, заданная в редакторе,
+    /// сохраняется. Позицию НЕ запоминаем — её мы выравниваем по центру формы.
+    /// </summary>
+    private void CaptureHomeSpritePose()
+    {
+        homeSpriteAngle = 0f;
+        homeFlipX = false;
+
+        if (resolvedMainRenderer == null)
+            return;
+
+        float z = resolvedMainRenderer.transform.localEulerAngles.z;
+        // Округляем к ближайшим 90° — авторский поворот всегда кратен 90°,
+        // а из кватерниона Euler может вернуться с мелкой погрешностью.
+        homeSpriteAngle = Mathf.Round(z / 90f) * 90f;
+        homeFlipX = resolvedMainRenderer.flipX;
+    }
+
+    /// <summary>Считает центр габаритов формы (в клетках) для размещения спрайта.</summary>
+    private void ComputeHomePose()
+    {
+        homeCenterCells = Vector2.zero;
+
+        if (currentOffsets == null || currentOffsets.Length == 0)
+            return;
+
+        int minX = int.MaxValue, maxX = int.MinValue, minY = int.MaxValue, maxY = int.MinValue;
+
+        for (int i = 0; i < currentOffsets.Length; i++)
+        {
+            Vector2Int o = currentOffsets[i];
+            if (o.x < minX) minX = o.x;
+            if (o.x > maxX) maxX = o.x;
+            if (o.y < minY) minY = o.y;
+            if (o.y > maxY) maxY = o.y;
+        }
+
+        homeCenterCells = new Vector2((minX + maxX) * 0.5f, (minY + maxY) * 0.5f);
+    }
+
+    private void ApplyMainSprite()
+    {
+        if (resolvedMainRenderer == null || colorSprites == null || colorSprites.Length == 0)
+            return;
+
+        int idx = (cellColorIndices != null && cellColorIndices.Length > 0) ? cellColorIndices[0] : 0;
+        idx = ((idx % colorSprites.Length) + colorSprites.Length) % colorSprites.Length;
+
+        if (colorSprites[idx] != null)
+            resolvedMainRenderer.sprite = colorSprites[idx];
+    }
+
+    /// <summary>
+    /// Ставит спрайт по центру габаритов фигуры с учётом базового авто-поворота
+    /// и накопленного игрового поворота. Масштаб НЕ трогаем — арт нарисован в
+    /// тех же единицах, что и клетки (PPU = размер клетки).
+    /// </summary>
+    private void ApplyMainSpriteTransform()
+    {
+        if (resolvedMainRenderer == null)
+            return;
+
+        Transform t = resolvedMainRenderer.transform;
+
+        float orbitAngle = rotationStep * 90f;
+        // Авторский поворот художника + ручная поправка + игровой/постановочный поворот.
+        float spriteAngle = homeSpriteAngle + (spriteRotationOffsetSteps + rotationStep) * 90f;
+
+        Vector3 home = new Vector3(
+            homeCenterCells.x * currentCellSize,
+            homeCenterCells.y * currentCellSize,
+            0f);
+
+        // Игровой поворот «орбитой» переносит центр габаритов вокруг пивота (0,0),
+        // ровно как смещаются клетки фигуры при повороте.
+        Vector3 orbited = Quaternion.Euler(0f, 0f, orbitAngle) * home;
+
+        t.localPosition = new Vector3(orbited.x, orbited.y, t.localPosition.z);
+        t.localRotation = Quaternion.Euler(0f, 0f, spriteAngle);
+
+        resolvedMainRenderer.flipX = homeFlipX ^ flipSprite;
+    }
+
+    /// <summary>
+    /// Сообщает визуалу, что фигуру повернули в игре. direction &gt; 0 — по часовой
+    /// (как в <see cref="GetRotatedOffsets"/>), &lt; 0 — против часовой.
+    /// </summary>
+    public void RegisterRotation(int direction)
+    {
+        if (direction > 0)
+            rotationStep--;
+        else if (direction < 0)
+            rotationStep++;
+
+        ApplyMainSpriteTransform();
+    }
+
+    /// <summary>
+    /// Возвращает трансформ спрайт-рендерера цельного блока (заданный в
+    /// инспекторе, либо дочерний "Rendering"). Используется уровнем, чтобы
+    /// понять, где именно стоит видимый спрайт ещё ДО инициализации.
+    /// </summary>
+    public Transform ResolveMainRendererTransform()
+    {
+        if (resolvedMainRenderer != null)
+            return resolvedMainRenderer.transform;
+
+        if (mainRenderer != null)
+            return mainRenderer.transform;
+
+        return transform.Find("Rendering");
+    }
+
+    /// <summary>
+    /// Применяет «постановочный» поворот блока уровня (на <paramref name="ccwSteps"/>
+    /// шагов по 90° против часовой) к канонической форме (startOffsets):
+    /// пересобирает offsets и коллайдер и доворачивает спрайт так же, как при
+    /// игровом повороте. Вызывать ПОСЛЕ <see cref="Initialize(float, Color[], bool)"/>.
+    /// </summary>
+    public void ApplyPlacementRotation(int ccwSteps, float cellSize)
+    {
+        ccwSteps &= 3;
+
+        Vector2Int[] baseOffsets = (startOffsets != null && startOffsets.Length > 0)
+            ? startOffsets
+            : currentOffsets;
+
+        if (baseOffsets == null || baseOffsets.Length == 0)
+            return;
+
+        Vector2Int[] rotated = new Vector2Int[baseOffsets.Length];
+        for (int i = 0; i < baseOffsets.Length; i++)
+        {
+            Vector2Int o = baseOffsets[i];
+            for (int s = 0; s < ccwSteps; s++)
+                o = new Vector2Int(-o.y, o.x); // против часовой
+            rotated[i] = o;
+        }
+
+        SetOffsets(rotated, cellSize);
+
+        // rotationStep — в шагах CCW (как orbit/sprite-angle в ApplyMainSpriteTransform),
+        // поэтому постановочный CCW-поворот задаётся напрямую.
+        rotationStep = ccwSteps;
+        ApplyMainSpriteTransform();
+    }
+
     private void ApplyShape(float cellSize)
     {
-        ApplyVisualPositions(cellSize);
+        currentCellSize = cellSize;
+
+        if (resolvedMainRenderer != null)
+        {
+            // Новый режим: цельный спрайт. Старые поячеечные визуалы не трогаем
+            // (они выключены), только располагаем единый спрайт по форме.
+            ApplyMainSpriteTransform();
+        }
+        else
+        {
+            ApplyVisualPositions(cellSize);
+        }
+
+        // Коллайдер строится по offsets независимо от режима отрисовки —
+        // именно он задаёт занимаемые клетки, форму и физику.
         ApplyPolygonCollider(cellSize);
     }
 

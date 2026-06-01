@@ -38,6 +38,7 @@ public class TetrisBlockRotator : MonoBehaviour
             body.rotation = 0f;
 
             blockCells.SetOffsets(rotatedOffsets, board.CellSize);
+            blockCells.RegisterRotation(direction);
 
             return true;
         }

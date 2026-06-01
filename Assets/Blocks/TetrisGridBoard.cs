@@ -524,8 +524,13 @@ public class TetrisGridBoard : MonoBehaviour
                 if (block == null)
                     continue;
 
+                // Логически снимаем блок с сетки сразу (чтобы гравитация и
+                // дальнейшие матчи видели клетки свободными), а визуально
+                // запускаем растворение — GameObject уничтожится по окончании
+                // dissolve. Если juice/материал не настроены, блок исчезнет
+                // мгновенно (старое поведение).
                 UnregisterBlock(block);
-                Destroy(block.gameObject);
+                BlockDissolveEffect.PlayOrDestroy(block);
             }
 
             ApplyGravity();
