@@ -51,7 +51,8 @@ public class TetrisBlockCells : MonoBehaviour
     // Состояние одиночного спрайта блока.
     private SpriteRenderer resolvedMainRenderer;
     private Vector2 homeCenterCells;     // центр габаритов фигуры (в клетках) при ориентации 0
-    private int baseRotationSteps;       // авто-поворот, выравнивающий арт под форму (0/1)
+    private float homeSpriteAngle;       // авторский поворот спрайта из префаба (град.)
+    private bool homeFlipX;              // авторский flipX из префаба
     private int rotationStep;            // накопленный игровой поворот в шагах CCW (+1 = 90° CCW)
     private float currentCellSize = 1f;
 
@@ -154,6 +155,7 @@ public class TetrisBlockCells : MonoBehaviour
         currentCellSize = cellSize;
         rotationStep = 0;
         ResolveMainRenderer();
+        CaptureHomeSpritePose();
         ComputeHomePose();
 
         if (assignRandomColors)
@@ -489,15 +491,30 @@ public class TetrisBlockCells : MonoBehaviour
     }
 
     /// <summary>
-    /// Считает «домашнюю» позу спрайта: центр габаритов фигуры (в клетках) и
-    /// базовый поворот, выравнивающий нарисованный спрайт под форму, если они
-    /// различаются по ориентации (например, арт нарисован горизонтально, а
-    /// фигура вертикальная).
+    /// Запоминает «домашнюю» ОРИЕНТАЦИЮ спрайта так, как её выставил художник в
+    /// префабе (поворот + flipX). Игровой/постановочный поворот добавляется уже
+    /// поверх этого значения, поэтому ориентация арта, заданная в редакторе,
+    /// сохраняется. Позицию НЕ запоминаем — её мы выравниваем по центру формы.
     /// </summary>
+    private void CaptureHomeSpritePose()
+    {
+        homeSpriteAngle = 0f;
+        homeFlipX = false;
+
+        if (resolvedMainRenderer == null)
+            return;
+
+        float z = resolvedMainRenderer.transform.localEulerAngles.z;
+        // Округляем к ближайшим 90° — авторский поворот всегда кратен 90°,
+        // а из кватерниона Euler может вернуться с мелкой погрешностью.
+        homeSpriteAngle = Mathf.Round(z / 90f) * 90f;
+        homeFlipX = resolvedMainRenderer.flipX;
+    }
+
+    /// <summary>Считает центр габаритов формы (в клетках) для размещения спрайта.</summary>
     private void ComputeHomePose()
     {
         homeCenterCells = Vector2.zero;
-        baseRotationSteps = 0;
 
         if (currentOffsets == null || currentOffsets.Length == 0)
             return;
@@ -514,41 +531,6 @@ public class TetrisBlockCells : MonoBehaviour
         }
 
         homeCenterCells = new Vector2((minX + maxX) * 0.5f, (minY + maxY) * 0.5f);
-
-        int shapeWidth = maxX - minX + 1;
-        int shapeHeight = maxY - minY + 1;
-
-        Sprite sprite = ResolveSampleSprite();
-        if (sprite == null)
-            return;
-
-        Vector2 artSize = sprite.bounds.size;
-        bool artLandscape = artSize.x > artSize.y * 1.01f;
-        bool artPortrait = artSize.y > artSize.x * 1.01f;
-        bool shapeLandscape = shapeWidth > shapeHeight;
-        bool shapePortrait = shapeHeight > shapeWidth;
-
-        // Если арт и форма «перевёрнуты» друг относительно друга по габаритам —
-        // доворачиваем спрайт на 90°, чтобы он лёг по форме.
-        if ((artLandscape && shapePortrait) || (artPortrait && shapeLandscape))
-            baseRotationSteps = 1;
-    }
-
-    private Sprite ResolveSampleSprite()
-    {
-        if (resolvedMainRenderer != null && resolvedMainRenderer.sprite != null)
-            return resolvedMainRenderer.sprite;
-
-        if (colorSprites != null)
-        {
-            for (int i = 0; i < colorSprites.Length; i++)
-            {
-                if (colorSprites[i] != null)
-                    return colorSprites[i];
-            }
-        }
-
-        return null;
     }
 
     private void ApplyMainSprite()
@@ -576,7 +558,8 @@ public class TetrisBlockCells : MonoBehaviour
         Transform t = resolvedMainRenderer.transform;
 
         float orbitAngle = rotationStep * 90f;
-        float spriteAngle = (baseRotationSteps + spriteRotationOffsetSteps + rotationStep) * 90f;
+        // Авторский поворот художника + ручная поправка + игровой/постановочный поворот.
+        float spriteAngle = homeSpriteAngle + (spriteRotationOffsetSteps + rotationStep) * 90f;
 
         Vector3 home = new Vector3(
             homeCenterCells.x * currentCellSize,
@@ -590,7 +573,7 @@ public class TetrisBlockCells : MonoBehaviour
         t.localPosition = new Vector3(orbited.x, orbited.y, t.localPosition.z);
         t.localRotation = Quaternion.Euler(0f, 0f, spriteAngle);
 
-        resolvedMainRenderer.flipX = flipSprite;
+        resolvedMainRenderer.flipX = homeFlipX ^ flipSprite;
     }
 
     /// <summary>
@@ -604,6 +587,56 @@ public class TetrisBlockCells : MonoBehaviour
         else if (direction < 0)
             rotationStep++;
 
+        ApplyMainSpriteTransform();
+    }
+
+    /// <summary>
+    /// Возвращает трансформ спрайт-рендерера цельного блока (заданный в
+    /// инспекторе, либо дочерний "Rendering"). Используется уровнем, чтобы
+    /// понять, где именно стоит видимый спрайт ещё ДО инициализации.
+    /// </summary>
+    public Transform ResolveMainRendererTransform()
+    {
+        if (resolvedMainRenderer != null)
+            return resolvedMainRenderer.transform;
+
+        if (mainRenderer != null)
+            return mainRenderer.transform;
+
+        return transform.Find("Rendering");
+    }
+
+    /// <summary>
+    /// Применяет «постановочный» поворот блока уровня (на <paramref name="ccwSteps"/>
+    /// шагов по 90° против часовой) к канонической форме (startOffsets):
+    /// пересобирает offsets и коллайдер и доворачивает спрайт так же, как при
+    /// игровом повороте. Вызывать ПОСЛЕ <see cref="Initialize(float, Color[], bool)"/>.
+    /// </summary>
+    public void ApplyPlacementRotation(int ccwSteps, float cellSize)
+    {
+        ccwSteps &= 3;
+
+        Vector2Int[] baseOffsets = (startOffsets != null && startOffsets.Length > 0)
+            ? startOffsets
+            : currentOffsets;
+
+        if (baseOffsets == null || baseOffsets.Length == 0)
+            return;
+
+        Vector2Int[] rotated = new Vector2Int[baseOffsets.Length];
+        for (int i = 0; i < baseOffsets.Length; i++)
+        {
+            Vector2Int o = baseOffsets[i];
+            for (int s = 0; s < ccwSteps; s++)
+                o = new Vector2Int(-o.y, o.x); // против часовой
+            rotated[i] = o;
+        }
+
+        SetOffsets(rotated, cellSize);
+
+        // rotationStep — в шагах CCW (как orbit/sprite-angle в ApplyMainSpriteTransform),
+        // поэтому постановочный CCW-поворот задаётся напрямую.
+        rotationStep = ccwSteps;
         ApplyMainSpriteTransform();
     }
 

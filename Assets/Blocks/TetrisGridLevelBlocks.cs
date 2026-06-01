@@ -114,38 +114,27 @@ public class TetrisGridLevelBlocks : MonoBehaviour
             if (cells == null)
                 continue;
 
-            // Если у блока есть видимые ячейки, ориентируемся на первую из них:
-            // сдвигаем корень так, чтобы первая ячейка попадала в центр своей
-            // клетки сетки. Это даёт ту же геометрию snap, что и runtime.
-            Vector2Int pivot;
-            Vector3 anchorWorld = child.position;
+            // Снап по ВИДИМОМУ спрайту: двигаем блок так, чтобы центр габаритов
+            // его формы (а значит и центр спрайта) попал ровно в сетку, а угол —
+            // на кратный 90°. Это совпадает с тем, как блок встаёт в рантайме.
+            int steps = ComputeRotationSteps(child);
+            Vector2Int[] canonical = cells.GetStartOffsetsCopy();
+            if (canonical == null || canonical.Length == 0)
+                continue;
 
-            Transform[] visuals = cells.CellVisuals;
-            Transform firstVisual = null;
+            Vector2Int[] rotated = ApplyRotationSteps(canonical, steps);
+            Vector2 bboxCenter = ComputeBboxCenter(rotated);
 
-            if (visuals != null)
-            {
-                for (int v = 0; v < visuals.Length; v++)
-                {
-                    if (visuals[v] != null && visuals[v].gameObject.activeInHierarchy)
-                    {
-                        firstVisual = visuals[v];
-                        break;
-                    }
-                }
-            }
+            Transform spriteTransform = cells.ResolveMainRendererTransform();
+            Vector3 spriteWorld = spriteTransform != null ? spriteTransform.position : child.position;
 
-            if (firstVisual != null)
-                anchorWorld = firstVisual.position;
+            Vector3 pivotWorld = spriteWorld - new Vector3(bboxCenter.x, bboxCenter.y, 0f) * board.CellSize;
+            Vector2Int pivot = RoundWorldToCell(pivotWorld);
 
-            pivot = board.WorldToCell(anchorWorld);
+            Vector3 targetSpriteWorld = board.CellToWorld(pivot)
+                + new Vector3(bboxCenter.x, bboxCenter.y, 0f) * board.CellSize;
 
-            // Двигаем корень так, чтобы anchor-ячейка оказалась в центре своей клетки.
-            Vector3 anchorDelta = board.CellToWorld(pivot) - anchorWorld;
-            child.position += anchorDelta;
-
-            float angle = NormalizeAngle(child.eulerAngles.z);
-            int steps = Mathf.RoundToInt(angle / 90f) & 3;
+            child.position += targetSpriteWorld - spriteWorld;
             child.rotation = Quaternion.Euler(0f, 0f, steps * 90f);
 
             snapped++;
@@ -168,19 +157,34 @@ public class TetrisGridLevelBlocks : MonoBehaviour
             if (cells == null)
                 continue;
 
-            // Источник истины — где КЛЕТКИ блока сейчас находятся в мире.
-            // Эта информация уже учитывает любой поворот и любую кривизну
-            // расстановки, и совпадает с тем, что игрок видит в редакторе.
-            // Если cellVisuals не заданы — откатываемся к startOffsets +
-            // повороту корня (старая логика).
+            // Источник истины — где стоит ВИДИМЫЙ спрайт блока (Rendering) и его
+            // каноническая форма (startOffsets), повёрнутая на угол корня.
+            // Раньше форма бралась из позиций поячеечных визуалов, но теперь
+            // ячейки не рисуются и стоят на «мусорных» локальных позициях, не
+            // совпадающих с тем, что видит игрок, — поэтому уровень собирался
+            // криво. Теперь pivot вычисляется так, чтобы центр габаритов формы
+            // совпал с центром спрайта, который игрок и выравнивает.
+            int rotationSteps = ComputeRotationSteps(child);
+            Vector2Int[] canonical = cells.GetStartOffsetsCopy();
+
             Vector2Int[] offsets;
             Vector2Int pivot;
-            int rotationSteps = ComputeRotationSteps(child);
 
-            if (!TryResolveCellsFromVisuals(cells, out offsets, out pivot))
+            if (canonical != null && canonical.Length > 0)
             {
-                Vector2Int[] rawOffsets = cells.GetStartOffsetsCopy();
-                offsets = ApplyRotationSteps(rawOffsets, rotationSteps);
+                offsets = ApplyRotationSteps(canonical, rotationSteps);
+
+                Vector2 bboxCenter = ComputeBboxCenter(offsets);
+
+                Transform spriteTransform = cells.ResolveMainRendererTransform();
+                Vector3 spriteWorld = spriteTransform != null ? spriteTransform.position : child.position;
+
+                Vector3 pivotWorld = spriteWorld - new Vector3(bboxCenter.x, bboxCenter.y, 0f) * board.CellSize;
+                pivot = RoundWorldToCell(pivotWorld);
+            }
+            else if (!TryResolveCellsFromVisuals(cells, out offsets, out pivot))
+            {
+                offsets = new Vector2Int[0];
                 pivot = board.WorldToCell(child.position);
             }
 
@@ -313,8 +317,12 @@ public class TetrisGridLevelBlocks : MonoBehaviour
             DisableInteractiveComponents(cells);
             PrepareRigidbody(cells);
 
-            cells.OverrideStartOffsets(e.offsets);
+            // Инициализируем КАНОНИЧЕСКОЙ формой (как в префабе) — чтобы спрайт
+            // встал по центру и корректно посчитался домашний поворот,
+            // а затем применяем постановочный поворот: и offsets, и спрайт
+            // довернутся одинаково, повторяя то, что видно в редакторе.
             cells.Initialize(board.CellSize, palette, assignRandomColors: false);
+            cells.ApplyPlacementRotation(e.rotationSteps, board.CellSize);
         }
     }
 
@@ -488,6 +496,43 @@ public class TetrisGridLevelBlocks : MonoBehaviour
         }
 
         return result;
+    }
+
+    private static Vector2 ComputeBboxCenter(Vector2Int[] offsets)
+    {
+        if (offsets == null || offsets.Length == 0)
+            return Vector2.zero;
+
+        int minX = int.MaxValue, maxX = int.MinValue, minY = int.MaxValue, maxY = int.MinValue;
+
+        for (int i = 0; i < offsets.Length; i++)
+        {
+            Vector2Int o = offsets[i];
+            if (o.x < minX) minX = o.x;
+            if (o.x > maxX) maxX = o.x;
+            if (o.y < minY) minY = o.y;
+            if (o.y > maxY) maxY = o.y;
+        }
+
+        return new Vector2((minX + maxX) * 0.5f, (minY + maxY) * 0.5f);
+    }
+
+    /// <summary>
+    /// Округляет мировую точку до ближайшей КЛЕТКИ (по центрам клеток), а не
+    /// «вниз», как <see cref="TetrisGridBoard.WorldToCell"/>. Так блок ловит
+    /// нужную клетку, даже если спрайт стоит не идеально по сетке.
+    /// </summary>
+    private Vector2Int RoundWorldToCell(Vector3 world)
+    {
+        Vector3 cellZero = board.CellToWorld(Vector2Int.zero);
+        float cellSize = board.CellSize;
+
+        if (cellSize <= 0f)
+            return board.WorldToCell(world);
+
+        int x = Mathf.RoundToInt((world.x - cellZero.x) / cellSize);
+        int y = Mathf.RoundToInt((world.y - cellZero.y) / cellSize);
+        return new Vector2Int(x, y);
     }
 
     private static void DisableInteractiveComponents(TetrisBlockCells cells)
