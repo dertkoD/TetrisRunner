@@ -615,8 +615,7 @@ MonoBehaviour:
   - {x: 0, y: -1}
   - {x: 1, y: -1}
   canRotate: 1
-  polygonCollider: {fileID: 0}
-  disableLegacyBoxColliders: 1
+  mainRenderer: {fileID: 4104119830994872204}
   colorSprites:
   - {fileID: -6230159783526579624, guid: 0a47d3f5e1ee98b4f9c552b2fc379e76, type: 3}
   - {fileID: -4411407747924876530, guid: 0a47d3f5e1ee98b4f9c552b2fc379e76, type: 3}
@@ -626,3 +625,5 @@ MonoBehaviour:
   - {fileID: -2430501942440563433, guid: 0a47d3f5e1ee98b4f9c552b2fc379e76, type: 3}
   spriteRotationOffsetSteps: 0
   flipSprite: 0
+  polygonCollider: {fileID: 0}
+  disableLegacyBoxColliders: 1
