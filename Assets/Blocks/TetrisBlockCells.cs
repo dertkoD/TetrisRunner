@@ -54,17 +54,6 @@ public class TetrisBlockCells : MonoBehaviour
     private int baseRotationSteps;       // авто-поворот, выравнивающий арт под форму (0/1)
     private int rotationStep;            // накопленный игровой поворот в шагах CCW (+1 = 90° CCW)
     private float currentCellSize = 1f;
-    private MaterialPropertyBlock mainMpb;
-
-    private static readonly int DisolveAmountId = Shader.PropertyToID("_DisolveAmount");
-    private static readonly int OutlineThicknessId = Shader.PropertyToID("_OutlineThickness");
-
-    // _DisolveAmount, при котором блок полностью виден. Материал DisMat могут
-    // оставить в любом «промежуточном» состоянии (например, для предпросмотра
-    // dissolve), поэтому в покое мы принудительно задаём «целое» состояние
-    // per-renderer; анимация растворения (BlockDissolveEffect) временно
-    // переопределяет это значение во время схлопывания.
-    private const float SolidDisolveAmount = 1.1f;
 
     public bool CanRotate => canRotate;
     public Vector2Int[] CurrentOffsets => currentOffsets;
@@ -572,27 +561,6 @@ public class TetrisBlockCells : MonoBehaviour
 
         if (colorSprites[idx] != null)
             resolvedMainRenderer.sprite = colorSprites[idx];
-
-        ApplySolidMainSpriteState();
-    }
-
-    /// <summary>
-    /// Принудительно выставляет «целое» (не растворённое, без контура) состояние
-    /// спрайта через MaterialPropertyBlock — на случай, если у общего материала
-    /// DisMat _DisolveAmount/_OutlineThickness оставлены в произвольном значении.
-    /// </summary>
-    private void ApplySolidMainSpriteState()
-    {
-        if (resolvedMainRenderer == null)
-            return;
-
-        if (mainMpb == null)
-            mainMpb = new MaterialPropertyBlock();
-
-        resolvedMainRenderer.GetPropertyBlock(mainMpb);
-        mainMpb.SetFloat(DisolveAmountId, SolidDisolveAmount);
-        mainMpb.SetFloat(OutlineThicknessId, 0f);
-        resolvedMainRenderer.SetPropertyBlock(mainMpb);
     }
 
     /// <summary>
