@@ -137,6 +137,19 @@ public sealed class TetrisBlockConfigSO : ScriptableObject
              "и только после неё поднимается вода. Если пусто — вода поднимается сразу.")]
     [SerializeField] private GameObject shockWaveRenderPrefab;
 
+    [Tooltip("Запускать ударную волну, когда падающий блок встал на блок ДРУГОГО " +
+             "цвета (т.е. матчинга не произошло). true — волна играет, false — нет.")]
+    [SerializeField] private bool shockWaveOnDifferentColor = true;
+
+    [Tooltip("Запускать ударную волну, когда падающий блок встал на блок ТАКОГО ЖЕ " +
+             "цвета (т.е. произошёл матчинг и блоки схлопнутся). true — волна играет, " +
+             "false — нет.")]
+    [SerializeField] private bool shockWaveOnSameColor = false;
+
+    [Tooltip("Запускать ударную волну, когда блок упал вниз и пропал за нижним краем " +
+             "сетки (на последние клетки / в DeathWater). true — волна играет, false — нет.")]
+    [SerializeField] private bool shockWaveOnBlockFellToBottom = true;
+
     [Tooltip("Длительность ударной волны (секунды).")]
     [SerializeField, Min(0.05f)] private float shockWaveDuration = 0.7f;
 
@@ -218,6 +231,9 @@ public sealed class TetrisBlockConfigSO : ScriptableObject
     public float DissolveOutlineIntensity => dissolveOutlineIntensity;
 
     public GameObject ShockWaveRenderPrefab => shockWaveRenderPrefab;
+    public bool ShockWaveOnDifferentColor => shockWaveOnDifferentColor;
+    public bool ShockWaveOnSameColor => shockWaveOnSameColor;
+    public bool ShockWaveOnBlockFellToBottom => shockWaveOnBlockFellToBottom;
     public float ShockWaveDuration => shockWaveDuration;
     public float ShockWaveMaxDistance => shockWaveMaxDistance;
     public float ShockWaveSize => shockWaveSize;

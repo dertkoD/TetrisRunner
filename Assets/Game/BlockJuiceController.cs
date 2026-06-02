@@ -208,58 +208,27 @@ public class BlockJuiceController : MonoBehaviour
         if (shockWave != null)
             return;
 
-        if (config == null || config.ShockWaveRenderPrefab == null)
-            return;
+        // Скрипт ShockWaveController больше НЕ добавляется и не инстанцируется в
+        // рантайме — его нужно вручную повесить в сцене на объект ShockWaveRender
+        // (полноэкранный спрайт с материалом ShockMat / шейдером ShockWaveSprite).
+        // Здесь мы лишь находим этот уже расставленный компонент и инициализируем
+        // его текущим конфигом.
+        ShockWaveController controller =
+            FindFirstObjectByType<ShockWaveController>(FindObjectsInactive.Include);
 
-        // Если в сцене уже стоит спрайт волны (пользователь поставил его сам по
-        // инструкции ассета) — используем его, а не плодим второй полноэкранный
-        // спрайт. Узнаём такой спрайт по шейдеру материала из префаба.
-        GameObject host = FindExistingShockWaveObject();
-
-        if (host == null)
-        {
-            host = Instantiate(config.ShockWaveRenderPrefab, transform);
-            host.name = "ShockWaveRender (auto)";
-        }
-
-        ShockWaveController controller = host.GetComponent<ShockWaveController>();
         if (controller == null)
-            controller = host.AddComponent<ShockWaveController>();
+        {
+            // Волны не будет, но вода всё равно отреагирует (PlayShockWave вызовет
+            // onComplete сразу, если shockWave == null).
+            Debug.LogWarning(
+                "BlockJuiceController: в сцене не найден ShockWaveController. " +
+                "Повесьте скрипт ShockWaveController на объект ShockWaveRender " +
+                "(спрайт с материалом ShockMat). Без него ударная волна " +
+                "проигрываться не будет.");
+            return;
+        }
 
         controller.Initialize(config);
         shockWave = controller;
-    }
-
-    /// <summary>
-    /// Ищет в сцене уже расставленный спрайт ударной волны: спрайт-рендерер,
-    /// материал которого использует тот же шейдер, что и материал на префабе
-    /// ShockWaveRender (ShockMat / ShockWaveSprite). Так пользовательский
-    /// экземпляр на сцене не дублируется рантайм-копией.
-    /// </summary>
-    private GameObject FindExistingShockWaveObject()
-    {
-        SpriteRenderer prefabRenderer = config.ShockWaveRenderPrefab.GetComponentInChildren<SpriteRenderer>(true);
-        if (prefabRenderer == null || prefabRenderer.sharedMaterial == null)
-            return null;
-
-        Shader shockShader = prefabRenderer.sharedMaterial.shader;
-        if (shockShader == null)
-            return null;
-
-        SpriteRenderer[] renderers = FindObjectsByType<SpriteRenderer>(FindObjectsSortMode.None);
-        for (int i = 0; i < renderers.Length; i++)
-        {
-            SpriteRenderer renderer = renderers[i];
-            if (renderer == null)
-                continue;
-
-            // Не цепляем собственные авто-объекты (их ещё нет на этом шаге) и
-            // спрайты других назначений — только совпадающие по шейдеру волны.
-            Material mat = renderer.sharedMaterial;
-            if (mat != null && mat.shader == shockShader)
-                return renderer.gameObject;
-        }
-
-        return null;
     }
 }

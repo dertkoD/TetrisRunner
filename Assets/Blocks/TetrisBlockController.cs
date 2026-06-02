@@ -361,19 +361,30 @@ public class TetrisBlockController : MonoBehaviour
         if (hasSameColorNeighbor)
         {
             // Сейчас ResolveMatches уберёт оба блока — это успех игрока,
-            // и вода уходит вниз.
-            dw.HandleBlockLandedOnSameColor();
+            // и вода уходит вниз. По желанию (флаг в конфиге) из места
+            // схлопывания тоже можно пустить ударную волну.
+            BlockJuiceController juice = BlockJuiceController.Instance;
+
+            if (juice != null && config != null && config.ShockWaveOnSameColor)
+            {
+                Vector3 origin = ComputeBlockCenter(placedBlock);
+                juice.PlayShockWave(origin, dw.HandleBlockLandedOnSameColor);
+            }
+            else
+            {
+                dw.HandleBlockLandedOnSameColor();
+            }
         }
         else
         {
             // Блок просто застрял в стопке: встал на блок другого цвета,
             // на статическую платформу или прямо на нижнюю клетку сетки —
             // во всех этих случаях ничего не схлопнется. Сначала из места
-            // приземления расходится ударная волна, и только после неё
-            // поднимается вода.
+            // приземления расходится ударная волна (если включена флагом
+            // в конфиге), и только после неё поднимается вода.
             BlockJuiceController juice = BlockJuiceController.Instance;
 
-            if (juice != null)
+            if (juice != null && config != null && config.ShockWaveOnDifferentColor)
             {
                 Vector3 origin = ComputeBlockCenter(placedBlock);
                 juice.PlayShockWave(origin, dw.HandleBlockLandedOnDifferentColor);
