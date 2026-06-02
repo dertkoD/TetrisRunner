@@ -27,6 +27,12 @@ public class ShockWaveController : MonoBehaviour
     private static readonly int StrengthId = Shader.PropertyToID("_ShockWaveStrength");
     private static readonly int XSizeRatioId = Shader.PropertyToID("_XSizeRatio");
 
+    [Tooltip("Камера, относительно которой считается центр волны (UV точки события). " +
+             "Назначьте сюда основную камеру сцены, чтобы не дёргать Camera.main / поиск " +
+             "по сцене. Если пусто — камера один раз находится автоматически и кешируется.")]
+    [SerializeField] private Camera targetCamera;
+
+    private Camera cachedCamera;
     private TetrisBlockConfigSO config;
     private SpriteRenderer spriteRenderer;
     private Material material;
@@ -167,10 +173,20 @@ public class ShockWaveController : MonoBehaviour
 
     private Camera ResolveCamera()
     {
-        Camera cam = Camera.main;
-        if (cam == null)
-            cam = FindFirstObjectByType<Camera>();
-        return cam;
+        // Приоритет — назначенная в инспекторе камера. Иначе один раз находим
+        // активную камеру и кешируем её, чтобы не вызывать Camera.main (это
+        // поиск по тегу) и тем более поиск по всей сцене на каждой волне.
+        if (targetCamera != null)
+            return targetCamera;
+
+        if (cachedCamera == null)
+        {
+            cachedCamera = Camera.main;
+            if (cachedCamera == null)
+                cachedCamera = FindFirstObjectByType<Camera>();
+        }
+
+        return cachedCamera;
     }
 
     /// <summary>
