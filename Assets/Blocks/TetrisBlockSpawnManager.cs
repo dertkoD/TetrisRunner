@@ -231,7 +231,7 @@ public class TetrisBlockSpawnManager : MonoBehaviour
             {
                 BlockJuiceController juice = BlockJuiceController.Instance;
 
-                if (juice != null)
+                if (juice != null && config != null && config.ShockWaveOnBlockFellToBottom)
                 {
                     // Сначала волна из места исчезновения блока, потом вода
                     // поднимается.

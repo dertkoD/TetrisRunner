@@ -73,6 +73,9 @@ MonoBehaviour:
   dissolveOutlineColor: {r: 0, g: 1, b: 0.95, a: 1}
   dissolveOutlineIntensity: 1.1
   shockWaveRenderPrefab: {fileID: 5426542480925460179, guid: c4053552fa1b5574c8b68c1145ac5266, type: 3}
+  shockWaveOnDifferentColor: 1
+  shockWaveOnSameColor: 0
+  shockWaveOnBlockFellToBottom: 1
   shockWaveDuration: 0.7
   shockWaveMaxDistance: 1
   shockWaveSize: 0.1

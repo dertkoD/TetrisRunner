@@ -218,6 +218,9 @@ public sealed class TetrisBlockConfigSO : ScriptableObject
     public float DissolveOutlineIntensity => dissolveOutlineIntensity;
 
     public GameObject ShockWaveRenderPrefab => shockWaveRenderPrefab;
+    public bool ShockWaveOnDifferentColor => shockWaveOnDifferentColor;
+    public bool ShockWaveOnSameColor => shockWaveOnSameColor;
+    public bool ShockWaveOnBlockFellToBottom => shockWaveOnBlockFellToBottom;
     public float ShockWaveDuration => shockWaveDuration;
     public float ShockWaveMaxDistance => shockWaveMaxDistance;
     public float ShockWaveSize => shockWaveSize;
