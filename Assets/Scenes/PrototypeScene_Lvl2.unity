@@ -491,6 +491,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7c2d8e1b94a3416fb5d6e7f80912a3b4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShockWaveController
+  targetCamera: {fileID: 519420031}
 --- !u!1001 &311217753
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1640,7 +1641,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 7482667652216324306, guid: 311925a002f4447b3a28927169b83ea6, type: 3}
-  m_Color: {r: 0.85660374, g: 0.5718891, b: 0.30223563, a: 1}
+  m_Color: {r: 0.85660374, g: 0.5718891, b: 0.30223563, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -2702,7 +2703,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 7482667652216324306, guid: 311925a002f4447b3a28927169b83ea6, type: 3}
-  m_Color: {r: 0.85660374, g: 0.5718891, b: 0.30223563, a: 1}
+  m_Color: {r: 0.85660374, g: 0.5718891, b: 0.30223563, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0

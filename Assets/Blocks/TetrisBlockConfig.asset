@@ -39,11 +39,11 @@ MonoBehaviour:
   freeFallGravityScale: 1
   freeFallHorizontalSpeed: 5
   freeFallHorizontalAcceleration: 40
-  maxFallSpeed: 4.5
+  maxFallSpeed: 9
   horizontalStepDistance: 1
   horizontalStepRepeatTime: 0.12
   fallStepDistance: 1
-  fallStepInterval: 0.75
+  fallStepInterval: 0.35
   softDropMultiplier: 10
   spawnDelay: 1.1
   rotationStepDegrees: 90
@@ -69,7 +69,7 @@ MonoBehaviour:
   dissolveDuration: 1
   dissolveStartAmount: 0
   dissolveEndAmount: 1.1
-  dissolveOutlineThickness: 0.093
+  dissolveOutlineThickness: 0
   dissolveOutlineColor: {r: 0, g: 1, b: 0.95, a: 1}
   dissolveOutlineIntensity: 1.1
   shockWaveRenderPrefab: {fileID: 5426542480925460179, guid: c4053552fa1b5574c8b68c1145ac5266, type: 3}
@@ -80,7 +80,7 @@ MonoBehaviour:
   shockWaveMaxDistance: 1
   shockWaveSize: 0.1
   shockWaveStrength: -0.08
-  stackParticleCount: 16
-  stackParticleSpeed: 4
-  stackParticleLifetime: 0.6
-  stackParticleSize: 0.18
+  stackParticleCount: 32
+  stackParticleSpeed: 6
+  stackParticleLifetime: 1.6
+  stackParticleSize: 0.5
