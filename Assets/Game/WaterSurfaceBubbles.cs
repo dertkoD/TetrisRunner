@@ -201,7 +201,10 @@ public class WaterSurfaceBubbles : MonoBehaviour
             Mathf.Min(lifetimeMin, lifetimeMax), Mathf.Max(lifetimeMin, lifetimeMax));
         main.startSize = new ParticleSystem.MinMaxCurve(
             Mathf.Min(sizeMin, sizeMax), Mathf.Max(sizeMin, sizeMax));
-        main.startSpeed = new ParticleSystem.MinMaxCurve(0f);
+        // Стартовая скорость = скорость всплытия. Направление вверх задаётся
+        // поворотом формы-эмиттера ниже (Box излучает вдоль своей оси +Z).
+        main.startSpeed = new ParticleSystem.MinMaxCurve(
+            Mathf.Min(riseSpeedMin, riseSpeedMax), Mathf.Max(riseSpeedMin, riseSpeedMax));
         main.startColor = new ParticleSystem.MinMaxGradient(bubbleColor);
         main.gravityModifier = new ParticleSystem.MinMaxCurve(0f);
         main.maxParticles = maxParticles;
@@ -213,16 +216,19 @@ public class WaterSurfaceBubbles : MonoBehaviour
         shape = activeBubbles.shape;
         shape.enabled = true;
         shape.shapeType = ParticleSystemShapeType.Box;
-        shape.rotation = Vector3.zero;
-        // startSpeed = 0, поэтому направление формы не важно — Box задаёт только
-        // область рождения. Размеры выставляем в UpdateEmitter.
+        // Box излучает частицы вдоль локальной оси +Z. Поворачиваем форму на
+        // -90° вокруг X, чтобы +Z смотрел в мировой +Y — тогда ВСЕ пузырьки
+        // летят строго вверх. Размеры самого бокса задаём в UpdateEmitter.
+        shape.rotation = new Vector3(-90f, 0f, 0f);
 
+        // Вертикальную скорость даёт startSpeed (направленно вверх). Через
+        // velocityOverLifetime добавляем только лёгкое горизонтальное
+        // «покачивание», чтобы пузырьки не шли идеально по прямой.
         var vel = activeBubbles.velocityOverLifetime;
-        vel.enabled = true;
+        vel.enabled = horizontalWobble > 0f;
         vel.space = ParticleSystemSimulationSpace.World;
         vel.x = new ParticleSystem.MinMaxCurve(-horizontalWobble, horizontalWobble);
-        vel.y = new ParticleSystem.MinMaxCurve(
-            Mathf.Min(riseSpeedMin, riseSpeedMax), Mathf.Max(riseSpeedMin, riseSpeedMax));
+        vel.y = new ParticleSystem.MinMaxCurve(0f);
         vel.z = new ParticleSystem.MinMaxCurve(0f);
 
         var col = activeBubbles.colorOverLifetime;
@@ -285,7 +291,11 @@ public class WaterSurfaceBubbles : MonoBehaviour
         pst.position = new Vector3(GetSurfaceCenterX(), GetBottomY() + bottomYOffset, pst.position.z);
 
         shape = activeBubbles.shape;
-        shape.scale = new Vector3(emitterWidth, Mathf.Max(0.0001f, spawnBandHeight), 0.0001f);
+        // Форма повёрнута на -90° вокруг X (см. ApplyLook), поэтому локальные оси
+        // бокса отображаются так: local X -> world X (ширина), local Y -> world Z
+        // (глубина «в экран», делаем тонкой), local Z -> world Y (толщина полосы
+        // рождения у дна).
+        shape.scale = new Vector3(emitterWidth, 0.0001f, Mathf.Max(0.0001f, spawnBandHeight));
 
         emission = activeBubbles.emission;
         float rate = enableBubbles ? bubblesPerSecondPerUnit * emitterWidth : 0f;
