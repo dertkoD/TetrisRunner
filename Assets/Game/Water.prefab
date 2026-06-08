@@ -17,6 +17,8 @@ GameObject:
   - component: {fileID: 5451685048325756896}
   - component: {fileID: 3966064043013458192}
   - component: {fileID: 4621957831028544770}
+  - component: {fileID: 5310824967450192837}
+  - component: {fileID: 6420935178561203948}
   m_Layer: 0
   m_Name: Water
   m_TagString: Untagged
@@ -122,11 +124,11 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 385
   spatialScale: 0.125
-  maxInteractionItems: 32
+  maxInteractionItems: 64
   waveBufferPixelsPerUnit: 4
-  scrollToMainCamera: 1
+  scrollToMainCamera: 0
   flowVelocity: 0
-  maxSurfaceWidth: 20
+  maxSurfaceWidth: 48
 --- !u!114 &1497304954653261019
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -258,3 +260,67 @@ MonoBehaviour:
   spreadHalfAngleDegrees: 35
   sortingLayerName: 
   sortingOrder: 1
+--- !u!114 &5310824967450192837
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 769020817781893487}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f3a7c9e1b04d4e2fa1c8d6b59e72a3c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WaterAmbientWaves
+  water: {fileID: 8987964663738864082}
+  enableAmbientWaves: 1
+  waveHeight: 1.92
+  waveLength: 20
+  waveSpeed: 6
+  secondaryStrength: 0.45
+  secondaryLengthScale: 0.5
+  secondarySpeedScale: -1.6
+  sourceCount: 24
+  coverFullSurface: 1
+  coverageWidth: 18
+  sourceColliderHeight: 0.5
+  sourceLayer: 0
+  surfaceResponse: 2
+--- !u!114 &6420935178561203948
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 769020817781893487}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2d4f6a8c0e1423d5f7a9b1c3e5d7f90, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WaterSurfaceBubbles
+  water: {fileID: 8987964663738864082}
+  bubblesOverride: {fileID: 0}
+  ambientWaves: {fileID: 5310824967450192837}
+  enableBubbles: 1
+  bubblesPerSecondPerUnit: 6
+  maxParticles: 4000
+  spawnBandHeight: 0.15
+  bottomYOffset: 0.05
+  widthPadding: 0.25
+  riseSpeedMin: 0.6
+  riseSpeedMax: 1.6
+  horizontalWobble: 0.15
+  autoLifetimeFromDepth: 1
+  lifetimeDepthMargin: 1.1
+  lifetimeMin: 0.5
+  lifetimeMax: 1.4
+  sizeMin: 0.04
+  sizeMax: 0.13
+  killAtSurface: 1
+  surfaceKillOffset: -0.1
+  followWaves: 0
+  waveFollowStrength: 0.3
+  bubbleColor: {r: 0.65, g: 1, b: 0.8, a: 0.55}
+  fadeOut: 1
+  sortingLayerName: 
+  sortingOrder: 2
