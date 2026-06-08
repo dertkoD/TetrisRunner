@@ -273,9 +273,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WaterAmbientWaves
   water: {fileID: 8987964663738864082}
   enableAmbientWaves: 1
-  waveHeight: 0.12
-  waveLength: 5
-  waveSpeed: 1.5
+  waveHeight: 1.92
+  waveLength: 20
+  waveSpeed: 6
   secondaryStrength: 0.45
   secondaryLengthScale: 0.5
   secondarySpeedScale: -1.6
