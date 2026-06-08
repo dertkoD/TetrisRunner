@@ -3691,6 +3691,14 @@ PrefabInstance:
       propertyPath: m_UsedByEffector
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6420935178561203948, guid: 1137de4fb2d4880438b47c7c95d030bb, type: 3}
+      propertyPath: sizeMax
+      value: 0.26
+      objectReference: {fileID: 0}
+    - target: {fileID: 6420935178561203948, guid: 1137de4fb2d4880438b47c7c95d030bb, type: 3}
+      propertyPath: sizeMin
+      value: 0.08
+      objectReference: {fileID: 0}
     - target: {fileID: 8593323793185207502, guid: 1137de4fb2d4880438b47c7c95d030bb, type: 3}
       propertyPath: board
       value: 
