@@ -123,11 +123,11 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 385
   spatialScale: 0.125
-  maxInteractionItems: 32
+  maxInteractionItems: 64
   waveBufferPixelsPerUnit: 4
-  scrollToMainCamera: 1
+  scrollToMainCamera: 0
   flowVelocity: 0
-  maxSurfaceWidth: 20
+  maxSurfaceWidth: 48
 --- !u!114 &1497304954653261019
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -279,7 +279,8 @@ MonoBehaviour:
   secondaryStrength: 0.45
   secondaryLengthScale: 0.5
   secondarySpeedScale: -1.6
-  sourceCount: 16
+  sourceCount: 24
+  coverFullSurface: 1
   coverageWidth: 18
   sourceColliderHeight: 0.5
   sourceLayer: 0

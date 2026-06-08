@@ -74,9 +74,16 @@ public class WaterAmbientWaves : MonoBehaviour
              "у самой воды: фоновые источники делят его с блоками и игроком.")]
     [SerializeField, Range(2, 28)] private int sourceCount = 16;
 
+    [Tooltip("Покрывать источниками ВСЮ ширину поверхности воды (по " +
+             "lossyScale.x объекта воды). Включено — волны идут по всей воде. " +
+             "ВАЖНО: 'Max Surface Width' у воды должен быть не меньше ширины " +
+             "воды, иначе симуляция всё равно обрежется этим окном.")]
+    [SerializeField] private bool coverFullSurface = true;
+
     [Tooltip("Ширина участка поверхности (мир. единицы), который покрывают " +
-             "источники. Имеет смысл держать её не больше, чем 'Max Surface " +
-             "Width' у воды, иначе крайние источники не попадут в зону симуляции.")]
+             "источники. Используется, только если 'Cover Full Surface' выключен. " +
+             "Не больше, чем 'Max Surface Width' у воды, иначе крайние источники " +
+             "не попадут в зону симуляции.")]
     [SerializeField, Min(1f)] private float coverageWidth = 18f;
 
     [Tooltip("Высота коллайдеров-источников. Должна быть больше нуля, чтобы они " +
@@ -214,10 +221,11 @@ public class WaterAmbientWaves : MonoBehaviour
 
         float centerX = GetSurfaceCenterX();
         float surfaceY = GetSurfaceY();
+        float coverage = GetCoverageWidth();
 
         int count = sources.Length;
-        float spacing = coverageWidth / count;
-        float left = centerX - coverageWidth * 0.5f + spacing * 0.5f;
+        float spacing = coverage / count;
+        float left = centerX - coverage * 0.5f + spacing * 0.5f;
 
         for (int i = 0; i < count; i++)
         {
@@ -235,20 +243,30 @@ public class WaterAmbientWaves : MonoBehaviour
         }
     }
 
+    private float GetCoverageWidth()
+    {
+        if (coverFullSurface && water != null)
+            return Mathf.Max(1f, Mathf.Abs(water.transform.lossyScale.x));
+
+        return coverageWidth;
+    }
+
     private float GetSurfaceCenterX()
     {
-        // Симуляция воды скроллится за главной камерой (scrollToMainCamera),
-        // поэтому окно взаимодействия всегда вокруг камеры. Центрируем
-        // источники там же, чтобы они попадали в активную зону.
+        // Если вода скроллится за главной камерой (scrollToMainCamera) — окно
+        // симуляции едет за камерой, поэтому и источники центрируем по камере.
+        // Иначе окно стоит на самой воде, и источники центрируем по её центру,
+        // чтобы покрыть всю поверхность.
         if (water != null && water.scrollToMainCamera)
         {
             Camera cam = Camera.main;
             if (cam != null)
                 return cam.transform.position.x;
+            return water.WavePosition;
         }
 
         if (water != null)
-            return water.WavePosition;
+            return water.transform.position.x;
 
         return transform.position.x;
     }
