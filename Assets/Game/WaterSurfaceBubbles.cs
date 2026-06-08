@@ -34,6 +34,10 @@ public class WaterSurfaceBubbles : MonoBehaviour
              "свои спрайты/материал пузырьков. Если пусто — система создаётся сама.")]
     [SerializeField] private ParticleSystem bubblesOverride;
 
+    [Tooltip("Компонент фоновых волн (для учёта волнистой границы воды при " +
+             "гашении пузырьков). Если пусто — берётся с этого же объекта.")]
+    [SerializeField] private WaterAmbientWaves ambientWaves;
+
     [Header("On/Off")]
     [Tooltip("Включить пузырьки.")]
     [SerializeField] private bool enableBubbles = true;
@@ -101,6 +105,26 @@ public class WaterSurfaceBubbles : MonoBehaviour
     [SerializeField] private AnimationCurve sizeOverLifetime =
         new AnimationCurve(new Keyframe(0f, 0.6f), new Keyframe(0.7f, 1f), new Keyframe(1f, 0.2f));
 
+    [Header("Kill at surface (исчезновение у границы воды)")]
+    [Tooltip("Гасить пузырьки, как только они доходят до верхней границы воды. " +
+             "Граница берётся по текущему уровню воды (она у нас растёт), так что " +
+             "пузырьки всегда исчезают именно у поверхности.")]
+    [SerializeField] private bool killAtSurface = true;
+
+    [Tooltip("Смещение линии гашения относительно поверхности по Y (мир. единицы). " +
+             "0 — ровно на поверхности; отрицательное — чуть ниже (пузырёк " +
+             "исчезает чуть раньше под водой); положительное — чуть выше.")]
+    [SerializeField] private float surfaceKillOffset = 0f;
+
+    [Tooltip("Учитывать постоянные волны: линия гашения повторяет волнистую " +
+             "форму поверхности, а не ровную линию. Нужен компонент фоновых волн.")]
+    [SerializeField] private bool followWaves = true;
+
+    [Tooltip("Множитель к высоте волн при расчёте линии гашения. Высота волн " +
+             "оценивается приблизительно — этим ползунком подгоняешь линию " +
+             "гашения под реально видимую волну (1 — как есть).")]
+    [SerializeField, Min(0f)] private float waveFollowStrength = 1f;
+
     [Header("Look (цвет — вода/кислота)")]
     [Tooltip("Цвет пузырьков. Для кислоты поставь зеленоватый, для кипятка — " +
              "бело-голубой.")]
@@ -120,6 +144,7 @@ public class WaterSurfaceBubbles : MonoBehaviour
     private ParticleSystem activeBubbles;
     private ParticleSystem.EmissionModule emission;
     private ParticleSystem.ShapeModule shape;
+    private ParticleSystem.Particle[] particleBuffer;
     private bool autoCreated;
     private bool initialized;
 
@@ -127,6 +152,9 @@ public class WaterSurfaceBubbles : MonoBehaviour
     {
         if (water == null)
             water = GetComponent<WaterRWCompute>();
+
+        if (ambientWaves == null)
+            ambientWaves = GetComponent<WaterAmbientWaves>();
 
         EnsureParticleSystem();
         ApplyLook();
@@ -160,6 +188,7 @@ public class WaterSurfaceBubbles : MonoBehaviour
     private void LateUpdate()
     {
         UpdateEmitter();
+        KillParticlesAboveSurface();
     }
 
     private void EnsureParticleSystem()
@@ -303,18 +332,64 @@ public class WaterSurfaceBubbles : MonoBehaviour
 
         if (autoLifetimeFromDepth)
         {
-            // Время жизни подбираем так, чтобы пузырёк успел всплыть на всю
-            // текущую глубину воды. Быстрые живут меньше, медленные — дольше.
+            // Время жизни считаем по САМОЙ МЕДЛЕННОЙ скорости всплытия, чтобы
+            // даже самый медленный пузырёк гарантированно успел дойти до
+            // поверхности на всю текущую глубину воды (она у нас растёт).
+            // Более быстрые дойдут раньше и будут погашены прямо у поверхности
+            // через KillParticlesAboveSurface, так что «перелёта» не будет.
             float depth = Mathf.Max(0.01f, GetDepth());
             float margin = Mathf.Max(0.1f, lifetimeDepthMargin);
-            float fast = Mathf.Max(0.01f, Mathf.Max(riseSpeedMin, riseSpeedMax));
             float slow = Mathf.Max(0.01f, Mathf.Min(riseSpeedMin, riseSpeedMax));
-            float lifeMin = depth / fast * margin;
-            float lifeMax = depth / slow * margin;
+            float life = depth / slow * margin;
 
             var main = activeBubbles.main;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(lifeMin, lifeMax);
+            main.startLifetime = new ParticleSystem.MinMaxCurve(life);
         }
+    }
+
+    /// <summary>
+    /// Гасит пузырьки, которые дошли до верхней границы воды. Линия границы
+    /// берётся по текущему уровню воды (он у нас растёт) и, при включённом
+    /// <see cref="followWaves"/>, повторяет форму постоянных волн. Так пузырьки
+    /// исчезают именно у поверхности, а не улетают в воздух и не пропадают
+    /// раньше времени под водой.
+    /// </summary>
+    private void KillParticlesAboveSurface()
+    {
+        if (!killAtSurface || activeBubbles == null)
+            return;
+
+        int capacity = activeBubbles.main.maxParticles;
+        if (capacity <= 0)
+            return;
+
+        if (particleBuffer == null || particleBuffer.Length < capacity)
+            particleBuffer = new ParticleSystem.Particle[capacity];
+
+        int count = activeBubbles.GetParticles(particleBuffer);
+        if (count == 0)
+            return;
+
+        float baseSurfaceY = GetSurfaceY() + surfaceKillOffset;
+        bool useWaves = followWaves && ambientWaves != null;
+
+        bool changed = false;
+        for (int i = 0; i < count; i++)
+        {
+            float killY = baseSurfaceY;
+            if (useWaves)
+                killY += ambientWaves.SampleSurfaceHeight(particleBuffer[i].position.x) * waveFollowStrength;
+
+            if (particleBuffer[i].position.y >= killY)
+            {
+                // remainingLifetime <= 0 — частица умирает на следующем шаге.
+                particleBuffer[i].remainingLifetime = 0f;
+                changed = true;
+            }
+        }
+
+        if (changed)
+            activeBubbles.SetParticles(particleBuffer, count);
     }
 
     private float GetSurfaceWidth()

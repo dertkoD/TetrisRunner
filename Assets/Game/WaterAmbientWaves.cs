@@ -293,6 +293,22 @@ public class WaterAmbientWaves : MonoBehaviour
         return new Vector2(0f, velY);
     }
 
+    /// <summary>
+    /// Примерная высота поверхности (смещение от базовой линии воды) от
+    /// постоянных фоновых волн в мировой X-координате на текущий момент.
+    /// Используется, например, <see cref="WaterSurfaceBubbles"/>, чтобы гасить
+    /// пузырьки ровно по «волнистой» границе воды, а не по ровной линии.
+    /// Значение приблизительное (реальная поверхность ещё сглажена симуляцией),
+    /// поэтому потребителю стоит дать множитель для точной подгонки.
+    /// </summary>
+    public float SampleSurfaceHeight(float worldX)
+    {
+        if (!enableAmbientWaves || waveHeight <= 0f)
+            return 0f;
+
+        return SampleHeight(worldX, Time.time) * Mathf.Max(0f, surfaceResponse);
+    }
+
     private float SampleHeight(float x, float time)
     {
         float k1 = TwoPi / Mathf.Max(0.1f, waveLength);
