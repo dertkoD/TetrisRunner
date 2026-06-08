@@ -17,6 +17,7 @@ GameObject:
   - component: {fileID: 5451685048325756896}
   - component: {fileID: 3966064043013458192}
   - component: {fileID: 4621957831028544770}
+  - component: {fileID: 5310824967450192837}
   m_Layer: 0
   m_Name: Water
   m_TagString: Untagged
@@ -258,3 +259,28 @@ MonoBehaviour:
   spreadHalfAngleDegrees: 35
   sortingLayerName: 
   sortingOrder: 1
+--- !u!114 &5310824967450192837
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 769020817781893487}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f3a7c9e1b04d4e2fa1c8d6b59e72a3c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WaterAmbientWaves
+  water: {fileID: 8987964663738864082}
+  enableAmbientWaves: 1
+  waveHeight: 0.12
+  waveLength: 5
+  waveSpeed: 1.5
+  secondaryStrength: 0.45
+  secondaryLengthScale: 0.5
+  secondarySpeedScale: -1.6
+  sourceCount: 16
+  coverageWidth: 18
+  sourceColliderHeight: 0.5
+  sourceLayer: 0
+  surfaceResponse: 2
