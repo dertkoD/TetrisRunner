@@ -317,9 +317,9 @@ MonoBehaviour:
   sizeMin: 0.04
   sizeMax: 0.13
   killAtSurface: 1
-  surfaceKillOffset: 0
-  followWaves: 1
-  waveFollowStrength: 1
+  surfaceKillOffset: -0.1
+  followWaves: 0
+  waveFollowStrength: 0.3
   bubbleColor: {r: 0.65, g: 1, b: 0.8, a: 0.55}
   fadeOut: 1
   sortingLayerName: 
