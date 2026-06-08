@@ -304,11 +304,13 @@ MonoBehaviour:
   bubblesPerSecondPerUnit: 6
   maxParticles: 4000
   spawnBandHeight: 0.15
-  surfaceYOffset: -0.05
+  bottomYOffset: 0.05
   widthPadding: 0.25
-  riseSpeedMin: 0.4
-  riseSpeedMax: 1.1
+  riseSpeedMin: 0.6
+  riseSpeedMax: 1.6
   horizontalWobble: 0.15
+  autoLifetimeFromDepth: 1
+  lifetimeDepthMargin: 1.1
   lifetimeMin: 0.5
   lifetimeMax: 1.4
   sizeMin: 0.04

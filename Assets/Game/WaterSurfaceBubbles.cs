@@ -12,11 +12,11 @@ using Ruccho;
 ///         ничего тащить не надо). Можно подменить своим через
 ///         <see cref="bubblesOverride"/>.</item>
 ///   <item>Эмиттер — широкая полоса (Box), которая каждый кадр растягивается на
-///         всю ширину поверхности воды и встаёт на её верхнюю границу. Когда
-///         <see cref="DeathWaterController"/> поднимает/опускает воду — пузырьки
-///         следуют за уровнем.</item>
-///   <item>Пузырьки рождаются вдоль поверхности и всплывают вверх, затухая —
-///         получается «кипение». Скорость, плотность, цвет, размер и т.д.
+///         всю ширину воды и встаёт на её ДНО. Когда
+///         <see cref="DeathWaterController"/> поднимает/опускает воду — дно и
+///         глубина пересчитываются, и пузырьки всплывают на всю высоту.</item>
+///   <item>Пузырьки рождаются у дна и всплывают вверх к поверхности, затухая —
+///         получается «кипение со дна». Скорость, плотность, цвет, размер и т.д.
 ///         настраиваются в инспекторе.</item>
 /// </list>
 ///
@@ -48,15 +48,14 @@ public class WaterSurfaceBubbles : MonoBehaviour
              "плотности).")]
     [SerializeField, Range(16, 20000)] private int maxParticles = 4000;
 
-    [Header("Spawn band (где рождаются)")]
+    [Header("Spawn band (со дна)")]
     [Tooltip("Толщина полосы рождения пузырьков по вертикали (мир. единицы) " +
-             "вокруг линии поверхности.")]
+             "у ДНА воды. Пузырьки рождаются здесь и всплывают вверх.")]
     [SerializeField, Min(0f)] private float spawnBandHeight = 0.15f;
 
-    [Tooltip("Смещение полосы рождения относительно поверхности по Y (мир. " +
-             "единицы). Отрицательное — чуть ниже поверхности, чтобы пузырьки " +
-             "«всплывали» к ней.")]
-    [SerializeField] private float surfaceYOffset = -0.05f;
+    [Tooltip("Смещение полосы рождения относительно дна воды по Y (мир. " +
+             "единицы). Положительное — чуть выше дна.")]
+    [SerializeField] private float bottomYOffset = 0.05f;
 
     [Tooltip("Насколько ужать ширину эмиттера относительно полной ширины воды " +
              "(мир. единицы, с каждой стороны). Чтобы пузырьки не лезли за края.")]
@@ -73,10 +72,22 @@ public class WaterSurfaceBubbles : MonoBehaviour
     [SerializeField, Min(0f)] private float horizontalWobble = 0.15f;
 
     [Header("Lifetime & Size")]
-    [Tooltip("Минимальное время жизни пузырька (сек).")]
+    [Tooltip("Автоматически рассчитывать время жизни так, чтобы пузырьки как раз " +
+             "доходили со дна до поверхности (по текущей глубине воды и скорости " +
+             "всплытия). Включено — пузырьки всегда всплывают на всю глубину, " +
+             "даже когда вода поднимается. Выключено — берутся Lifetime Min/Max.")]
+    [SerializeField] private bool autoLifetimeFromDepth = true;
+
+    [Tooltip("Запас времени жизни при авто-расчёте (1 — ровно до поверхности, " +
+             "больше — пузырёк ещё немного «живёт» у поверхности и лопается).")]
+    [SerializeField, Min(0.1f)] private float lifetimeDepthMargin = 1.1f;
+
+    [Tooltip("Минимальное время жизни пузырька (сек). Используется, если " +
+             "авто-расчёт по глубине выключен.")]
     [SerializeField, Min(0.02f)] private float lifetimeMin = 0.5f;
 
-    [Tooltip("Максимальное время жизни пузырька (сек).")]
+    [Tooltip("Максимальное время жизни пузырька (сек). Используется, если " +
+             "авто-расчёт по глубине выключен.")]
     [SerializeField, Min(0.02f)] private float lifetimeMax = 1.4f;
 
     [Tooltip("Минимальный стартовый размер пузырька.")]
@@ -269,8 +280,9 @@ public class WaterSurfaceBubbles : MonoBehaviour
         float width = GetSurfaceWidth();
         float emitterWidth = Mathf.Max(0.01f, width - widthPadding * 2f);
 
+        // Полоса рождения — у ДНА воды, чтобы пузырьки всплывали со дна вверх.
         Transform pst = activeBubbles.transform;
-        pst.position = new Vector3(GetSurfaceCenterX(), GetSurfaceY() + surfaceYOffset, pst.position.z);
+        pst.position = new Vector3(GetSurfaceCenterX(), GetBottomY() + bottomYOffset, pst.position.z);
 
         shape = activeBubbles.shape;
         shape.scale = new Vector3(emitterWidth, Mathf.Max(0.0001f, spawnBandHeight), 0.0001f);
@@ -278,6 +290,21 @@ public class WaterSurfaceBubbles : MonoBehaviour
         emission = activeBubbles.emission;
         float rate = enableBubbles ? bubblesPerSecondPerUnit * emitterWidth : 0f;
         emission.rateOverTime = rate;
+
+        if (autoLifetimeFromDepth)
+        {
+            // Время жизни подбираем так, чтобы пузырёк успел всплыть на всю
+            // текущую глубину воды. Быстрые живут меньше, медленные — дольше.
+            float depth = Mathf.Max(0.01f, GetDepth());
+            float margin = Mathf.Max(0.1f, lifetimeDepthMargin);
+            float fast = Mathf.Max(0.01f, Mathf.Max(riseSpeedMin, riseSpeedMax));
+            float slow = Mathf.Max(0.01f, Mathf.Min(riseSpeedMin, riseSpeedMax));
+            float lifeMin = depth / fast * margin;
+            float lifeMax = depth / slow * margin;
+
+            var main = activeBubbles.main;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(lifeMin, lifeMax);
+        }
     }
 
     private float GetSurfaceWidth()
@@ -296,6 +323,18 @@ public class WaterSurfaceBubbles : MonoBehaviour
     {
         Transform wt = water != null ? water.transform : transform;
         return wt.position.y + Mathf.Abs(wt.lossyScale.y) * 0.5f;
+    }
+
+    private float GetBottomY()
+    {
+        Transform wt = water != null ? water.transform : transform;
+        return wt.position.y - Mathf.Abs(wt.lossyScale.y) * 0.5f;
+    }
+
+    private float GetDepth()
+    {
+        Transform wt = water != null ? water.transform : transform;
+        return Mathf.Abs(wt.lossyScale.y);
     }
 
 #if UNITY_EDITOR
