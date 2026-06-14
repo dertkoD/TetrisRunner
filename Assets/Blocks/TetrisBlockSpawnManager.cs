@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
@@ -26,6 +27,31 @@ public class TetrisBlockSpawnManager : MonoBehaviour
     [Tooltip("Если true — как только хотя бы одна залоченная клетка достигнет " +
              "строки спавна (или выше), текущая сцена будет перезагружена.")]
     [SerializeField] private bool reloadSceneWhenStackReachesSpawn = true;
+
+    [Header("Controlled Randomization")]
+    [Tooltip("Если true — выбор формы и цвета следующего блока подчиняется " +
+             "правилам ниже, а не чистому рандому. Если false — поведение как " +
+             "раньше (полностью случайные форма и цвет).")]
+    [SerializeField] private bool useControlledRandomization = true;
+
+    [Tooltip("Максимум, сколько раз ПОДРЯД может выпасть один и тот же цвет. " +
+             "Например 2 — один цвет не может появиться больше двух раз подряд.")]
+    [SerializeField, Min(1)] private int maxSameColorInARow = 2;
+
+    [Tooltip("Размер «окна» последних блоков, в котором действует ограничение по " +
+             "форме. Например 5 — правило смотрит на последние 5 блоков.")]
+    [SerializeField, Min(1)] private int shapeHistoryWindow = 5;
+
+    [Tooltip("Максимум, сколько раз одна и та же форма может встретиться в окне " +
+             "последних блоков (shapeHistoryWindow). Например 2 — одна форма не " +
+             "должна появляться чаще двух раз за последние 5 блоков.")]
+    [SerializeField, Min(1)] private int maxSameShapePerWindow = 2;
+
+    // История недавно заспавненных форм (индексы префабов) и цветов (индексы
+    // палитры). Используются правилами контролируемой рандомизации. Списки
+    // подрезаются, чтобы не расти бесконечно.
+    private readonly List<int> recentShapeIndices = new List<int>();
+    private readonly List<int> recentColorIndices = new List<int>();
 
     private bool reloadScheduled;
 
@@ -362,15 +388,18 @@ public class TetrisBlockSpawnManager : MonoBehaviour
             return;
         }
 
-        int randomIndex = Random.Range(0, prefabs.Length);
-        TetrisBlockFacade prefab = prefabs[randomIndex];
+        int shapeIndex = PickShapeIndex(prefabs.Length);
+        TetrisBlockFacade prefab = prefabs[shapeIndex];
 
         if (prefab == null)
         {
-            Debug.LogError($"{nameof(TetrisBlockSpawnManager)}: Block prefab at index {randomIndex} is null.", this);
+            Debug.LogError($"{nameof(TetrisBlockSpawnManager)}: Block prefab at index {shapeIndex} is null.", this);
             SetRunning(false);
             return;
         }
+
+        int paletteLength = ResolvePaletteLength();
+        int colorIndex = PickColorIndex(paletteLength);
 
         TetrisBlockFacade newBlock = Instantiate(
             prefab,
@@ -385,7 +414,11 @@ public class TetrisBlockSpawnManager : MonoBehaviour
         newBlock.transform.localRotation = Quaternion.identity;
 
         TetrisBlockController controller = newBlock.Controller;
-        controller.Initialize(config, newBlock, this, board);
+        controller.Initialize(config, newBlock, this, board, colorIndex);
+
+        // Запоминаем выбранные форму и цвет, чтобы следующий спавн мог соблюсти
+        // правила рандомизации.
+        RecordSpawn(shapeIndex, colorIndex);
 
         Vector2Int targetCell = ResolveSpawnCell(newBlock.BlockCells);
         Vector3 spawnPosition = board.CellToWorld(targetCell);
@@ -397,6 +430,149 @@ public class TetrisBlockSpawnManager : MonoBehaviour
 
         activeBlock = controller;
         activeBlock.SetControlled(true);
+    }
+
+    /// <summary>
+    /// Длина активной палитры цветов из конфига. Если палитра пуста, считаем,
+    /// что доступен один цвет (как делает <see cref="TetrisBlockCells"/>).
+    /// </summary>
+    private int ResolvePaletteLength()
+    {
+        Color[] palette = config != null ? config.CellColorPalette : null;
+        return (palette != null && palette.Length > 0) ? palette.Length : 1;
+    }
+
+    /// <summary>
+    /// Выбирает индекс формы (префаба) следующего блока. При включённой
+    /// контролируемой рандомизации форма не может встретиться чаще
+    /// <see cref="maxSameShapePerWindow"/> раз в окне из последних
+    /// <see cref="shapeHistoryWindow"/> блоков (включая новый). Если все формы
+    /// уперлись в лимит, выбираем любую — лучше нарушить правило, чем зависнуть.
+    /// </summary>
+    private int PickShapeIndex(int prefabCount)
+    {
+        if (prefabCount <= 1)
+            return 0;
+
+        if (!useControlledRandomization)
+            return Random.Range(0, prefabCount);
+
+        int window = Mathf.Max(1, shapeHistoryWindow);
+        int maxPerWindow = Mathf.Max(1, maxSameShapePerWindow);
+
+        // В окно из window блоков входит и новый блок, поэтому смотрим на
+        // последние (window - 1) уже заспавненных форм.
+        int lookback = window - 1;
+
+        List<int> allowed = new List<int>(prefabCount);
+
+        for (int i = 0; i < prefabCount; i++)
+        {
+            if (CountRecent(recentShapeIndices, i, lookback) < maxPerWindow)
+                allowed.Add(i);
+        }
+
+        if (allowed.Count == 0)
+            return Random.Range(0, prefabCount);
+
+        return allowed[Random.Range(0, allowed.Count)];
+    }
+
+    /// <summary>
+    /// Выбирает индекс цвета следующего блока. При включённой контролируемой
+    /// рандомизации один цвет не может выпасть больше
+    /// <see cref="maxSameColorInARow"/> раз подряд. Возвращает индекс в границах
+    /// палитры [0, paletteLength). Если палитра состоит из одного цвета,
+    /// ограничение неприменимо и всегда возвращается 0.
+    /// </summary>
+    private int PickColorIndex(int paletteLength)
+    {
+        if (paletteLength <= 1)
+            return 0;
+
+        if (!useControlledRandomization)
+            return Random.Range(0, paletteLength);
+
+        int maxRun = Mathf.Max(1, maxSameColorInARow);
+        int bannedColor = GetBannedColor(maxRun);
+
+        if (bannedColor < 0)
+            return Random.Range(0, paletteLength);
+
+        // Равномерно выбираем любой цвет, кроме забаненного: тянем из
+        // (paletteLength - 1) вариантов и «перепрыгиваем» запрещённый индекс.
+        int pick = Random.Range(0, paletteLength - 1);
+
+        if (pick >= bannedColor)
+            pick++;
+
+        return pick;
+    }
+
+    /// <summary>
+    /// Возвращает цвет, который сейчас запрещён, потому что он уже выпал
+    /// <paramref name="maxRun"/> раз подряд. Если такого нет — возвращает -1.
+    /// </summary>
+    private int GetBannedColor(int maxRun)
+    {
+        if (recentColorIndices.Count < maxRun)
+            return -1;
+
+        int lastColor = recentColorIndices[recentColorIndices.Count - 1];
+
+        for (int i = 1; i < maxRun; i++)
+        {
+            if (recentColorIndices[recentColorIndices.Count - 1 - i] != lastColor)
+                return -1;
+        }
+
+        return lastColor;
+    }
+
+    /// <summary>
+    /// Считает, сколько раз <paramref name="value"/> встречается среди последних
+    /// <paramref name="count"/> элементов истории <paramref name="history"/>.
+    /// </summary>
+    private static int CountRecent(List<int> history, int value, int count)
+    {
+        if (history == null || count <= 0)
+            return 0;
+
+        int start = Mathf.Max(0, history.Count - count);
+        int matches = 0;
+
+        for (int i = start; i < history.Count; i++)
+        {
+            if (history[i] == value)
+                matches++;
+        }
+
+        return matches;
+    }
+
+    /// <summary>
+    /// Записывает выбранные форму и цвет в историю и подрезает её, чтобы списки
+    /// не росли бесконечно. Отрицательный <paramref name="colorIndex"/> (цвет
+    /// выбирался самим блоком случайно) в историю цветов не попадает.
+    /// </summary>
+    private void RecordSpawn(int shapeIndex, int colorIndex)
+    {
+        recentShapeIndices.Add(shapeIndex);
+        TrimHistory(recentShapeIndices, Mathf.Max(1, shapeHistoryWindow));
+
+        if (colorIndex >= 0)
+        {
+            recentColorIndices.Add(colorIndex);
+            TrimHistory(recentColorIndices, Mathf.Max(1, maxSameColorInARow));
+        }
+    }
+
+    private static void TrimHistory(List<int> history, int maxCount)
+    {
+        int excess = history.Count - maxCount;
+
+        if (excess > 0)
+            history.RemoveRange(0, excess);
     }
 
     private Vector2Int ResolveSpawnCell(TetrisBlockCells blockCells)

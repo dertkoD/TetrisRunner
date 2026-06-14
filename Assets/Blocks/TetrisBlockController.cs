@@ -29,6 +29,22 @@ public class TetrisBlockController : MonoBehaviour
         TetrisBlockSpawnManager spawnManager,
         TetrisGridBoard board)
     {
+        Initialize(config, facade, spawnManager, board, forcedColorIndex: -1);
+    }
+
+    /// <summary>
+    /// Полная версия инициализации. Если <paramref name="forcedColorIndex"/> &gt;= 0,
+    /// блок красится строго в этот цвет (его выбрал менеджер спавна, чтобы
+    /// соблюсти правила рандомизации). При отрицательном значении цвет, как и
+    /// раньше, выбирается случайно внутри самого блока.
+    /// </summary>
+    public void Initialize(
+        TetrisBlockConfigSO config,
+        TetrisBlockFacade facade,
+        TetrisBlockSpawnManager spawnManager,
+        TetrisGridBoard board,
+        int forcedColorIndex)
+    {
         this.config = config;
         this.spawnManager = spawnManager;
         this.board = board;
@@ -57,7 +73,20 @@ public class TetrisBlockController : MonoBehaviour
         body.rotation = 0f;
 
         movement.Initialize();
-        blockCells.Initialize(board.CellSize, config != null ? config.CellColorPalette : null);
+
+        Color[] palette = config != null ? config.CellColorPalette : null;
+
+        if (forcedColorIndex >= 0)
+        {
+            // Цвет уже выбран менеджером спавна с учётом правил рандомизации —
+            // блок не должен перевыбирать его случайно.
+            blockCells.Initialize(board.CellSize, palette, assignRandomColors: false);
+            blockCells.SetUniformColorIndex(forcedColorIndex);
+        }
+        else
+        {
+            blockCells.Initialize(board.CellSize, palette);
+        }
 
         if (contactReporter != null)
             contactReporter.Initialize(config, this);
