@@ -13,6 +13,10 @@ public class TetrisBlockSpawnManager : MonoBehaviour
     [SerializeField] private Transform blocksParent;
     [SerializeField] private TetrisGridBoard board;
 
+    [Tooltip("Необязательно: компонент предпоказа следующего блока. Если задан — " +
+             "следующий блок выбирается заранее и показывается через него.")]
+    [SerializeField] private TetrisNextBlockPreview nextBlockPreview;
+
     [Header("Spawn Fallback (используется, если spawnPoint не задан)")]
     [Tooltip("Если spawnPoint выше не задан, блок спавнится сверху сетки. " +
              "Этот X (в клетках) определяет, где именно появится пивот, " +
@@ -53,6 +57,14 @@ public class TetrisBlockSpawnManager : MonoBehaviour
     // подрезаются, чтобы не расти бесконечно.
     private readonly List<int> recentShapeIndices = new List<int>();
     private readonly List<int> recentColorIndices = new List<int>();
+
+    // Заранее выбранные форма и цвет следующего блока (для предпоказа). Они
+    // выбираются сразу после спавна текущего блока, чтобы превью показывало
+    // именно то, что выпадет дальше, и чтобы правила рандомизации учитывали
+    // уже заспавненные блоки.
+    private int pendingShapeIndex;
+    private int pendingColorIndex;
+    private bool hasPendingSelection;
 
     private bool reloadScheduled;
 
@@ -125,6 +137,13 @@ public class TetrisBlockSpawnManager : MonoBehaviour
             Debug.LogError($"{nameof(TetrisBlockSpawnManager)}: One or more input actions are missing in config.", this);
             enabled = false;
         }
+    }
+
+    private void Start()
+    {
+        // Заранее выбираем первый блок и показываем предпоказ ещё до старта
+        // игры (до первого нажатия кнопки спавна).
+        EnsurePendingSelection();
     }
 
     private void OnEnable()
@@ -389,7 +408,31 @@ public class TetrisBlockSpawnManager : MonoBehaviour
             return;
         }
 
-        int shapeIndex = PickShapeIndex(prefabs.Length);
+        // Гарантируем, что заранее выбранный блок есть (на случай первого
+        // спавна, если Start ещё не успел отработать), и используем его —
+        // тогда предпоказ всегда совпадает с тем, что реально выпадает.
+        EnsurePendingSelection();
+
+        int shapeIndex;
+        int colorIndex;
+
+        if (hasPendingSelection)
+        {
+            shapeIndex = pendingShapeIndex;
+            colorIndex = pendingColorIndex;
+            hasPendingSelection = false;
+        }
+        else
+        {
+            shapeIndex = PickShapeIndex(prefabs.Length);
+            colorIndex = PickColorIndex(ResolvePaletteLength());
+        }
+
+        // Подстраховка от выхода индекса за границы (например, если пул
+        // префабов изменили в рантайме).
+        if (shapeIndex < 0 || shapeIndex >= prefabs.Length)
+            shapeIndex = Random.Range(0, prefabs.Length);
+
         TetrisBlockFacade prefab = prefabs[shapeIndex];
 
         if (prefab == null)
@@ -398,9 +441,6 @@ public class TetrisBlockSpawnManager : MonoBehaviour
             SetRunning(false);
             return;
         }
-
-        int paletteLength = ResolvePaletteLength();
-        int colorIndex = PickColorIndex(paletteLength);
 
         TetrisBlockFacade newBlock = Instantiate(
             prefab,
@@ -421,6 +461,10 @@ public class TetrisBlockSpawnManager : MonoBehaviour
         // правила рандомизации.
         RecordSpawn(shapeIndex, colorIndex);
 
+        // Сразу выбираем следующий блок и обновляем предпоказ. Делаем это ПОСЛЕ
+        // RecordSpawn, чтобы правила учитывали только что заспавненный блок.
+        EnsurePendingSelection();
+
         Vector2Int targetCell = ResolveSpawnCell(newBlock.BlockCells);
         Vector3 spawnPosition = board.CellToWorld(targetCell);
 
@@ -431,6 +475,51 @@ public class TetrisBlockSpawnManager : MonoBehaviour
 
         activeBlock = controller;
         activeBlock.SetControlled(true);
+    }
+
+    /// <summary>
+    /// Если следующий блок ещё не выбран — выбирает его форму и цвет по
+    /// правилам рандомизации и обновляет предпоказ. Повторные вызовы, пока
+    /// выбор уже есть, ничего не делают.
+    /// </summary>
+    private void EnsurePendingSelection()
+    {
+        if (hasPendingSelection)
+            return;
+
+        TetrisBlockFacade[] prefabs = config != null ? config.BlockPrefabs : null;
+
+        if (prefabs == null || prefabs.Length == 0)
+            return;
+
+        pendingShapeIndex = PickShapeIndex(prefabs.Length);
+        pendingColorIndex = PickColorIndex(ResolvePaletteLength());
+        hasPendingSelection = true;
+
+        UpdatePreview();
+    }
+
+    /// <summary>
+    /// Просит компонент предпоказа показать заранее выбранный следующий блок.
+    /// Если компонент не задан — просто ничего не делает.
+    /// </summary>
+    private void UpdatePreview()
+    {
+        if (nextBlockPreview == null || !hasPendingSelection)
+            return;
+
+        TetrisBlockFacade[] prefabs = config != null ? config.BlockPrefabs : null;
+
+        if (prefabs == null || pendingShapeIndex < 0 || pendingShapeIndex >= prefabs.Length)
+            return;
+
+        float cellSize = board != null
+            ? board.CellSize
+            : (config != null ? config.GridCellSize : 1f);
+
+        Color[] palette = config != null ? config.CellColorPalette : null;
+
+        nextBlockPreview.ShowNext(prefabs[pendingShapeIndex], pendingColorIndex, cellSize, palette);
     }
 
     /// <summary>
