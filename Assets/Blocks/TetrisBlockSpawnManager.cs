@@ -35,8 +35,9 @@ public class TetrisBlockSpawnManager : MonoBehaviour
     [SerializeField] private bool useControlledRandomization = true;
 
     [Tooltip("Максимум, сколько раз ПОДРЯД может выпасть один и тот же цвет. " +
-             "Например 2 — один цвет не может появиться больше двух раз подряд.")]
-    [SerializeField, Min(1)] private int maxSameColorInARow = 2;
+             "1 — цвет не может повториться два раза подряд (каждый новый блок " +
+             "другого цвета); 2 — допускаются две подряд, но не три, и т.д.")]
+    [SerializeField, Min(1)] private int maxSameColorInARow = 1;
 
     [Tooltip("Размер «окна» последних блоков, в котором действует ограничение по " +
              "форме. Например 5 — правило смотрит на последние 5 блоков.")]
