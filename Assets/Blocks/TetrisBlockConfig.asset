@@ -37,11 +37,11 @@ MonoBehaviour:
   requireBottomContactToLock: 1
   minLockNormalY: 0.45
   freeFallGravityScale: 1
-  freeFallHorizontalSpeed: 5
+  freeFallHorizontalSpeed: 10
   freeFallHorizontalAcceleration: 40
   maxFallSpeed: 9
-  horizontalStepDistance: 1
-  horizontalStepRepeatTime: 0.12
+  horizontalStepDistance: 2
+  horizontalStepRepeatTime: 0.06
   fallStepDistance: 1
   fallStepInterval: 0.35
   softDropMultiplier: 10
