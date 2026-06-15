@@ -106,6 +106,26 @@ public class WaterAmbientWaves : MonoBehaviour
     private AmbientWaveSource[] sources;
     private bool sourcesBuilt;
 
+    // Рантайм-множитель высоты волн (0..1). Им управляет
+    // WaterProximityModulator: чем ближе вода к игроку, тем выше волны. На
+    // сериализованные настройки не влияет — это отдельный «дроссель».
+    private float intensity = 1f;
+
+    /// <summary>
+    /// Текущий рантайм-множитель интенсивности фоновых волн (0..1).
+    /// </summary>
+    public float Intensity => intensity;
+
+    /// <summary>
+    /// Устанавливает рантайм-множитель интенсивности фоновых волн (0..1).
+    /// 1 — полная высота из инспектора, 0 — поверхность стоит ровно.
+    /// Используется <see cref="WaterProximityModulator"/>.
+    /// </summary>
+    public void SetIntensity(float value)
+    {
+        intensity = Mathf.Clamp01(value);
+    }
+
     private void Awake()
     {
         if (water == null)
@@ -324,7 +344,7 @@ public class WaterAmbientWaves : MonoBehaviour
 
         // Нормируем, чтобы суммарный размах октав не «раздувал» заданную высоту.
         float norm = 1f + secondaryStrength;
-        return waveHeight * (h / norm);
+        return waveHeight * intensity * (h / norm);
     }
 
 #if UNITY_EDITOR

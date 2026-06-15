@@ -153,6 +153,47 @@ public class WaterSurfaceBubbles : MonoBehaviour
     private bool autoCreated;
     private bool initialized;
 
+    // Рантайм-множитель плотности пузырьков (0..1). Им управляет
+    // WaterProximityModulator: чем ближе вода к игроку, тем гуще «кипение».
+    // На сериализованные настройки не влияет.
+    private float intensity = 1f;
+
+    /// <summary>Текущий рантайм-множитель плотности пузырьков (0..1).</summary>
+    public float Intensity => intensity;
+
+    /// <summary>
+    /// Устанавливает рантайм-множитель плотности пузырьков (0..1). 1 — полная
+    /// плотность из инспектора, 0 — пузырьки не рождаются. Используется
+    /// <see cref="WaterProximityModulator"/>.
+    /// </summary>
+    public void SetIntensity(float value)
+    {
+        intensity = Mathf.Clamp01(value);
+    }
+
+    // Рантайм-цвет пузырьков (если задан) — перекрывает сериализованный
+    // bubbleColor, не затирая его. Им управляет WaterProximityModulator.
+    private bool hasRuntimeColor;
+    private Color runtimeColor;
+
+    /// <summary>Сериализованный (базовый) цвет пузырьков из инспектора.</summary>
+    public Color ConfiguredBubbleColor => bubbleColor;
+
+    /// <summary>
+    /// Меняет цвет пузырьков в рантайме (для <see cref="WaterProximityModulator"/>).
+    /// Базовый сериализованный <c>bubbleColor</c> при этом не трогается.
+    /// </summary>
+    public void SetRuntimeColor(Color color)
+    {
+        runtimeColor = color;
+        hasRuntimeColor = true;
+
+        if (initialized)
+            ApplyParticleColor(color);
+    }
+
+    private Color EffectiveColor => hasRuntimeColor ? runtimeColor : bubbleColor;
+
     private void Awake()
     {
         if (water == null)
@@ -239,7 +280,6 @@ public class WaterSurfaceBubbles : MonoBehaviour
         // поворотом формы-эмиттера ниже (Box излучает вдоль своей оси +Z).
         main.startSpeed = new ParticleSystem.MinMaxCurve(
             Mathf.Min(riseSpeedMin, riseSpeedMax), Mathf.Max(riseSpeedMin, riseSpeedMax));
-        main.startColor = new ParticleSystem.MinMaxGradient(bubbleColor);
         main.gravityModifier = new ParticleSystem.MinMaxCurve(0f);
         main.maxParticles = maxParticles;
 
@@ -265,22 +305,6 @@ public class WaterSurfaceBubbles : MonoBehaviour
         vel.y = new ParticleSystem.MinMaxCurve(0f);
         vel.z = new ParticleSystem.MinMaxCurve(0f);
 
-        var col = activeBubbles.colorOverLifetime;
-        col.enabled = true;
-        var g = new Gradient();
-        g.SetKeys(
-            new[]
-            {
-                new GradientColorKey(bubbleColor, 0f),
-                new GradientColorKey(bubbleColor, 1f),
-            },
-            new[]
-            {
-                new GradientAlphaKey(bubbleColor.a, 0f),
-                new GradientAlphaKey(Mathf.Lerp(bubbleColor.a, 0f, fadeOut), 1f),
-            });
-        col.color = new ParticleSystem.MinMaxGradient(g);
-
         var size = activeBubbles.sizeOverLifetime;
         size.enabled = true;
         size.size = new ParticleSystem.MinMaxCurve(1f, sizeOverLifetime);
@@ -300,7 +324,7 @@ public class WaterSurfaceBubbles : MonoBehaviour
                     shader = Shader.Find("Standard");
 
                 if (shader != null)
-                    renderer.material = new Material(shader) { color = bubbleColor };
+                    renderer.material = new Material(shader) { color = EffectiveColor };
 
                 if (!string.IsNullOrEmpty(sortingLayerName))
                     renderer.sortingLayerName = sortingLayerName;
@@ -308,8 +332,49 @@ public class WaterSurfaceBubbles : MonoBehaviour
             }
         }
 
+        // Применяем цвет ПОСЛЕ настройки материала рендерера, чтобы покрасить
+        // именно финальный материал (стартовый цвет + градиент прозрачности).
+        ApplyParticleColor(EffectiveColor);
+
         if (enableBubbles && isActiveAndEnabled)
             activeBubbles.Play();
+    }
+
+    /// <summary>
+    /// Применяет цвет к частицам: стартовый цвет, градиент прозрачности за время
+    /// жизни и (для авто-системы) цвет материала рендерера. Вынесено отдельно,
+    /// чтобы цвет можно было менять в рантайме через <see cref="SetRuntimeColor"/>.
+    /// </summary>
+    private void ApplyParticleColor(Color color)
+    {
+        if (activeBubbles == null)
+            return;
+
+        var main = activeBubbles.main;
+        main.startColor = new ParticleSystem.MinMaxGradient(color);
+
+        var col = activeBubbles.colorOverLifetime;
+        col.enabled = true;
+        var g = new Gradient();
+        g.SetKeys(
+            new[]
+            {
+                new GradientColorKey(color, 0f),
+                new GradientColorKey(color, 1f),
+            },
+            new[]
+            {
+                new GradientAlphaKey(color.a, 0f),
+                new GradientAlphaKey(Mathf.Lerp(color.a, 0f, fadeOut), 1f),
+            });
+        col.color = new ParticleSystem.MinMaxGradient(g);
+
+        if (autoCreated)
+        {
+            var renderer = activeBubbles.GetComponent<ParticleSystemRenderer>();
+            if (renderer != null && renderer.material != null)
+                renderer.material.color = color;
+        }
     }
 
     private void UpdateEmitter()
@@ -332,7 +397,7 @@ public class WaterSurfaceBubbles : MonoBehaviour
         shape.scale = new Vector3(emitterWidth, 0.0001f, Mathf.Max(0.0001f, spawnBandHeight));
 
         emission = activeBubbles.emission;
-        float rate = enableBubbles ? bubblesPerSecondPerUnit * emitterWidth : 0f;
+        float rate = enableBubbles ? bubblesPerSecondPerUnit * emitterWidth * intensity : 0f;
         emission.rateOverTime = rate;
 
         if (autoLifetimeFromDepth)
