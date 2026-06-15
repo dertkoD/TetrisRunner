@@ -136,7 +136,16 @@
                     "name": "Soft Drop",
                     "type": "Button",
                     "id": "f0dfe7c8-9c87-443a-bd0e-3412ec985c35",
-                    "expectedControlType": "Button",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "ActivatePauseMenu",
+                    "type": "Button",
+                    "id": "a4626695-5a49-40cb-80b7-e25fd109acfe",
+                    "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
@@ -558,6 +567,17 @@
                     "processors": "",
                     "groups": "",
                     "action": "RotateRight",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "819ae2e4-db11-4ae9-ba54-42d6d84e76fc",
+                    "path": "<Keyboard>/escape",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "ActivatePauseMenu",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }
