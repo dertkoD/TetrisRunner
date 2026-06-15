@@ -371,6 +371,7 @@ GameObject:
   m_Component:
   - component: {fileID: 243099991}
   - component: {fileID: 243099990}
+  - component: {fileID: 243099992}
   m_Layer: 0
   m_Name: BlockSpawnManager
   m_TagString: Untagged
@@ -394,9 +395,14 @@ MonoBehaviour:
   spawnPoint: {fileID: 2142727814}
   blocksParent: {fileID: 0}
   board: {fileID: 1285392918}
+  nextBlockPreview: {fileID: 243099992}
   fallbackSpawnColumn: -1
   fallbackToBoardCenter: 1
   reloadSceneWhenStackReachesSpawn: 1
+  useControlledRandomization: 1
+  maxSameColorInARow: 1
+  shapeHistoryWindow: 5
+  maxSameShapePerWindow: 2
 --- !u!4 &243099991
 Transform:
   m_ObjectHideFlags: 0
@@ -412,6 +418,21 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &243099992
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 243099989}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae3dcc063ea942c18e3e2f40a9dae8c8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TetrisNextBlockPreview
+  previewPoint: {fileID: 1910532136}
+  previewParent: {fileID: 0}
+  previewScale: 0.5
 --- !u!1001 &269397093
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2959,6 +2980,37 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 6731336852715431340, guid: 6c78957ecba295e439020622f0215927, type: 3}
   m_PrefabInstance: {fileID: 1798952702}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1910532135
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1910532136}
+  m_Layer: 0
+  m_Name: PreviewBlockPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1910532136
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1910532135}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 18.42, y: 19.37, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &2016935242
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3540,6 +3592,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 3ddbfd867703d284c9fcaeb38b03a95e, type: 3}
+--- !u!4 &1728808012404665388 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 5749649325844884927, guid: 3ddbfd867703d284c9fcaeb38b03a95e, type: 3}
+  m_PrefabInstance: {fileID: 1728808012404665387}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &1917678096514405756
 Transform:
   m_ObjectHideFlags: 0
@@ -3595,6 +3652,18 @@ PrefabInstance:
       propertyPath: m_Name
       value: Water
       objectReference: {fileID: 0}
+    - target: {fileID: 1703331645975705504, guid: 1137de4fb2d4880438b47c7c95d030bb, type: 3}
+      propertyPath: board
+      value: 
+      objectReference: {fileID: 1285392918}
+    - target: {fileID: 1703331645975705504, guid: 1137de4fb2d4880438b47c7c95d030bb, type: 3}
+      propertyPath: player
+      value: 
+      objectReference: {fileID: 1728808012404665388}
+    - target: {fileID: 1703331645975705504, guid: 1137de4fb2d4880438b47c7c95d030bb, type: 3}
+      propertyPath: driveMultiplier
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 3666425812807719867, guid: 1137de4fb2d4880438b47c7c95d030bb, type: 3}
       propertyPath: m_SortingOrder
       value: 0
@@ -3617,7 +3686,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4878190091392340814, guid: 1137de4fb2d4880438b47c7c95d030bb, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -1.54
+      value: -0.54
       objectReference: {fileID: 0}
     - target: {fileID: 4878190091392340814, guid: 1137de4fb2d4880438b47c7c95d030bb, type: 3}
       propertyPath: m_LocalPosition.z
@@ -3892,3 +3961,4 @@ SceneRoots:
   - {fileID: 5367928823378759637}
   - {fileID: 1917678096514405756}
   - {fileID: 6732395718007390673}
+  - {fileID: 1910532136}
