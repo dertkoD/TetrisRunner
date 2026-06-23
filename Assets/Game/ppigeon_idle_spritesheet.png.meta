@@ -1,0 +1,303 @@
+fileFormatVersion: 2
+guid: 35a97c657c17ae64fbf0bfb966126d4d
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: -314619381783612544
+    second: ppigeon_idle_spritesheet_0
+  - first:
+      213: 924404160898768300
+    second: ppigeon_idle_spritesheet_1
+  - first:
+      213: 8342043978123730873
+    second: ppigeon_idle_spritesheet_2
+  - first:
+      213: 3132910249022830036
+    second: ppigeon_idle_spritesheet_3
+  - first:
+      213: 269682879308729355
+    second: ppigeon_idle_spritesheet_4
+  - first:
+      213: -1450696668359586328
+    second: ppigeon_idle_spritesheet_5
+  - first:
+      213: -5307796390107733745
+    second: ppigeon_idle_spritesheet_6
+  - first:
+      213: 5523050826828378003
+    second: ppigeon_idle_spritesheet_7
+  - first:
+      213: -5264303701921061944
+    second: ppigeon_idle_spritesheet_8
+  - first:
+      213: 4061720702119023954
+    second: ppigeon_idle_spritesheet_9
+  - first:
+      213: 7227153082093182439
+    second: ppigeon_idle_spritesheet_10
+  - first:
+      213: -3270137141180541432
+    second: ppigeon_idle_spritesheet_11
+  - first:
+      213: -2757633885768956196
+    second: ppigeon_idle_spritesheet_12
+  - first:
+      213: 8078190224757893786
+    second: ppigeon_idle_spritesheet_13
+  - first:
+      213: -1940321835454154246
+    second: ppigeon_idle_spritesheet_14
+  - first:
+      213: 7562818971404864227
+    second: ppigeon_idle_spritesheet_15
+  - first:
+      213: -5894919504336096146
+    second: ppigeon_idle_spritesheet_16
+  - first:
+      213: -7683938284220837372
+    second: ppigeon_idle_spritesheet_17
+  - first:
+      213: -4823526227249303123
+    second: ppigeon_idle_spritesheet_18
+  - first:
+      213: -9001867379224571722
+    second: ppigeon_idle_spritesheet_19
+  - first:
+      213: -5919411640770346369
+    second: ppigeon_idle_spritesheet_20
+  - first:
+      213: 2879998422234199999
+    second: ppigeon_idle_spritesheet_21
+  - first:
+      213: 3203421917483781240
+    second: ppigeon_idle_spritesheet_22
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 16384
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: ppigeon_idle_spritesheet_0
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 711
+        height: 711
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 083b555d65f32abf0800000000000000
+      internalID: -314619381783612544
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: ppigeon_idle_spritesheet_1
+      rect:
+        serializedVersion: 2
+        x: 711
+        y: 0
+        width: 711
+        height: 711
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: cad9347cfa424dc00800000000000000
+      internalID: 924404160898768300
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: ppigeon_idle_spritesheet_2
+      rect:
+        serializedVersion: 2
+        x: 1422
+        y: 0
+        width: 711
+        height: 711
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9bf50c0dcc4e4c370800000000000000
+      internalID: 8342043978123730873
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: ppigeon_idle_spritesheet_3
+      rect:
+        serializedVersion: 2
+        x: 2133
+        y: 0
+        width: 711
+        height: 711
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4d5bf2ac5455a7b20800000000000000
+      internalID: 3132910249022830036
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: ppigeon_idle_spritesheet_4
+      rect:
+        serializedVersion: 2
+        x: 2844
+        y: 0
+        width: 711
+        height: 711
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b0c833f562b1eb300800000000000000
+      internalID: 269682879308729355
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 40c1b2b9490768b4487e132f6dbdf779
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries:
+      - key: SpriteEditor.SliceSettings
+        value: '{"sliceOnImport":false,"gridCellCount":{"x":5.0,"y":1.0},"gridSpriteSize":{"x":711.0,"y":711.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":2,"keepEmptyRects":false,"isAlternate":false}'
+    nameFileIdTable:
+      ppigeon_idle_spritesheet_0: -314619381783612544
+      ppigeon_idle_spritesheet_1: 924404160898768300
+      ppigeon_idle_spritesheet_2: 8342043978123730873
+      ppigeon_idle_spritesheet_3: 3132910249022830036
+      ppigeon_idle_spritesheet_4: 269682879308729355
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
