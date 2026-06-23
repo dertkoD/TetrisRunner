@@ -31,6 +31,17 @@ public class TetrisBlockSpawnManager : MonoBehaviour
              "момент передачи управления игроку. 0 — мгновенно.")]
     [SerializeField, Min(0f)] private float growDuration = 0.25f;
 
+    [Header("Auto Start")]
+    [Tooltip("Если true — спавн блоков запускается автоматически при старте сцены " +
+             "(через initialSpawnDelay секунд), без нажатия кнопки. Кнопка спавна (P) " +
+             "при этом по-прежнему ставит игру на паузу и снимает с паузы.")]
+    [SerializeField] private bool autoStart = true;
+
+    [Tooltip("Задержка (в секундах) перед самым ПЕРВЫМ автоматическим спавном после " +
+             "старта сцены. Всё это время блок-предпоказ уже стоит на месте, а потом " +
+             "дорастает и управление передаётся игроку. Работает только если autoStart = true.")]
+    [SerializeField, Min(0f)] private float initialSpawnDelay = 1f;
+
     [Header("Spawn Fallback (используется, если spawnPoint не задан)")]
     [Tooltip("Если spawnPoint выше не задан, блок спавнится сверху сетки. " +
              "Этот X (в клетках) определяет, где именно появится пивот, " +
@@ -96,6 +107,10 @@ public class TetrisBlockSpawnManager : MonoBehaviour
     private bool spawnPending;
     private bool externalFreeze;
 
+    // Автостарт первого спавна: ждём initialSpawnDelay, затем запускаем игру.
+    private bool autoStartPending;
+    private float autoStartTimer;
+
     /// <summary>True, если активирована внешняя заморозка (PlayerBlockFreeze).</summary>
     public bool IsExternallyFrozen => externalFreeze;
 
@@ -156,9 +171,17 @@ public class TetrisBlockSpawnManager : MonoBehaviour
 
     private void Start()
     {
-        // Заранее создаём первый блок-предпоказ ещё до старта игры (до первого
-        // нажатия кнопки спавна): он стоит в точке спавна с уменьшенным масштабом.
+        // Заранее создаём первый блок-предпоказ ещё до старта игры: он стоит в
+        // точке спавна с уменьшенным масштабом.
         EnsurePreviewBlock();
+
+        // Автостарт: через initialSpawnDelay секунд спавн запустится сам, без
+        // нажатия кнопки. Всё это время предпоказ уже виден.
+        if (autoStart)
+        {
+            autoStartPending = true;
+            autoStartTimer = Mathf.Max(0f, initialSpawnDelay);
+        }
     }
 
     private void OnEnable()
@@ -211,8 +234,14 @@ public class TetrisBlockSpawnManager : MonoBehaviour
 
     private void FixedUpdate()
     {
-        if (!isRunning || externalFreeze)
+        if (externalFreeze)
             return;
+
+        if (!isRunning)
+        {
+            TickAutoStart();
+            return;
+        }
 
         // Если активного блока ещё нет, но включён таймер задержки — ждём,
         // потом активируем следующий блок-предпоказ.
@@ -380,8 +409,32 @@ public class TetrisBlockSpawnManager : MonoBehaviour
         activeBlock.SetSoftDrop(false);
     }
 
+    /// <summary>
+    /// Отсчитывает задержку перед первым автоматическим спавном и по её
+    /// истечении запускает игру. Вызывается из FixedUpdate, пока игра ещё не
+    /// запущена. Если игрок успел нажать кнопку спавна раньше — автостарт
+    /// отменяется в <see cref="SetRunning"/>.
+    /// </summary>
+    private void TickAutoStart()
+    {
+        if (!autoStartPending)
+            return;
+
+        autoStartTimer -= Time.fixedDeltaTime;
+
+        if (autoStartTimer <= 0f)
+        {
+            autoStartPending = false;
+            SetRunning(true);
+        }
+    }
+
     private void SetRunning(bool value)
     {
+        // Любой явный запуск/остановка (в т.ч. по кнопке P) отменяет ожидание
+        // автостарта — дальше состоянием рулит игрок.
+        autoStartPending = false;
+
         isRunning = value;
 
         if (isRunning)
