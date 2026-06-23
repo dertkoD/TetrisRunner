@@ -13,6 +13,7 @@ public class TetrisBlockController : MonoBehaviour
     private TetrisBlockRotator rotator;
     private TetrisBlockContactReporter contactReporter;
     private TetrisBlockCells blockCells;
+    private Collider2D mainCollider;
 
     private Vector2 moveInput;
     private bool softDropActive;
@@ -21,7 +22,22 @@ public class TetrisBlockController : MonoBehaviour
     private bool controlled;
     private bool locked;
 
+    // Режим предпоказа: блок создан, но «спит» — физика и управление выключены,
+    // стоит на месте с уменьшенным масштабом и ждёт своей очереди.
+    private bool isPreview;
+
+    // Плавный рост масштаба от previewScale до 1 в момент передачи управления.
+    private bool growing;
+    private float growElapsed;
+    private float growDuration;
+    private float growStartScale;
+
+    private const float ActiveScale = 1f;
+
     public bool IsLocked => locked;
+
+    /// <summary>True, пока блок находится в режиме предпоказа (не активен).</summary>
+    public bool IsPreview => isPreview;
 
     public void Initialize(
         TetrisBlockConfigSO config,
@@ -100,10 +116,114 @@ public class TetrisBlockController : MonoBehaviour
         if (body != null && body.GetComponent<BlockWaveProxy>() == null)
             body.gameObject.AddComponent<BlockWaveProxy>();
 
+        // Коллайдер формы нужен, чтобы понимать мировые границы блока (например,
+        // для проверки выхода за зону спавна).
+        mainCollider = blockCells.Collider;
+        if (mainCollider == null)
+            mainCollider = GetComponent<Collider2D>();
+
         locked = false;
         controlled = false;
+        isPreview = false;
+        growing = false;
         moveInput = Vector2.zero;
         initialized = true;
+    }
+
+    /// <summary>
+    /// Переводит блок в режим предпоказа: выключает физику и управление,
+    /// останавливает движение и уменьшает масштаб до <paramref name="previewScale"/>.
+    /// Блок просто стоит на месте в точке спавна и ждёт своей очереди.
+    /// </summary>
+    public void EnterPreviewState(float previewScale)
+    {
+        if (!initialized || locked)
+            return;
+
+        isPreview = true;
+        growing = false;
+        controlled = false;
+        moveInput = Vector2.zero;
+        softDropActive = false;
+
+        if (body != null)
+        {
+            body.linearVelocity = Vector2.zero;
+            body.angularVelocity = 0f;
+            // Спящий блок-предпоказ не должен ни с кем сталкиваться: гасим симуляцию.
+            body.simulated = false;
+        }
+
+        if (contactReporter != null)
+            contactReporter.enabled = false;
+
+        float s = Mathf.Max(0.0001f, previewScale);
+        transform.localScale = new Vector3(s, s, 1f);
+    }
+
+    /// <summary>
+    /// Выводит блок из режима предпоказа в активное состояние: включает физику,
+    /// передаёт управление игроку и запускает плавный рост масштаба до 1 за
+    /// <paramref name="growDurationSeconds"/> секунд (0 — мгновенно).
+    /// </summary>
+    public void ActivateFromPreview(float growDurationSeconds)
+    {
+        if (!initialized || locked)
+            return;
+
+        isPreview = false;
+
+        if (body != null)
+            body.simulated = true;
+
+        if (contactReporter != null)
+            contactReporter.enabled = true;
+
+        growStartScale = transform.localScale.x;
+        growElapsed = 0f;
+        growDuration = Mathf.Max(0f, growDurationSeconds);
+        growing = growDuration > 0f && growStartScale < ActiveScale - 0.0001f;
+
+        if (!growing)
+            transform.localScale = Vector3.one;
+
+        // Управление и падение начинаются сразу — масштаб дорастает параллельно.
+        SetControlled(true);
+    }
+
+    /// <summary>
+    /// True, если блок полностью вышел за границы переданной зоны (их AABB
+    /// больше не пересекаются). Используется менеджером спавна, чтобы понять,
+    /// когда показывать следующий блок-предпоказ.
+    /// </summary>
+    public bool HasExitedZone(Collider2D zone)
+    {
+        if (zone == null || mainCollider == null)
+            return false;
+
+        return !zone.bounds.Intersects(mainCollider.bounds);
+    }
+
+    private void Update()
+    {
+        if (!growing)
+            return;
+
+        // Растём только пока блок реально под управлением (на паузе рост стоит).
+        if (!controlled || locked)
+            return;
+
+        growElapsed += Time.deltaTime;
+
+        float t = growDuration > 0f ? Mathf.Clamp01(growElapsed / growDuration) : 1f;
+        float s = Mathf.Lerp(growStartScale, ActiveScale, t);
+        transform.localScale = new Vector3(s, s, 1f);
+
+        if (t >= 1f)
+        {
+            growing = false;
+            transform.localScale = Vector3.one;
+        }
     }
 
     public void FixedTick()
@@ -204,6 +324,11 @@ public class TetrisBlockController : MonoBehaviour
         controlled = false;
         locked = true;
         moveInput = Vector2.zero;
+
+        // Если блок залочился, не успев дорасти — мгновенно доводим до полного
+        // масштаба, чтобы в стопку он встал нормального размера.
+        growing = false;
+        transform.localScale = Vector3.one;
 
         StackBlock();
     }

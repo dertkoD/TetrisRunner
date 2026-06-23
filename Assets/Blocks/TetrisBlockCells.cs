@@ -61,6 +61,13 @@ public class TetrisBlockCells : MonoBehaviour
     public Transform[] CellVisuals => cellVisuals;
 
     /// <summary>
+    /// PolygonCollider2D блока (описывает его форму). Может быть null до вызова
+    /// <see cref="Initialize(float, Color[])"/>. Внешним системам нужен, чтобы
+    /// узнать мировые границы блока (например, проверить выход за зону спавна).
+    /// </summary>
+    public PolygonCollider2D Collider => polygonCollider;
+
+    /// <summary>
     /// Копия исходных оффсетов блока (так как они сериализованы в префабе).
     /// Используется внешними системами, чтобы заранее, ещё до Initialize, знать,
     /// какие клетки сетки занимает фигура.
