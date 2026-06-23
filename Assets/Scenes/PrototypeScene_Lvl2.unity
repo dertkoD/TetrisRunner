@@ -715,7 +715,6 @@ GameObject:
   m_Component:
   - component: {fileID: 243099991}
   - component: {fileID: 243099990}
-  - component: {fileID: 243099992}
   m_Layer: 0
   m_Name: BlockSpawnManager
   m_TagString: Untagged
@@ -739,9 +738,11 @@ MonoBehaviour:
   spawnPoint: {fileID: 2142727814}
   blocksParent: {fileID: 0}
   board: {fileID: 1285392918}
-  spawnZone: {fileID: 0}
+  spawnZone: {fileID: 36921908}
   previewScale: 0.5
   growDuration: 0.25
+  autoStart: 1
+  initialSpawnDelay: 1
   fallbackSpawnColumn: -1
   fallbackToBoardCenter: 1
   reloadSceneWhenStackReachesSpawn: 1
@@ -764,18 +765,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &243099992
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 243099989}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ae3dcc063ea942c18e3e2f40a9dae8c8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::TetrisNextBlockPreview
 --- !u!1001 &269397093
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -5084,7 +5073,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5008518009849637176, guid: 25fcd083561d73043a94923a4a5bb141, type: 3}
       propertyPath: m_LocalScale.y
-      value: 0.99058145
+      value: 1.15
       objectReference: {fileID: 0}
     - target: {fileID: 5008518009849637176, guid: 25fcd083561d73043a94923a4a5bb141, type: 3}
       propertyPath: m_LocalPosition.x
@@ -5092,7 +5081,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5008518009849637176, guid: 25fcd083561d73043a94923a4a5bb141, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.51
+      value: 0.541
       objectReference: {fileID: 0}
     - target: {fileID: 5008518009849637176, guid: 25fcd083561d73043a94923a4a5bb141, type: 3}
       propertyPath: m_LocalPosition.z
@@ -5130,6 +5119,10 @@ PrefabInstance:
       propertyPath: board
       value: 
       objectReference: {fileID: 1285392918}
+    - target: {fileID: 8745795417685068102, guid: 25fcd083561d73043a94923a4a5bb141, type: 3}
+      propertyPath: m_ConstrainProportionsScale
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
