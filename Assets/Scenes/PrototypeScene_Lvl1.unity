@@ -429,12 +429,24 @@ PrefabInstance:
       value: NPC
       objectReference: {fileID: 0}
     - target: {fileID: 7045385076717207645, guid: bf0cd6613b1f9f1439aeeed48c4c33f1, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.2
+      objectReference: {fileID: 0}
+    - target: {fileID: 7045385076717207645, guid: bf0cd6613b1f9f1439aeeed48c4c33f1, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.2
+      objectReference: {fileID: 0}
+    - target: {fileID: 7045385076717207645, guid: bf0cd6613b1f9f1439aeeed48c4c33f1, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7045385076717207645, guid: bf0cd6613b1f9f1439aeeed48c4c33f1, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 39.58
+      value: 39.61
       objectReference: {fileID: 0}
     - target: {fileID: 7045385076717207645, guid: bf0cd6613b1f9f1439aeeed48c4c33f1, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 21.767496
+      value: 21.63
       objectReference: {fileID: 0}
     - target: {fileID: 7045385076717207645, guid: bf0cd6613b1f9f1439aeeed48c4c33f1, type: 3}
       propertyPath: m_LocalPosition.z
@@ -466,6 +478,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7045385076717207645, guid: bf0cd6613b1f9f1439aeeed48c4c33f1, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7045385076717207645, guid: bf0cd6613b1f9f1439aeeed48c4c33f1, type: 3}
+      propertyPath: m_ConstrainProportionsScale
       value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
@@ -641,6 +657,8 @@ MonoBehaviour:
   spawnZone: {fileID: 332560210}
   previewScale: 0.5
   growDuration: 0.25
+  autoStart: 1
+  initialSpawnDelay: 1
   fallbackSpawnColumn: -1
   fallbackToBoardCenter: 1
   reloadSceneWhenStackReachesSpawn: 1
@@ -3735,7 +3753,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4948795909462518478, guid: d5a95c488a072e44d91a061a7a8dcf75, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 22.9221
+      value: 22.85
       objectReference: {fileID: 0}
     - target: {fileID: 4948795909462518478, guid: d5a95c488a072e44d91a061a7a8dcf75, type: 3}
       propertyPath: m_LocalPosition.z
