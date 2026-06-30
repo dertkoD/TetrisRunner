@@ -179,7 +179,6 @@ public class PlayerRespawnAnchor : MonoBehaviour
             return;
 
         reloadScheduled = true;
-        Scene scene = SceneManager.GetActiveScene();
-        SceneManager.LoadScene(scene.buildIndex, LoadSceneMode.Single);
+        LevelReloader.RequestReload();
     }
 }

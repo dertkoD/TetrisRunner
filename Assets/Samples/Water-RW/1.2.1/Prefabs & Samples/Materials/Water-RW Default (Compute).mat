@@ -155,7 +155,7 @@ Material:
     - _ZWrite: 1
     m_Colors:
     - White: {r: 1, g: 1, b: 1, a: 1}
-    - _Addend: {r: 0.19184977, g: 0.88235295, b: 0.12726942, a: 0}
+    - _Addend: {r: 0.37254903, g: 0.65882355, b: 0.08627451, a: 0}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _Flip: {r: 1, g: 1, b: 1, a: 1}
@@ -163,6 +163,6 @@ Material:
     - _NormalASpeed: {r: 0.2, g: 0.2, b: 0, a: 0}
     - _NormalBSpeed: {r: -0.3, g: 0.3, b: 0, a: 0}
     - _RendererColor: {r: 1, g: 1, b: 1, a: 1}
-    - _SurfaceColor: {r: 0.43921572, g: 0.4901961, b: 0.62352943, a: 0.8117647}
+    - _SurfaceColor: {r: 0.64705884, g: 0.8431373, b: 0.36078432, a: 0.8117647}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

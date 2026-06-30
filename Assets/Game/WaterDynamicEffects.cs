@@ -65,6 +65,10 @@ public class WaterDynamicEffects : MonoBehaviour
     [Tooltip("Сколько частиц в одном бёрсте капель от движения.")]
     [SerializeField, Range(0, 50)] private int dropletBurstCount = 3;
 
+    [Header("Audio")]
+    [Tooltip("Минимальная пауза между звуками входа в воду для одного Rigidbody2D.")]
+    [SerializeField, Min(0f)] private float waterImpactSoundCooldown = 0.2f;
+
     [Header("Particle Look (используется только для авто-системы)")]
     [SerializeField] private Color startColor = new Color(0.7f, 0.9f, 1f, 0.85f);
     [SerializeField, Min(0.01f)] private float minLifetime = 0.35f;
@@ -91,6 +95,9 @@ public class WaterDynamicEffects : MonoBehaviour
     private readonly Dictionary<Rigidbody2D, float> nextDropletTime
         = new Dictionary<Rigidbody2D, float>();
 
+    private readonly Dictionary<Rigidbody2D, float> nextWaterImpactSoundTime
+        = new Dictionary<Rigidbody2D, float>();
+
     private void Awake()
     {
         selfCollider = GetComponent<Collider2D>();
@@ -109,6 +116,7 @@ public class WaterDynamicEffects : MonoBehaviour
     private void OnDisable()
     {
         nextDropletTime.Clear();
+        nextWaterImpactSoundTime.Clear();
     }
 
     private void EnsureParticleSystem()
@@ -222,6 +230,8 @@ public class WaterDynamicEffects : MonoBehaviour
         Vector2 velocity = rb != null ? rb.linearVelocity : Vector2.zero;
         float speed = velocity.magnitude;
 
+        TryPlayWaterImpactSound(other, rb, velocity);
+
         if (speed < minImpactSpeed)
             return;
 
@@ -236,7 +246,10 @@ public class WaterDynamicEffects : MonoBehaviour
 
         Rigidbody2D rb = other.attachedRigidbody;
         if (rb != null)
+        {
             nextDropletTime.Remove(rb);
+            nextWaterImpactSoundTime.Remove(rb);
+        }
 
         if (rb == null)
             return;
@@ -273,6 +286,44 @@ public class WaterDynamicEffects : MonoBehaviour
             return false;
 
         return ((1 << other.gameObject.layer) & reactiveLayers.value) != 0;
+    }
+
+    private void TryPlayWaterImpactSound(Collider2D other, Rigidbody2D rb, Vector2 velocity)
+    {
+        if (!IsActiveControlledTetrisBlock(other))
+            return;
+
+        if (velocity.y > -minImpactSpeed)
+            return;
+
+        if (rb != null)
+        {
+            float now = Time.time;
+            if (nextWaterImpactSoundTime.TryGetValue(rb, out float t) && now < t)
+                return;
+
+            nextWaterImpactSoundTime[rb] = now + waterImpactSoundCooldown;
+        }
+
+        GameAudioController.PlayBlockWaterImpact();
+    }
+
+    private static bool IsActiveControlledTetrisBlock(Collider2D other)
+    {
+        if (other == null)
+            return false;
+
+        TetrisBlockController controller =
+            other.GetComponent<TetrisBlockController>()
+            ?? other.GetComponentInParent<TetrisBlockController>();
+
+        if (controller == null)
+            return false;
+
+        return controller.enabled
+               && controller.IsControlled
+               && !controller.IsLocked
+               && !controller.IsPreview;
     }
 
     private void EmitSplash(Collider2D other, float speed, float mass)

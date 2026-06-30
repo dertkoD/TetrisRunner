@@ -1,0 +1,82 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &7502408541157941024
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5251865457610206740}
+  - component: {fileID: 7375780760507850801}
+  m_Layer: 0
+  m_Name: GameAudioController
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5251865457610206740
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7502408541157941024}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &7375780760507850801
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7502408541157941024}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5e63b93f6b9d4b8b8c77c84e6f1c2a30, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GameAudioController
+  makePersistentAcrossScenes: 0
+  replaceExistingInstance: 1
+  ambientSource: {fileID: 0}
+  sfxSource: {fileID: 0}
+  uiSource: {fileID: 0}
+  footstepSource: {fileID: 0}
+  blockStackClips:
+  - {fileID: 8300000, guid: a5ccda691276eb845af6ae41644caa5b, type: 3}
+  - {fileID: 8300000, guid: 3a883bfe2a93fbf4eb6d1cce48f1aabb, type: 3}
+  - {fileID: 8300000, guid: c3c221bb2c4a16246aedd2f4630c989c, type: 3}
+  - {fileID: 8300000, guid: 438df5cc4832e7149bf3fbb1a2602ca8, type: 3}
+  - {fileID: 8300000, guid: e1efa3016b20e0e498a70c6e002226b8, type: 3}
+  blockStackVolume: 1
+  blockWaterClips:
+  - {fileID: 8300000, guid: d152cb41834b26640b7fbf9068380f1a, type: 3}
+  - {fileID: 8300000, guid: 76691eefc2e4c1045b8a04fc2cef2c60, type: 3}
+  blockWaterVolume: 1
+  blockDestroyClip: {fileID: 8300000, guid: d2ec5e72ac9871b4f8674c6ea980cf93, type: 3}
+  blockDestroyVolume: 1
+  ambientClip: {fileID: 8300000, guid: 2c35fb5b6b2bc52418e09353c4a8f46f, type: 3}
+  ambientVolume: 0.6
+  playAmbientOnStart: 1
+  uiClickClip: {fileID: 8300000, guid: 1f11bf23315675e45ada45b059a5d653, type: 3}
+  uiClickVolume: 1
+  footstepClip: {fileID: 8300000, guid: 180026140fc369b49af803892845ca5d, type: 3}
+  footstepVolume: 1
+  footstepPitchMin: 0.95
+  footstepPitchMax: 1.05
+  victoryClip: {fileID: 8300000, guid: d2aff60e128d7c64abc5ab209b8ec13b, type: 3}
+  victoryVolume: 1
+  stopAmbientOnVictory: 0
+  defeatClip: {fileID: 8300000, guid: ba51972789100df418d71cd1362b0d34, type: 3}
+  defeatVolume: 1
+  delayReloadForDefeatSound: 1
+  maxDefeatReloadDelay: 1.5
+  stopAmbientOnDefeat: 1

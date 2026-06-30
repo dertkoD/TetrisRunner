@@ -519,6 +519,8 @@ public class TetrisGridBoard : MonoBehaviour
             if (blocksToRemove == null || blocksToRemove.Count == 0)
                 break;
 
+            GameAudioController.PlayBlockDestroy();
+
             foreach (TetrisPlacedBlock block in blocksToRemove)
             {
                 if (block == null)

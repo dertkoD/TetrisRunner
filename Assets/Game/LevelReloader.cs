@@ -22,6 +22,14 @@ public static class LevelReloader
 
         reloadScheduled = true;
 
+        if (GameAudioController.TryPlayDefeatBeforeReload(LoadActiveSceneNow))
+            return;
+
+        LoadActiveSceneNow();
+    }
+
+    private static void LoadActiveSceneNow()
+    {
         // SceneManager.LoadScene на следующем кадре сбрасывает все статические
         // подписки на sceneLoaded ниже Awake, поэтому мы вешаем хук вручную,
         // чтобы reloadScheduled был выставлен в false ПОСЛЕ загрузки сцены.

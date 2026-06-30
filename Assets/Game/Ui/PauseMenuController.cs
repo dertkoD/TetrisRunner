@@ -1,10 +1,24 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
 public class PauseMenuController : MonoBehaviour
 {
     [Header("UI")]
     [SerializeField] private GameObject pauseMenuPanel;
+
+    [Header("Sound Toggle")]
+    [Tooltip("Image кнопки звука в pause menu. Если пусто — спрайт меняться не будет.")]
+    [SerializeField] private Image soundToggleImage;
+
+    [Tooltip("Спрайт, когда звук включён. Если пусто — будет запомнен текущий спрайт из Sound Toggle Image.")]
+    [SerializeField] private Sprite soundOnSprite;
+
+    [Tooltip("Спрайт, когда звук выключен.")]
+    [SerializeField] private Sprite soundOffSprite;
+
+    [Tooltip("Если true — при старте считать звук выключенным, если AudioListener.volume уже 0.")]
+    [SerializeField] private bool readInitialMuteFromAudioListener = true;
 
     [Header("Scenes")]
     [SerializeField] private string mainMenuSceneName = "MainMenu";
@@ -17,8 +31,12 @@ public class PauseMenuController : MonoBehaviour
 
     private bool isPaused;
     private bool pauseLocked;
+    private bool soundMuted;
+    private float unmutedListenerVolume = 1f;
+    private Sprite cachedSoundOnSprite;
 
     public bool IsPaused => isPaused;
+    public bool SoundMuted => soundMuted;
 
     private void Awake()
     {
@@ -26,6 +44,7 @@ public class PauseMenuController : MonoBehaviour
 
         isPaused = false;
         pauseLocked = false;
+        InitializeSoundToggle();
 
         CreatePauseAction();
     }
@@ -148,6 +167,39 @@ public class PauseMenuController : MonoBehaviour
         SceneTransitionManager.Instance.LoadScene(mainMenuSceneName);
     }
 
+    /// <summary>
+    /// Вызывай из OnClick кнопки звука в pause menu.
+    /// </summary>
+    public void ToggleSound()
+    {
+        SetSoundMuted(!soundMuted);
+    }
+
+    /// <summary>
+    /// Полностью включает/выключает звук игры через AudioListener.volume.
+    /// </summary>
+    public void SetSoundMuted(bool muted)
+    {
+        if (soundMuted == muted)
+            return;
+
+        soundMuted = muted;
+
+        if (muted)
+        {
+            if (AudioListener.volume > 0f)
+                unmutedListenerVolume = AudioListener.volume;
+
+            AudioListener.volume = 0f;
+        }
+        else
+        {
+            AudioListener.volume = Mathf.Max(0.0001f, unmutedListenerVolume);
+        }
+
+        ApplySoundToggleSprite();
+    }
+
     public void LockPause()
     {
         pauseLocked = true;
@@ -161,5 +213,38 @@ public class PauseMenuController : MonoBehaviour
     public void UnlockPause()
     {
         pauseLocked = false;
+    }
+
+    private void InitializeSoundToggle()
+    {
+        if (soundToggleImage != null)
+        {
+            cachedSoundOnSprite = soundOnSprite != null
+                ? soundOnSprite
+                : soundToggleImage.sprite;
+        }
+
+        unmutedListenerVolume = AudioListener.volume > 0f ? AudioListener.volume : 1f;
+        soundMuted = readInitialMuteFromAudioListener && AudioListener.volume <= 0f;
+
+        ApplySoundToggleSprite();
+    }
+
+    private void ApplySoundToggleSprite()
+    {
+        if (soundToggleImage == null)
+            return;
+
+        if (soundMuted)
+        {
+            if (soundOffSprite != null)
+                soundToggleImage.sprite = soundOffSprite;
+        }
+        else
+        {
+            Sprite onSprite = soundOnSprite != null ? soundOnSprite : cachedSoundOnSprite;
+            if (onSprite != null)
+                soundToggleImage.sprite = onSprite;
+        }
     }
 }

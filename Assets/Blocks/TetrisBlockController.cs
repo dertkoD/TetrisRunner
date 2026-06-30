@@ -35,6 +35,7 @@ public class TetrisBlockController : MonoBehaviour
     private const float ActiveScale = 1f;
 
     public bool IsLocked => locked;
+    public bool IsControlled => controlled;
 
     /// <summary>True, пока блок находится в режиме предпоказа (не активен).</summary>
     public bool IsPreview => isPreview;
@@ -536,6 +537,8 @@ public class TetrisBlockController : MonoBehaviour
             // во всех этих случаях ничего не схлопнется. Сначала из места
             // приземления расходится ударная волна (если включена флагом
             // в конфиге), и только после неё поднимается вода.
+            GameAudioController.PlayBlockStack();
+
             BlockJuiceController juice = BlockJuiceController.Instance;
 
             if (juice != null && config != null && config.ShockWaveOnDifferentColor)

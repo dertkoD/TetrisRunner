@@ -851,7 +851,6 @@ public class TetrisBlockSpawnManager : MonoBehaviour
         spawnPending = false;
         spawnDelayTimer = 0f;
 
-        Scene scene = SceneManager.GetActiveScene();
-        SceneManager.LoadScene(scene.buildIndex, LoadSceneMode.Single);
+        LevelReloader.RequestReload();
     }
 }

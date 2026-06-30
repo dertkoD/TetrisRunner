@@ -67,6 +67,25 @@ public class GridButton : MonoBehaviour
              "проверяется только наличие компонента PlayerFacade.")]
     [SerializeField] private LayerMask playerLayers = 0;
 
+    [Header("Pressed Visuals")]
+    [Tooltip("SpriteRenderer самой кнопки. Если пусто — будет взят SpriteRenderer на этом объекте или в активных детях.")]
+    [SerializeField] private SpriteRenderer buttonSpriteRenderer;
+
+    [Tooltip("Спрайт, на который заменится текущий спрайт кнопки после нажатия.")]
+    [SerializeField] private Sprite pressedSprite;
+
+    [Tooltip("GameObject'ы, которые нужно включить после нажатия кнопки. Можно держать их выключенными в сцене.")]
+    [SerializeField] private GameObject[] objectsToEnableOnPressed;
+
+    [Tooltip("SpriteRenderer'ы, которые нужно включить после нажатия кнопки. Удобно, если объект должен оставаться активным.")]
+    [SerializeField] private SpriteRenderer[] spriteRenderersToEnableOnPressed;
+
+    [Tooltip("На старте выключить все Objects To Enable On Pressed. Оставь включённым, если эти спрайты должны быть невидимы до нажатия.")]
+    [SerializeField] private bool hidePressedObjectsOnStart = true;
+
+    [Tooltip("На старте выключить все Sprite Renderers To Enable On Pressed.")]
+    [SerializeField] private bool hidePressedRenderersOnStart = true;
+
     [Header("Events")]
     [Tooltip("Вызывается один раз, когда кнопку нажал игрок.")]
     [SerializeField] private UnityEvent onPressed;
@@ -97,6 +116,7 @@ public class GridButton : MonoBehaviour
     {
         EnsureKinematicRigidbody();
         EnsureTriggerCollider();
+        InitializePressedVisuals();
     }
 
     private void Start()
@@ -217,10 +237,74 @@ public class GridButton : MonoBehaviour
         if (verboseLogs)
             Debug.Log($"{nameof(GridButton)} '{name}': нажата игроком — открываю дверь.", this);
 
+        ApplyPressedVisuals();
+
         onPressed?.Invoke();
 
         if (door != null)
             door.Open();
+    }
+
+    private void InitializePressedVisuals()
+    {
+        ResolveButtonSpriteRenderer();
+
+        if (hidePressedObjectsOnStart && objectsToEnableOnPressed != null)
+        {
+            for (int i = 0; i < objectsToEnableOnPressed.Length; i++)
+            {
+                if (objectsToEnableOnPressed[i] != null)
+                    objectsToEnableOnPressed[i].SetActive(false);
+            }
+        }
+
+        if (hidePressedRenderersOnStart && spriteRenderersToEnableOnPressed != null)
+        {
+            for (int i = 0; i < spriteRenderersToEnableOnPressed.Length; i++)
+            {
+                if (spriteRenderersToEnableOnPressed[i] != null)
+                    spriteRenderersToEnableOnPressed[i].enabled = false;
+            }
+        }
+    }
+
+    private void ApplyPressedVisuals()
+    {
+        ResolveButtonSpriteRenderer();
+
+        if (buttonSpriteRenderer != null && pressedSprite != null)
+            buttonSpriteRenderer.sprite = pressedSprite;
+
+        if (objectsToEnableOnPressed != null)
+        {
+            for (int i = 0; i < objectsToEnableOnPressed.Length; i++)
+            {
+                if (objectsToEnableOnPressed[i] != null)
+                    objectsToEnableOnPressed[i].SetActive(true);
+            }
+        }
+
+        if (spriteRenderersToEnableOnPressed != null)
+        {
+            for (int i = 0; i < spriteRenderersToEnableOnPressed.Length; i++)
+            {
+                if (spriteRenderersToEnableOnPressed[i] != null)
+                    spriteRenderersToEnableOnPressed[i].enabled = true;
+            }
+        }
+    }
+
+    private void ResolveButtonSpriteRenderer()
+    {
+        if (buttonSpriteRenderer != null)
+            return;
+
+        buttonSpriteRenderer = GetComponent<SpriteRenderer>();
+
+        if (buttonSpriteRenderer != null)
+            return;
+
+        buttonSpriteRenderer = GetComponentInChildren<SpriteRenderer>();
     }
 
     private void EnsureKinematicRigidbody()

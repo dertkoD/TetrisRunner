@@ -344,12 +344,12 @@ MonoBehaviour:
   canRotate: 1
   mainRenderer: {fileID: 790604182363292940}
   colorSprites:
-  - {fileID: -8031933454173806985, guid: 0a47d3f5e1ee98b4f9c552b2fc379e76, type: 3}
-  - {fileID: -5437696778824861592, guid: 0a47d3f5e1ee98b4f9c552b2fc379e76, type: 3}
-  - {fileID: 6170370928848230984, guid: 0a47d3f5e1ee98b4f9c552b2fc379e76, type: 3}
-  - {fileID: 9002468705324515776, guid: 0a47d3f5e1ee98b4f9c552b2fc379e76, type: 3}
-  - {fileID: -2130473140471067109, guid: 0a47d3f5e1ee98b4f9c552b2fc379e76, type: 3}
-  - {fileID: -4436305519151611787, guid: 0a47d3f5e1ee98b4f9c552b2fc379e76, type: 3}
+  - {fileID: 5832171855535021699, guid: 7c24da4698fb61341a90f6a0a897d47f, type: 3}
+  - {fileID: -448948775454354536, guid: 7c24da4698fb61341a90f6a0a897d47f, type: 3}
+  - {fileID: 1329915113816845207, guid: 7c24da4698fb61341a90f6a0a897d47f, type: 3}
+  - {fileID: -3185777907216620351, guid: 7c24da4698fb61341a90f6a0a897d47f, type: 3}
+  - {fileID: -8155179776209601898, guid: 7c24da4698fb61341a90f6a0a897d47f, type: 3}
+  - {fileID: -5700451112235475842, guid: 7c24da4698fb61341a90f6a0a897d47f, type: 3}
   spriteRotationOffsetSteps: 0
   flipSprite: 0
   polygonCollider: {fileID: 0}

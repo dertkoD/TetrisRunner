@@ -1,0 +1,343 @@
+fileFormatVersion: 2
+guid: f5c5891306ecd644c8fbb884552055d6
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 824759054079708798
+    second: settins_atlas_0
+  - first:
+      213: -6431595905474051762
+    second: settins_atlas_1
+  - first:
+      213: -1954239853610413863
+    second: settins_atlas_2
+  - first:
+      213: 2051611756281657125
+    second: settins_atlas_3
+  - first:
+      213: -6109905758971509741
+    second: settins_atlas_4
+  - first:
+      213: -4472515689614927079
+    second: settins_atlas_5
+  - first:
+      213: 481683591604896782
+    second: settins_atlas_6
+  - first:
+      213: 4687283595654214918
+    second: settins_atlas_7
+  - first:
+      213: 512287568923515006
+    second: settins_atlas_8
+  - first:
+      213: 2006649247520723951
+    second: settins_atlas_9
+  - first:
+      213: -1034259250422240012
+    second: settins_atlas_10
+  - first:
+      213: -2457944891111777866
+    second: settins_atlas_11
+  - first:
+      213: -994287536253354261
+    second: settins_atlas_12
+  - first:
+      213: -7123470017149963496
+    second: settins_atlas_13
+  - first:
+      213: 6182064797755652327
+    second: settins_atlas_14
+  - first:
+      213: -8640892343839010001
+    second: settins_atlas_15
+  - first:
+      213: 4346889348797144174
+    second: settins_atlas_16
+  - first:
+      213: 878856303313284922
+    second: settins_atlas_17
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 16384
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: settins_atlas_0
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 150
+        width: 1215
+        height: 930
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e7e45bb6df1227b00800000000000000
+      internalID: 824759054079708798
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: settins_atlas_1
+      rect:
+        serializedVersion: 2
+        x: 1279
+        y: 708
+        width: 558
+        height: 372
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e41cc5b99916eb6a0800000000000000
+      internalID: -6431595905474051762
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: settins_atlas_2
+      rect:
+        serializedVersion: 2
+        x: 1279
+        y: 288
+        width: 558
+        height: 373
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9d0d3a7053521e4e0800000000000000
+      internalID: -1954239853610413863
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: settins_atlas_3
+      rect:
+        serializedVersion: 2
+        x: 33
+        y: 37
+        width: 471
+        height: 68
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 527fe2eb50ac87c10800000000000000
+      internalID: 2051611756281657125
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: settins_atlas_10
+      rect:
+        serializedVersion: 2
+        x: 566
+        y: 39
+        width: 535
+        height: 66
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4fcabe401b295a1f0800000000000000
+      internalID: -1034259250422240012
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: settins_atlas_16
+      rect:
+        serializedVersion: 2
+        x: 1279
+        y: 39
+        width: 182
+        height: 173
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e6c9bf8f4d0435c30800000000000000
+      internalID: 4346889348797144174
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: settins_atlas_17
+      rect:
+        serializedVersion: 2
+        x: 1528
+        y: 39
+        width: 156
+        height: 173
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a3fe997c623523c00800000000000000
+      internalID: 878856303313284922
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: b0d946ed73b0d2045aa45907af13ac09
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      settins_atlas_0: 824759054079708798
+      settins_atlas_1: -6431595905474051762
+      settins_atlas_10: -1034259250422240012
+      settins_atlas_11: -2457944891111777866
+      settins_atlas_12: -994287536253354261
+      settins_atlas_13: -7123470017149963496
+      settins_atlas_14: 6182064797755652327
+      settins_atlas_15: -8640892343839010001
+      settins_atlas_16: 4346889348797144174
+      settins_atlas_17: 878856303313284922
+      settins_atlas_2: -1954239853610413863
+      settins_atlas_3: 2051611756281657125
+      settins_atlas_4: -6109905758971509741
+      settins_atlas_5: -4472515689614927079
+      settins_atlas_6: 481683591604896782
+      settins_atlas_7: 4687283595654214918
+      settins_atlas_8: 512287568923515006
+      settins_atlas_9: 2006649247520723951
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
