@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 public class DoorToScene : MonoBehaviour
@@ -26,6 +27,12 @@ public class DoorToScene : MonoBehaviour
             return;
         }
 
+        StartCoroutine(LoadSceneAfterWinning(other));
+    }
+
+    private IEnumerator LoadSceneAfterWinning(Collider2D player)
+    {
+        yield return PlayerWinSequence.Play(player);
         SceneTransitionManager.Instance.LoadScene(targetSceneName);
     }
 }

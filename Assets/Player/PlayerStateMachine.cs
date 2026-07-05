@@ -31,6 +31,7 @@ public class PlayerStateMachine : MonoBehaviour
     private bool jumpReleased;
     private bool initialized;
     private bool wasGrounded;
+    private bool groundStateInitialized;
 
     private void Awake()
     {
@@ -188,6 +189,9 @@ public class PlayerStateMachine : MonoBehaviour
         // (для PlayerDoubleJumper) и wall-jump'ы (для PlayerWallJumper).
         if (grounded && !wasGrounded)
         {
+            if (groundStateInitialized)
+                GameAudioController.PlayPlayerLanding();
+
             if (doubleJump != null)
                 doubleJump.Refill(config);
 
@@ -196,6 +200,7 @@ public class PlayerStateMachine : MonoBehaviour
         }
 
         wasGrounded = grounded;
+        groundStateInitialized = true;
     }
 
     private void ReadTimers()

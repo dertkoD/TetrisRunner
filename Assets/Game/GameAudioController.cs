@@ -41,10 +41,17 @@ public class GameAudioController : MonoBehaviour
     [SerializeField, Range(0f, 1f)] private float uiClickVolume = 1f;
 
     [Header("Player Run")]
-    [SerializeField] private AudioClip footstepClip;
+    [Tooltip("Player footstep sounds. The next sound will not repeat the previous one when possible.")]
+    [SerializeField] private AudioClip[] footstepClips = Array.Empty<AudioClip>();
     [SerializeField, Range(0f, 1f)] private float footstepVolume = 1f;
     [SerializeField, Range(0.5f, 1.5f)] private float footstepPitchMin = 0.95f;
     [SerializeField, Range(0.5f, 1.5f)] private float footstepPitchMax = 1.05f;
+
+    [Header("Player Landing")]
+    [SerializeField] private AudioClip playerLandingClip;
+    [SerializeField, Range(0f, 1f)] private float playerLandingVolume = 1f;
+    [SerializeField, Range(0.5f, 1.5f)] private float playerLandingPitchMin = 0.95f;
+    [SerializeField, Range(0.5f, 1.5f)] private float playerLandingPitchMax = 1.05f;
 
     [Header("Win / Defeat")]
     [SerializeField] private AudioClip victoryClip;
@@ -58,6 +65,7 @@ public class GameAudioController : MonoBehaviour
     [SerializeField] private bool stopAmbientOnDefeat = false;
 
     private int lastBlockStackIndex = -1;
+    private int lastFootstepIndex = -1;
     private bool defeatReloadPending;
 
     private void Awake()
@@ -123,12 +131,20 @@ public class GameAudioController : MonoBehaviour
         if (Instance == null)
             return;
 
+        Instance.PlayFootstepInternal();
+    }
+
+    public static void PlayPlayerLanding()
+    {
+        if (Instance == null)
+            return;
+
         Instance.PlayOneShot(
-            Instance.footstepClip,
+            Instance.playerLandingClip,
             Instance.footstepSource,
-            Instance.footstepVolume,
-            Instance.footstepPitchMin,
-            Instance.footstepPitchMax);
+            Instance.playerLandingVolume,
+            Instance.playerLandingPitchMin,
+            Instance.playerLandingPitchMax);
     }
 
     public static void PlayVictory()
@@ -177,6 +193,21 @@ public class GameAudioController : MonoBehaviour
 
         lastBlockStackIndex = index;
         PlayOneShot(blockStackClips[index], sfxSource, blockStackVolume);
+    }
+
+    private void PlayFootstepInternal()
+    {
+        int index = PickRandomClipIndex(footstepClips, lastFootstepIndex);
+        if (index < 0)
+            return;
+
+        lastFootstepIndex = index;
+        PlayOneShot(
+            footstepClips[index],
+            footstepSource,
+            footstepVolume,
+            footstepPitchMin,
+            footstepPitchMax);
     }
 
     private bool TryPlayDefeatBeforeReloadInternal(Action reloadAction)
@@ -326,6 +357,9 @@ public class GameAudioController : MonoBehaviour
     {
         if (footstepPitchMin > footstepPitchMax)
             footstepPitchMax = footstepPitchMin;
+
+        if (playerLandingPitchMin > playerLandingPitchMax)
+            playerLandingPitchMax = playerLandingPitchMin;
     }
 #endif
 }

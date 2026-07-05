@@ -1,10 +1,22 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
+using Random = UnityEngine.Random;
 
 public class TetrisBlockSpawnManager : MonoBehaviour
 {
+    private const int ShapeCheatRequiredPresses = 3;
+    private const string LShapeCheatPrefabName = "BlockStraightRight";
+    private const string IShapeCheatPrefabName = "BlockStraight";
+
+    private enum ShapeCheatKind
+    {
+        LBlock,
+        IBlock
+    }
+
     [Header("Config")]
     [SerializeField] private TetrisBlockConfigSO config;
 
@@ -76,6 +88,11 @@ public class TetrisBlockSpawnManager : MonoBehaviour
              "последних блоков (shapeHistoryWindow). Например 2 — одна форма не " +
              "должна появляться чаще двух раз за последние 5 блоков.")]
     [SerializeField, Min(1)] private int maxSameShapePerWindow = 2;
+
+    private int iShapeCheatPressCount;
+    private int oShapeCheatPressCount;
+    private int waterCheatPressCount;
+    private int queuedShapeOverrideIndex = -1;
 
     // История недавно заспавненных форм (индексы префабов) и цветов (индексы
     // палитры). Используются правилами контролируемой рандомизации. Списки
@@ -230,6 +247,11 @@ public class TetrisBlockSpawnManager : MonoBehaviour
             softDropAction.canceled -= OnSoftDropCanceled;
             softDropAction.Disable();
         }
+    }
+
+    private void Update()
+    {
+        TickCheatCodeInput();
     }
 
     private void FixedUpdate()
@@ -534,7 +556,10 @@ public class TetrisBlockSpawnManager : MonoBehaviour
             return;
         }
 
-        int shapeIndex = PickShapeIndex(prefabs.Length);
+        int shapeIndex = ConsumeQueuedShapeOverride(prefabs);
+        if (shapeIndex < 0)
+            shapeIndex = PickShapeIndex(prefabs.Length);
+
         int colorIndex = PickColorIndex(ResolvePaletteLength());
 
         // Подстраховка от выхода индекса за границы (например, если пул
@@ -628,6 +653,233 @@ public class TetrisBlockSpawnManager : MonoBehaviour
             return Random.Range(0, prefabCount);
 
         return allowed[Random.Range(0, allowed.Count)];
+    }
+
+    private void TickCheatCodeInput()
+    {
+        Keyboard keyboard = Keyboard.current;
+        if (keyboard == null)
+            return;
+
+        if (keyboard.iKey.wasPressedThisFrame)
+        {
+            iShapeCheatPressCount++;
+            oShapeCheatPressCount = 0;
+            waterCheatPressCount = 0;
+
+            if (iShapeCheatPressCount >= ShapeCheatRequiredPresses)
+            {
+                iShapeCheatPressCount = 0;
+                QueueShapeOverride(ShapeCheatKind.IBlock);
+            }
+
+            return;
+        }
+
+        if (keyboard.oKey.wasPressedThisFrame)
+        {
+            oShapeCheatPressCount++;
+            iShapeCheatPressCount = 0;
+            waterCheatPressCount = 0;
+
+            if (oShapeCheatPressCount >= ShapeCheatRequiredPresses)
+            {
+                oShapeCheatPressCount = 0;
+                QueueShapeOverride(ShapeCheatKind.LBlock);
+            }
+
+            return;
+        }
+
+        if (keyboard.periodKey.wasPressedThisFrame || keyboard.numpadPeriodKey.wasPressedThisFrame)
+        {
+            waterCheatPressCount++;
+            iShapeCheatPressCount = 0;
+            oShapeCheatPressCount = 0;
+
+            if (waterCheatPressCount >= ShapeCheatRequiredPresses)
+            {
+                waterCheatPressCount = 0;
+                ApplyWaterCheat();
+            }
+
+            return;
+        }
+
+        if (keyboard.anyKey.wasPressedThisFrame)
+            ResetCheatPressCounts();
+    }
+
+    private void ResetCheatPressCounts()
+    {
+        iShapeCheatPressCount = 0;
+        oShapeCheatPressCount = 0;
+        waterCheatPressCount = 0;
+    }
+
+    private void ApplyWaterCheat()
+    {
+        DeathWaterController water = DeathWaterController.Instance;
+        if (water != null)
+            water.Shrink(1);
+    }
+
+    private void QueueShapeOverride(ShapeCheatKind shape)
+    {
+        queuedShapeOverrideIndex = ResolveShapeCheatIndex(config != null ? config.BlockPrefabs : null, shape);
+
+        if (queuedShapeOverrideIndex < 0)
+        {
+            Debug.LogWarning(
+                $"{nameof(TetrisBlockSpawnManager)}: не удалось поставить чит-форму '{GetShapeCheatPrefabName(shape)}' в очередь.",
+                this);
+            return;
+        }
+
+        ApplyQueuedShapeOverrideToPreview();
+    }
+
+    private void ApplyQueuedShapeOverrideToPreview()
+    {
+        if (previewBlock == null || queuedShapeOverrideIndex < 0)
+            return;
+
+        if (previewShapeIndex == queuedShapeOverrideIndex)
+        {
+            queuedShapeOverrideIndex = -1;
+            return;
+        }
+
+        GameObject oldPreview = previewBlock.gameObject;
+        if (oldPreview != null)
+        {
+            oldPreview.SetActive(false);
+            Destroy(oldPreview);
+        }
+
+        previewBlock = null;
+        previewShapeIndex = -1;
+        previewColorIndex = -1;
+
+        EnsurePreviewBlock();
+    }
+
+    private int ConsumeQueuedShapeOverride(TetrisBlockFacade[] prefabs)
+    {
+        if (queuedShapeOverrideIndex < 0)
+            return -1;
+
+        int index = queuedShapeOverrideIndex;
+        queuedShapeOverrideIndex = -1;
+
+        if (prefabs == null || index < 0 || index >= prefabs.Length || prefabs[index] == null)
+            return -1;
+
+        return index;
+    }
+
+    private int ResolveShapeCheatIndex(TetrisBlockFacade[] prefabs, ShapeCheatKind shape)
+    {
+        if (prefabs == null || prefabs.Length == 0)
+            return -1;
+
+        string prefabName = GetShapeCheatPrefabName(shape);
+
+        for (int i = 0; i < prefabs.Length; i++)
+        {
+            TetrisBlockFacade prefab = prefabs[i];
+            if (prefab == null)
+                continue;
+
+            if (string.Equals(prefab.name, prefabName, StringComparison.OrdinalIgnoreCase))
+                return i;
+        }
+
+        for (int i = 0; i < prefabs.Length; i++)
+        {
+            if (!IsShapeCheatPrefab(prefabs[i], shape))
+                continue;
+
+            return i;
+        }
+
+        return -1;
+    }
+
+    private static string GetShapeCheatPrefabName(ShapeCheatKind shape)
+    {
+        return shape == ShapeCheatKind.IBlock
+            ? IShapeCheatPrefabName
+            : LShapeCheatPrefabName;
+    }
+
+    private static bool IsShapeCheatPrefab(TetrisBlockFacade prefab, ShapeCheatKind shape)
+    {
+        if (prefab == null)
+            return false;
+
+        if (string.Equals(prefab.name, GetShapeCheatPrefabName(shape), StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        Vector2Int[] offsets = prefab.BlockCells != null
+            ? prefab.BlockCells.GetStartOffsetsCopy()
+            : null;
+
+        return shape == ShapeCheatKind.IBlock
+            ? IsIShapeOffsets(offsets)
+            : IsLShapeOffsets(offsets);
+    }
+
+    private static bool IsLShapeOffsets(Vector2Int[] offsets)
+    {
+        if (offsets == null || offsets.Length != 4)
+            return false;
+
+        int minX = offsets[0].x;
+        int minY = offsets[0].y;
+
+        for (int i = 1; i < offsets.Length; i++)
+        {
+            if (offsets[i].x < minX) minX = offsets[i].x;
+            if (offsets[i].y < minY) minY = offsets[i].y;
+        }
+
+        return ContainsNormalizedOffset(offsets, minX, minY, 0, 0)
+               && ContainsNormalizedOffset(offsets, minX, minY, 0, 1)
+               && ContainsNormalizedOffset(offsets, minX, minY, 0, 2)
+               && ContainsNormalizedOffset(offsets, minX, minY, 1, 0);
+    }
+
+    private static bool IsIShapeOffsets(Vector2Int[] offsets)
+    {
+        if (offsets == null || offsets.Length != 4)
+            return false;
+
+        bool sameX = true;
+        bool sameY = true;
+        int x = offsets[0].x;
+        int y = offsets[0].y;
+
+        for (int i = 1; i < offsets.Length; i++)
+        {
+            if (offsets[i].x != x)
+                sameX = false;
+            if (offsets[i].y != y)
+                sameY = false;
+        }
+
+        return sameX || sameY;
+    }
+
+    private static bool ContainsNormalizedOffset(Vector2Int[] offsets, int minX, int minY, int x, int y)
+    {
+        for (int i = 0; i < offsets.Length; i++)
+        {
+            if (offsets[i].x - minX == x && offsets[i].y - minY == y)
+                return true;
+        }
+
+        return false;
     }
 
     /// <summary>

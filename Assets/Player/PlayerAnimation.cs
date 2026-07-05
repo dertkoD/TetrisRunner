@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 /// <summary>
@@ -24,6 +25,11 @@ public class PlayerAnimation : MonoBehaviour
     private static readonly int XVelocityHash = Animator.StringToHash("xVelocity");
     private static readonly int YVelocityHash = Animator.StringToHash("yVelocity");
     private static readonly int IsGroundHash = Animator.StringToHash("IsGround");
+    private static readonly int WinningHash = Animator.StringToHash("Winning");
+
+    private const string WinningTriggerName = "Winning";
+    private const string WinningClipName = "WinningClip";
+    private const float FallbackWinningDuration = 1f;
 
     [Header("References")]
     [Tooltip("Animator с контроллером PlayerAnimationController. Если не задан — " +
@@ -58,6 +64,7 @@ public class PlayerAnimation : MonoBehaviour
     private PlayerConfigSO config;
     private PlayerGroundChecker groundChecker;
     private bool initialized;
+    private bool playingWinning;
 
     private void Awake()
     {
@@ -111,6 +118,9 @@ public class PlayerAnimation : MonoBehaviour
 
     private void UpdateAnimator()
     {
+        if (playingWinning)
+            return;
+
         Vector2 velocity = body.linearVelocity;
 
         // ---- IsGround ----
@@ -154,5 +164,104 @@ public class PlayerAnimation : MonoBehaviour
             animator.SetFloat(YVelocityHash, yParam, yVelocityDampTime, Time.deltaTime);
         else
             animator.SetFloat(YVelocityHash, yParam);
+    }
+
+    public float PlayWinningAnimation()
+    {
+        if (!initialized || animator == null)
+            return 0f;
+
+        playingWinning = true;
+
+        animator.SetBool(IsGroundHash, true);
+        animator.SetFloat(XVelocityHash, 0f);
+        animator.SetFloat(YVelocityHash, 0f);
+        animator.Update(0f);
+
+        if (!HasAnimatorParameter(WinningHash, AnimatorControllerParameterType.Trigger))
+        {
+            Debug.LogWarning($"{nameof(PlayerAnimation)}: trigger '{WinningTriggerName}' не найден в Animator.", this);
+            return 0f;
+        }
+
+        animator.ResetTrigger(WinningHash);
+        animator.SetTrigger(WinningHash);
+
+        return ResolveWinningAnimationDuration();
+    }
+
+    private bool HasAnimatorParameter(int hash, AnimatorControllerParameterType type)
+    {
+        AnimatorControllerParameter[] parameters = animator.parameters;
+        for (int i = 0; i < parameters.Length; i++)
+        {
+            AnimatorControllerParameter parameter = parameters[i];
+            if (parameter.nameHash == hash && parameter.type == type)
+                return true;
+        }
+
+        return false;
+    }
+
+    private float ResolveWinningAnimationDuration()
+    {
+        RuntimeAnimatorController controller = animator.runtimeAnimatorController;
+        if (controller == null)
+            return FallbackWinningDuration;
+
+        AnimationClip[] clips = controller.animationClips;
+        if (clips == null)
+            return FallbackWinningDuration;
+
+        for (int i = 0; i < clips.Length; i++)
+        {
+            AnimationClip clip = clips[i];
+            if (clip != null && clip.name == WinningClipName)
+                return Mathf.Max(0f, clip.length);
+        }
+
+        return FallbackWinningDuration;
+    }
+}
+
+public static class PlayerWinSequence
+{
+    public static IEnumerator Play(Collider2D playerCollider)
+    {
+        if (playerCollider == null)
+            yield break;
+
+        PlayerFacade facade = playerCollider.GetComponentInParent<PlayerFacade>();
+        PlayerAnimation animation = playerCollider.GetComponentInParent<PlayerAnimation>();
+
+        if (animation == null)
+            animation = playerCollider.GetComponentInChildren<PlayerAnimation>();
+
+        FreezePlayer(playerCollider, facade);
+
+        float duration = animation != null ? animation.PlayWinningAnimation() : 0f;
+        if (duration > 0f)
+        {
+            yield return null;
+            yield return new WaitForSeconds(duration);
+        }
+    }
+
+    private static void FreezePlayer(Collider2D playerCollider, PlayerFacade facade)
+    {
+        PlayerStateMachine stateMachine = playerCollider.GetComponentInParent<PlayerStateMachine>();
+        if (stateMachine != null)
+            stateMachine.enabled = false;
+
+        PlayerFootstepAudio footstepAudio = playerCollider.GetComponentInParent<PlayerFootstepAudio>();
+        if (footstepAudio != null)
+            footstepAudio.enabled = false;
+
+        Rigidbody2D body = facade != null ? facade.Body : playerCollider.attachedRigidbody;
+        if (body != null)
+        {
+            body.linearVelocity = Vector2.zero;
+            body.angularVelocity = 0f;
+        }
     }
 }

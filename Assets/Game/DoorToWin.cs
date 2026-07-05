@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 public class DoorToWin : MonoBehaviour
@@ -26,6 +27,12 @@ public class DoorToWin : MonoBehaviour
             return;
         }
 
+        StartCoroutine(ShowWinMenuAfterWinning(other));
+    }
+
+    private IEnumerator ShowWinMenuAfterWinning(Collider2D player)
+    {
+        yield return PlayerWinSequence.Play(player);
         winMenuController.ShowWinMenu();
     }
 }
