@@ -140,8 +140,8 @@ public class PlayerCrushDetector : MonoBehaviour
 
         ResolveGroundChecker();
 
-        if (groundChecker != null)
-            return groundChecker.IsGrounded;
+        if (groundChecker != null && groundChecker.IsGrounded)
+            return true;
 
         return ProbeSupportUnderFeet();
     }
@@ -218,7 +218,7 @@ public class PlayerCrushDetector : MonoBehaviour
         if (controller == null)
             return false;
 
-        if (!controller.enabled || controller.IsLocked)
+        if (!controller.IsCrushHazardActive)
             return false;
 
         return true;
@@ -250,7 +250,7 @@ public class PlayerCrushDetector : MonoBehaviour
                 return true;
         }
 
-        return false;
+        return IsOtherAboveByAabb(other);
     }
 
     /// <summary>

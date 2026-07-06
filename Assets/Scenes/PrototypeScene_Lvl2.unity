@@ -2148,7 +2148,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 0}
+      - m_Target: {fileID: 1080258463}
         m_TargetAssemblyTypeName: PauseMenuController, Assembly-CSharp
         m_MethodName: ResumeGame
         m_Mode: 1
@@ -2382,6 +2382,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PauseMenuController
   pauseMenuPanel: {fileID: 2049470599}
+  soundToggleImage: {fileID: 1104762523}
+  soundOnSprite: {fileID: -5098987277754779595, guid: 4a8b69c0ce321884d8985f62cabc2e67, type: 3}
+  soundOffSprite: {fileID: -8254512130217923308, guid: 4a8b69c0ce321884d8985f62cabc2e67, type: 3}
+  readInitialMuteFromAudioListener: 1
   mainMenuSceneName: MainMenu
   useEscapeKeyboard: 1
   useGamepadStart: 1
@@ -2639,7 +2643,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1104762523}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1080258463}
+        m_TargetAssemblyTypeName: PauseMenuController, Assembly-CSharp
+        m_MethodName: ToggleSound
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &1104762523
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3521,7 +3537,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 0}
+      - m_Target: {fileID: 1080258463}
         m_TargetAssemblyTypeName: PauseMenuController, Assembly-CSharp
         m_MethodName: GoToMainMenu
         m_Mode: 1

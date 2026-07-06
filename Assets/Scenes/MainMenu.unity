@@ -1519,7 +1519,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7375780760507850801, guid: 01b87838569656740856bd99b3edfc0a, type: 3}
       propertyPath: blockStackClips.Array.size
-      value: 3
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7375780760507850801, guid: 01b87838569656740856bd99b3edfc0a, type: 3}
       propertyPath: makePersistentAcrossScenes
@@ -1528,11 +1528,11 @@ PrefabInstance:
     - target: {fileID: 7375780760507850801, guid: 01b87838569656740856bd99b3edfc0a, type: 3}
       propertyPath: 'blockStackClips.Array.data[0]'
       value: 
-      objectReference: {fileID: 8300000, guid: 6c84181224abdd24295177c203f1622f, type: 3}
+      objectReference: {fileID: 8300000, guid: 68702fa7837e3d245a8957e3034cf089, type: 3}
     - target: {fileID: 7375780760507850801, guid: 01b87838569656740856bd99b3edfc0a, type: 3}
       propertyPath: 'blockStackClips.Array.data[1]'
       value: 
-      objectReference: {fileID: 8300000, guid: bb011323154cefc4d9fcf8ee26365fcc, type: 3}
+      objectReference: {fileID: 8300000, guid: a5ccda691276eb845af6ae41644caa5b, type: 3}
     - target: {fileID: 7375780760507850801, guid: 01b87838569656740856bd99b3edfc0a, type: 3}
       propertyPath: 'blockStackClips.Array.data[2]'
       value: 

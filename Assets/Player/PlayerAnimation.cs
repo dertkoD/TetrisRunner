@@ -238,6 +238,7 @@ public static class PlayerWinSequence
             animation = playerCollider.GetComponentInChildren<PlayerAnimation>();
 
         FreezePlayer(playerCollider, facade);
+        GameAudioController.PlayVictory();
 
         float duration = animation != null ? animation.PlayWinningAnimation() : 0f;
         if (duration > 0f)

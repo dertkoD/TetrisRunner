@@ -51,20 +51,15 @@ MonoBehaviour:
   uiSource: {fileID: 0}
   footstepSource: {fileID: 0}
   blockStackClips:
-  - {fileID: 8300000, guid: a5ccda691276eb845af6ae41644caa5b, type: 3}
-  - {fileID: 8300000, guid: 3a883bfe2a93fbf4eb6d1cce48f1aabb, type: 3}
   - {fileID: 8300000, guid: 68702fa7837e3d245a8957e3034cf089, type: 3}
-  - {fileID: 8300000, guid: 438df5cc4832e7149bf3fbb1a2602ca8, type: 3}
-  - {fileID: 8300000, guid: e1efa3016b20e0e498a70c6e002226b8, type: 3}
   blockStackVolume: 1
   blockWaterClips:
-  - {fileID: 8300000, guid: d152cb41834b26640b7fbf9068380f1a, type: 3}
   - {fileID: 8300000, guid: 9015018d9a08d6c47993c871989504ad, type: 3}
   blockWaterVolume: 1
   blockDestroyClip: {fileID: 8300000, guid: d2ec5e72ac9871b4f8674c6ea980cf93, type: 3}
   blockDestroyVolume: 1
   ambientClip: {fileID: 8300000, guid: 2c35fb5b6b2bc52418e09353c4a8f46f, type: 3}
-  ambientVolume: 0.6
+  ambientVolume: 1
   playAmbientOnStart: 1
   uiClickClip: {fileID: 8300000, guid: 1f11bf23315675e45ada45b059a5d653, type: 3}
   uiClickVolume: 1

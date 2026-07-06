@@ -40,8 +40,6 @@ public class WinMenuController : MonoBehaviour
             winPanel.SetActive(true);
         }
 
-        GameAudioController.PlayVictory();
-
         Time.timeScale = 0f;
     }
 

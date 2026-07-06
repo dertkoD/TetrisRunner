@@ -31,7 +31,7 @@ using UnityEngine;
 ///
 /// Блоки сквозь воду свободно проходят и не разрушаются: и игровые блоки,
 /// и анкоры уровня остаются на своих клетках даже под водой. А вот игрок
-/// тонет: как только его pivot опускается ниже верхней границы воды,
+/// тонет: как только низ его коллайдера опускается ниже верхней границы воды,
 /// текущая сцена перезагружается (поведение управляется
 /// <see cref="killPlayerWhenSubmerged"/> и <see cref="playerSubmergeSlack"/>).
 /// Дополнительно, как и раньше, сцена перезапускается, когда вода
@@ -64,13 +64,13 @@ public class DeathWaterController : MonoBehaviour
     [SerializeField] private Transform doorMarker;
 
     [Header("Player Drowning")]
-    [Tooltip("Если true — игрок умирает (сцена перезагружается), как только его pivot " +
+    [Tooltip("Если true — игрок умирает (сцена перезагружается), как только низ его коллайдера " +
              "оказывается ниже верхней границы воды. Без этого вода вообще не убивает " +
              "игрока, даже если он полностью под водой.")]
     [SerializeField] private bool killPlayerWhenSubmerged = true;
 
-    [Tooltip("Запас в мировых единицах: игрок считается утонувшим, когда его pivot " +
-             "опускается НИЖЕ (CurrentTopY − этот запас). 0 — как только pivot ушёл " +
+    [Tooltip("Запас в мировых единицах: игрок считается утонувшим, когда низ его коллайдера " +
+             "опускается НИЖЕ (CurrentTopY − этот запас). 0 — как только коллайдер ушёл " +
              "под уровень воды. Положительное значение означает «дать игроку немного " +
              "уйти под воду, прежде чем убивать».")]
     [SerializeField] private float playerSubmergeSlack = 0f;
@@ -96,6 +96,7 @@ public class DeathWaterController : MonoBehaviour
     private bool erosionInitialized;
 
     private readonly List<PlayerFacade> playerCache = new List<PlayerFacade>();
+    private readonly List<Collider2D> playerColliderCache = new List<Collider2D>();
     private bool playerCacheValid;
 
     /// <summary>
@@ -251,7 +252,7 @@ public class DeathWaterController : MonoBehaviour
     }
 
     /// <summary>
-    /// Проверяет всех игроков на сцене: если pivot игрока опустился ниже
+    /// Проверяет всех игроков на сцене: если низ коллайдера игрока опустился ниже
     /// верхней границы воды (с учётом запаса <see cref="playerSubmergeSlack"/>) —
     /// перезагружает сцену. Раньше игрок мог быть полностью под водой и при
     /// этом продолжать бегать и двигать блоки, потому что вода вообще не
@@ -263,7 +264,10 @@ public class DeathWaterController : MonoBehaviour
             RebuildPlayerCache();
 
         if (playerCache.Count == 0)
+        {
+            playerCacheValid = false;
             return;
+        }
 
         float drownAtY = CurrentTopY - playerSubmergeSlack;
 
@@ -280,13 +284,34 @@ public class DeathWaterController : MonoBehaviour
                 return;
             }
 
-            Vector3 pos = player.transform.position;
-            if (pos.y < drownAtY)
+            if (IsPlayerSubmerged(player, drownAtY))
             {
                 LevelReloader.RequestReload();
                 return;
             }
         }
+    }
+
+    private bool IsPlayerSubmerged(PlayerFacade player, float drownAtY)
+    {
+        if (player == null)
+            return false;
+
+        playerColliderCache.Clear();
+        player.GetComponentsInChildren<Collider2D>(false, playerColliderCache);
+
+        for (int i = 0; i < playerColliderCache.Count; i++)
+        {
+            Collider2D collider = playerColliderCache[i];
+            if (collider == null) continue;
+            if (!collider.enabled) continue;
+            if (collider.isTrigger) continue;
+
+            if (collider.bounds.min.y <= drownAtY)
+                return true;
+        }
+
+        return player.transform.position.y <= drownAtY;
     }
 
     private void RebuildPlayerCache()

@@ -31,11 +31,14 @@ public class TetrisBlockController : MonoBehaviour
     private float growElapsed;
     private float growDuration;
     private float growStartScale;
+    private float crushHazardUntil = -1f;
 
     private const float ActiveScale = 1f;
+    private const float CrushHazardAfterLockSeconds = 0.25f;
 
     public bool IsLocked => locked;
     public bool IsControlled => controlled;
+    public bool IsCrushHazardActive => initialized && ((controlled && !locked) || Time.time <= crushHazardUntil);
 
     /// <summary>True, пока блок находится в режиме предпоказа (не активен).</summary>
     public bool IsPreview => isPreview;
@@ -127,6 +130,7 @@ public class TetrisBlockController : MonoBehaviour
         controlled = false;
         isPreview = false;
         growing = false;
+        crushHazardUntil = -1f;
         moveInput = Vector2.zero;
         initialized = true;
     }
@@ -324,6 +328,7 @@ public class TetrisBlockController : MonoBehaviour
 
         controlled = false;
         locked = true;
+        crushHazardUntil = Time.time + CrushHazardAfterLockSeconds;
         moveInput = Vector2.zero;
 
         // Если блок залочился, не успев дорасти — мгновенно доводим до полного
