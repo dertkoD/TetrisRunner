@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 [DisallowMultipleComponent]
 [AddComponentMenu("Game/Game Audio Controller")]
@@ -86,6 +87,13 @@ public class GameAudioController : MonoBehaviour
         if (makePersistentAcrossScenes)
             DontDestroyOnLoad(gameObject);
 
+        // Когда контроллер живёт между сценами (makePersistentAcrossScenes),
+        // после перезагрузки уровня его нужно «разблокировать»: сбросить флаг
+        // отложенного дефит-ребута, иначе вторая смерть уже не перезапустит
+        // сцену (TryPlayDefeatBeforeReload вернёт true, но ничего не сделает).
+        SceneManager.sceneLoaded -= HandleSceneLoaded;
+        SceneManager.sceneLoaded += HandleSceneLoaded;
+
         EnsureSources();
         ConfigureSources();
     }
@@ -98,8 +106,18 @@ public class GameAudioController : MonoBehaviour
 
     private void OnDestroy()
     {
+        SceneManager.sceneLoaded -= HandleSceneLoaded;
+
         if (Instance == this)
             Instance = null;
+    }
+
+    private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        // Новая (пере)загрузка сцены = новый «раунд». Снимаем блокировку, чтобы
+        // следующая смерть игрока снова смогла проиграть звук поражения и
+        // перезапустить уровень.
+        defeatReloadPending = false;
     }
 
     public static void PlayBlockStack()
