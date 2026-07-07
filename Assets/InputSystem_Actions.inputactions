@@ -572,6 +572,39 @@
                 },
                 {
                     "name": "",
+                    "id": "1bd78224-da59-4dee-8212-1cb5b2c6631a",
+                    "path": "<Gamepad>/rightStick",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Gamepad",
+                    "action": "MoveBlocks",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "5f9991e3-d0cb-492e-916c-24dcd774060e",
+                    "path": "<Gamepad>/rightStick/up",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Gamepad",
+                    "action": "RotateRight",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "d6f75215-50c2-4e70-a3ea-e1137c5a615e",
+                    "path": "<Gamepad>/rightStick/down",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Gamepad",
+                    "action": "Soft Drop",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
                     "id": "819ae2e4-db11-4ae9-ba54-42d6d84e76fc",
                     "path": "<Keyboard>/escape",
                     "interactions": "",
