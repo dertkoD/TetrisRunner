@@ -69,11 +69,15 @@ public class DeathWaterController : MonoBehaviour
              "игрока, даже если он полностью под водой.")]
     [SerializeField] private bool killPlayerWhenSubmerged = true;
 
-    [Tooltip("Запас в мировых единицах: игрок считается утонувшим, когда низ его коллайдера " +
-             "опускается НИЖЕ (CurrentTopY − этот запас). 0 — как только коллайдер ушёл " +
-             "под уровень воды. Положительное значение означает «дать игроку немного " +
-             "уйти под воду, прежде чем убивать».")]
+    [Tooltip("Запас в мировых единицах: верхняя граница воды для расчёта смерти берётся как " +
+             "(CurrentTopY − этот запас). 0 — считаем по фактической поверхности воды. " +
+             "Положительное значение означает «дать игроку немного уйти под воду, прежде чем убивать».")]
     [SerializeField] private float playerSubmergeSlack = 0f;
+
+    [Tooltip("Какая доля тела игрока должна оказаться под водой, чтобы засчитать смерть. " +
+             "0.5 — более половины тела (по умолчанию): пока под водой меньше половины, игрок жив. " +
+             "1 — только когда игрок полностью под водой. 0 — смерть от любого касания воды (старое поведение).")]
+    [SerializeField, Range(0f, 1f)] private float submergeDeathFraction = 0.5f;
 
     private static DeathWaterController instance;
 
@@ -292,13 +296,19 @@ public class DeathWaterController : MonoBehaviour
         }
     }
 
-    private bool IsPlayerSubmerged(PlayerFacade player, float drownAtY)
+    private bool IsPlayerSubmerged(PlayerFacade player, float waterTopY)
     {
         if (player == null)
             return false;
 
         playerColliderCache.Clear();
         player.GetComponentsInChildren<Collider2D>(false, playerColliderCache);
+
+        // Собираем общий AABB тела игрока по всем «твёрдым» коллайдерам, чтобы
+        // «доля под водой» считалась по всему телу, а не по отдельной мелкой
+        // ступне/носу — иначе игрок умирал, едва коснувшись воды.
+        bool hasBounds = false;
+        Bounds bodyBounds = default;
 
         for (int i = 0; i < playerColliderCache.Count; i++)
         {
@@ -307,11 +317,32 @@ public class DeathWaterController : MonoBehaviour
             if (!collider.enabled) continue;
             if (collider.isTrigger) continue;
 
-            if (collider.bounds.min.y <= drownAtY)
-                return true;
+            if (!hasBounds)
+            {
+                bodyBounds = collider.bounds;
+                hasBounds = true;
+            }
+            else
+            {
+                bodyBounds.Encapsulate(collider.bounds);
+            }
         }
 
-        return player.transform.position.y <= drownAtY;
+        if (!hasBounds)
+        {
+            // Нет подходящих коллайдеров — сравниваем по позиции пивота.
+            return player.transform.position.y <= waterTopY;
+        }
+
+        float height = bodyBounds.size.y;
+        if (height <= 0f)
+            return bodyBounds.center.y <= waterTopY;
+
+        // Порог смерти по Y: низ тела + доля высоты. Когда поверхность воды
+        // поднялась до этого уровня, под водой оказалась ровно доля
+        // submergeDeathFraction тела. Смерть — когда под водой БОЛЬШЕ этой доли.
+        float deathLineY = bodyBounds.min.y + height * submergeDeathFraction;
+        return waterTopY >= deathLineY;
     }
 
     private void RebuildPlayerCache()
