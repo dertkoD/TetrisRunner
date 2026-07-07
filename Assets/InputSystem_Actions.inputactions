@@ -575,7 +575,7 @@
                     "id": "1bd78224-da59-4dee-8212-1cb5b2c6631a",
                     "path": "<Gamepad>/rightStick",
                     "interactions": "",
-                    "processors": "stickDeadzone(min=0.3,max=0.9)",
+                    "processors": "stickDeadzone(min=0.6,max=0.9)",
                     "groups": "Gamepad",
                     "action": "MoveBlocks",
                     "isComposite": false,
