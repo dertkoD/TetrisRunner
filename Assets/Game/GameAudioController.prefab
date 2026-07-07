@@ -51,7 +51,10 @@ MonoBehaviour:
   uiSource: {fileID: 0}
   footstepSource: {fileID: 0}
   blockStackClips:
-  - {fileID: 8300000, guid: 68702fa7837e3d245a8957e3034cf089, type: 3}
+  - {fileID: 8300000, guid: 3a883bfe2a93fbf4eb6d1cce48f1aabb, type: 3}
+  - {fileID: 8300000, guid: c3c221bb2c4a16246aedd2f4630c989c, type: 3}
+  - {fileID: 8300000, guid: 438df5cc4832e7149bf3fbb1a2602ca8, type: 3}
+  - {fileID: 8300000, guid: e1efa3016b20e0e498a70c6e002226b8, type: 3}
   blockStackVolume: 1
   blockWaterClips:
   - {fileID: 8300000, guid: 9015018d9a08d6c47993c871989504ad, type: 3}

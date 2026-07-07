@@ -157,7 +157,7 @@
                     "id": "978bfe49-cc26-4a3d-ab7b-7d7a29327403",
                     "path": "<Gamepad>/leftStick",
                     "interactions": "",
-                    "processors": "",
+                    "processors": "stickDeadzone(min=0.3,max=0.9)",
                     "groups": ";Gamepad",
                     "action": "Move",
                     "isComposite": false,
@@ -567,6 +567,39 @@
                     "processors": "",
                     "groups": "",
                     "action": "RotateRight",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "1bd78224-da59-4dee-8212-1cb5b2c6631a",
+                    "path": "<Gamepad>/rightStick",
+                    "interactions": "",
+                    "processors": "stickDeadzone(min=0.6,max=0.9)",
+                    "groups": "Gamepad",
+                    "action": "MoveBlocks",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "5f9991e3-d0cb-492e-916c-24dcd774060e",
+                    "path": "<Gamepad>/rightStick/up",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Gamepad",
+                    "action": "RotateRight",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "d6f75215-50c2-4e70-a3ea-e1137c5a615e",
+                    "path": "<Gamepad>/rightStick/down",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Gamepad",
+                    "action": "Soft Drop",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
