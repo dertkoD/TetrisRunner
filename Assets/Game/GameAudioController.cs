@@ -10,7 +10,7 @@ public class GameAudioController : MonoBehaviour
     public static GameAudioController Instance { get; private set; }
 
     [Header("Lifetime")]
-    [SerializeField] private bool makePersistentAcrossScenes = false;
+    [SerializeField] private bool makePersistentAcrossScenes = true;
     [SerializeField] private bool replaceExistingInstance = true;
 
     [Header("Audio Sources")]
@@ -84,8 +84,13 @@ public class GameAudioController : MonoBehaviour
 
         Instance = this;
 
-        if (makePersistentAcrossScenes)
-            DontDestroyOnLoad(gameObject);
+        // Audio must not disappear on level transition/reload. The serialized
+        // flag is kept for old scene/prefab compatibility, but runtime audio is
+        // always persistent so ambient and shared SFX keep working between scenes.
+        if (!makePersistentAcrossScenes)
+            makePersistentAcrossScenes = true;
+
+        DontDestroyOnLoad(gameObject);
 
         // Когда контроллер живёт между сценами (makePersistentAcrossScenes),
         // после перезагрузки уровня его нужно «разблокировать»: сбросить флаг
@@ -100,8 +105,7 @@ public class GameAudioController : MonoBehaviour
 
     private void Start()
     {
-        if (playAmbientOnStart)
-            PlayAmbient();
+        EnsureAmbientPlaying();
     }
 
     private void OnDestroy()
@@ -118,6 +122,8 @@ public class GameAudioController : MonoBehaviour
         // следующая смерть игрока снова смогла проиграть звук поражения и
         // перезапустить уровень.
         defeatReloadPending = false;
+
+        EnsureAmbientPlaying();
     }
 
     public static void PlayBlockStack()
@@ -189,12 +195,26 @@ public class GameAudioController : MonoBehaviour
         if (ambientSource == null || ambientClip == null)
             return;
 
+        bool clipChanged = ambientSource.clip != ambientClip;
+        if (clipChanged)
+            ambientSource.Stop();
+
         ambientSource.clip = ambientClip;
         ambientSource.volume = ambientVolume;
         ambientSource.loop = true;
 
         if (!ambientSource.isPlaying)
             ambientSource.Play();
+    }
+
+    private void EnsureAmbientPlaying()
+    {
+        if (!playAmbientOnStart)
+            return;
+
+        EnsureSources();
+        ConfigureSources();
+        PlayAmbient();
     }
 
     public void StopAmbient()

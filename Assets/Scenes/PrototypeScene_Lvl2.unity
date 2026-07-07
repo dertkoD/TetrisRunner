@@ -2382,7 +2382,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PauseMenuController
   pauseMenuPanel: {fileID: 2049470599}
-  soundToggleImage: {fileID: 1104762523}
+  soundToggleImage: {fileID: 1942139462}
   soundOnSprite: {fileID: -5098987277754779595, guid: 4a8b69c0ce321884d8985f62cabc2e67, type: 3}
   soundOffSprite: {fileID: -8254512130217923308, guid: 4a8b69c0ce321884d8985f62cabc2e67, type: 3}
   readInitialMuteFromAudioListener: 1
@@ -5021,79 +5021,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1001 &165433206937787381
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 5251865457610206740, guid: 01b87838569656740856bd99b3edfc0a, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5251865457610206740, guid: 01b87838569656740856bd99b3edfc0a, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5251865457610206740, guid: 01b87838569656740856bd99b3edfc0a, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5251865457610206740, guid: 01b87838569656740856bd99b3edfc0a, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 5251865457610206740, guid: 01b87838569656740856bd99b3edfc0a, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5251865457610206740, guid: 01b87838569656740856bd99b3edfc0a, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5251865457610206740, guid: 01b87838569656740856bd99b3edfc0a, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5251865457610206740, guid: 01b87838569656740856bd99b3edfc0a, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5251865457610206740, guid: 01b87838569656740856bd99b3edfc0a, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5251865457610206740, guid: 01b87838569656740856bd99b3edfc0a, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7375780760507850801, guid: 01b87838569656740856bd99b3edfc0a, type: 3}
-      propertyPath: stopAmbientOnVictory
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 7375780760507850801, guid: 01b87838569656740856bd99b3edfc0a, type: 3}
-      propertyPath: replaceExistingInstance
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7375780760507850801, guid: 01b87838569656740856bd99b3edfc0a, type: 3}
-      propertyPath: makePersistentAcrossScenes
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 7502408541157941024, guid: 01b87838569656740856bd99b3edfc0a, type: 3}
-      propertyPath: m_Name
-      value: GameAudioController
-      objectReference: {fileID: 0}
-    - target: {fileID: 7502408541157941024, guid: 01b87838569656740856bd99b3edfc0a, type: 3}
-      propertyPath: m_IsActive
-      value: 0
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 01b87838569656740856bd99b3edfc0a, type: 3}
 --- !u!114 &1319503698115198558 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 1411825408705767906, guid: 3ddbfd867703d284c9fcaeb38b03a95e, type: 3}
@@ -5741,5 +5668,4 @@ SceneRoots:
   - {fileID: 1651388263}
   - {fileID: 4536876626565055862}
   - {fileID: 892949589}
-  - {fileID: 165433206937787381}
   - {fileID: 4333144980841987383}
