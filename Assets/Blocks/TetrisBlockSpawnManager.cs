@@ -658,10 +658,28 @@ public class TetrisBlockSpawnManager : MonoBehaviour
     private void TickCheatCodeInput()
     {
         Keyboard keyboard = Keyboard.current;
-        if (keyboard == null)
+        Gamepad gamepad = Gamepad.current;
+
+        if (keyboard == null && gamepad == null)
             return;
 
-        if (keyboard.iKey.wasPressedThisFrame)
+        // Чит-коды работают и с клавиатуры, и с геймпада:
+        //  * I-блок  — клавиша I  ИЛИ кнопка «квадрат» (buttonWest);
+        //  * Г-блок  — клавиша O  ИЛИ кнопка «треугольник» (buttonNorth);
+        //  * вода −1 — клавиша «.» ИЛИ триггер R2 (rightTrigger).
+        bool iPressed =
+            (keyboard != null && keyboard.iKey.wasPressedThisFrame) ||
+            (gamepad != null && gamepad.buttonWest.wasPressedThisFrame);
+
+        bool oPressed =
+            (keyboard != null && keyboard.oKey.wasPressedThisFrame) ||
+            (gamepad != null && gamepad.buttonNorth.wasPressedThisFrame);
+
+        bool waterPressed =
+            (keyboard != null && (keyboard.periodKey.wasPressedThisFrame || keyboard.numpadPeriodKey.wasPressedThisFrame)) ||
+            (gamepad != null && gamepad.rightTrigger.wasPressedThisFrame);
+
+        if (iPressed)
         {
             iShapeCheatPressCount++;
             oShapeCheatPressCount = 0;
@@ -676,7 +694,7 @@ public class TetrisBlockSpawnManager : MonoBehaviour
             return;
         }
 
-        if (keyboard.oKey.wasPressedThisFrame)
+        if (oPressed)
         {
             oShapeCheatPressCount++;
             iShapeCheatPressCount = 0;
@@ -691,7 +709,7 @@ public class TetrisBlockSpawnManager : MonoBehaviour
             return;
         }
 
-        if (keyboard.periodKey.wasPressedThisFrame || keyboard.numpadPeriodKey.wasPressedThisFrame)
+        if (waterPressed)
         {
             waterCheatPressCount++;
             iShapeCheatPressCount = 0;
@@ -706,8 +724,35 @@ public class TetrisBlockSpawnManager : MonoBehaviour
             return;
         }
 
-        if (keyboard.anyKey.wasPressedThisFrame)
+        // Любой другой ввод (кроме чит-кнопок) сбрасывает счётчик, чтобы
+        // требовались именно ПОДРЯД идущие нажатия одной и той же кнопки.
+        bool otherKeyboard = keyboard != null && keyboard.anyKey.wasPressedThisFrame;
+        bool otherGamepad = gamepad != null && GamepadNonCheatButtonPressed(gamepad);
+
+        if (otherKeyboard || otherGamepad)
             ResetCheatPressCounts();
+    }
+
+    /// <summary>
+    /// True, если на геймпаде в этом кадре нажата какая-либо кнопка, НЕ являющаяся
+    /// чит-кнопкой (квадрат/треугольник/R2). Используется, чтобы сбить счётчик
+    /// последовательных нажатий чит-кода — так же, как это делает keyboard.anyKey.
+    /// </summary>
+    private static bool GamepadNonCheatButtonPressed(Gamepad gamepad)
+    {
+        return gamepad.buttonSouth.wasPressedThisFrame
+            || gamepad.buttonEast.wasPressedThisFrame
+            || gamepad.leftShoulder.wasPressedThisFrame
+            || gamepad.rightShoulder.wasPressedThisFrame
+            || gamepad.leftTrigger.wasPressedThisFrame
+            || gamepad.startButton.wasPressedThisFrame
+            || gamepad.selectButton.wasPressedThisFrame
+            || gamepad.leftStickButton.wasPressedThisFrame
+            || gamepad.rightStickButton.wasPressedThisFrame
+            || gamepad.dpad.up.wasPressedThisFrame
+            || gamepad.dpad.down.wasPressedThisFrame
+            || gamepad.dpad.left.wasPressedThisFrame
+            || gamepad.dpad.right.wasPressedThisFrame;
     }
 
     private void ResetCheatPressCounts()

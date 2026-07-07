@@ -95,6 +95,15 @@ public class PlayerBlockFreeze : MonoBehaviour
 
     private void OnFreezePressed(InputAction.CallbackContext ctx)
     {
+        TryToggle();
+    }
+
+    /// <summary>
+    /// Переключает заморозку (вкл → выкл и наоборот). Вызывается как из
+    /// InputAction'а (клавиатура), так и из опроса геймпада (кнопка O / Circle).
+    /// </summary>
+    private void TryToggle()
+    {
         // Toggle. Каждое нажатие переключает: вкл → выкл и наоборот.
         if (toggleActive)
         {
@@ -110,8 +119,26 @@ public class PlayerBlockFreeze : MonoBehaviour
         toggleActive = true;
     }
 
+    /// <summary>
+    /// Опрос геймпада: «остановить блок» на кнопку O (Circle / buttonEast).
+    /// Опрашиваем напрямую, чтобы способность работала на джойстике даже без
+    /// назначенного InputAction'а в PlayerConfigSO. Клавиатурный биндинг
+    /// (FreezeAction) при этом продолжает работать через OnFreezePressed.
+    /// </summary>
+    private void PollGamepadToggle()
+    {
+        Gamepad gamepad = Gamepad.current;
+        if (gamepad == null)
+            return;
+
+        if (gamepad.buttonEast.wasPressedThisFrame)
+            TryToggle();
+    }
+
     private void Update()
     {
+        PollGamepadToggle();
+
         float dt = Time.deltaTime;
 
         if (toggleActive)
