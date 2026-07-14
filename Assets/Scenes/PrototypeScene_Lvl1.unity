@@ -3610,7 +3610,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!212 &1722544423
 SpriteRenderer:
   serializedVersion: 2
@@ -4272,7 +4272,7 @@ PrefabInstance:
     - target: {fileID: 6170271382710332421, guid: 9b0544694f5b2bb418e428235b62785a, type: 3}
       propertyPath: m_Sprite
       value: 
-      objectReference: {fileID: 7616689108573627699, guid: 8cb36d2e827519146ae4d947df9b2205, type: 3}
+      objectReference: {fileID: -4481172983441127353, guid: 8cb36d2e827519146ae4d947df9b2205, type: 3}
     - target: {fileID: 6170271382710332421, guid: 9b0544694f5b2bb418e428235b62785a, type: 3}
       propertyPath: m_Color.b
       value: 0.9622642
@@ -4300,7 +4300,7 @@ PrefabInstance:
     - target: {fileID: 8994006026001905346, guid: 9b0544694f5b2bb418e428235b62785a, type: 3}
       propertyPath: pressedSprite
       value: 
-      objectReference: {fileID: -4481172983441127353, guid: 8cb36d2e827519146ae4d947df9b2205, type: 3}
+      objectReference: {fileID: 7616689108573627699, guid: 8cb36d2e827519146ae4d947df9b2205, type: 3}
     - target: {fileID: 8994006026001905346, guid: 9b0544694f5b2bb418e428235b62785a, type: 3}
       propertyPath: playerLayers.m_Bits
       value: 256
@@ -4314,7 +4314,15 @@ PrefabInstance:
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 8994006026001905346, guid: 9b0544694f5b2bb418e428235b62785a, type: 3}
+      propertyPath: objectsToDisableOnPressed.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8994006026001905346, guid: 9b0544694f5b2bb418e428235b62785a, type: 3}
       propertyPath: 'objectsToEnableOnPressed.Array.data[0]'
+      value: 
+      objectReference: {fileID: 1722544422}
+    - target: {fileID: 8994006026001905346, guid: 9b0544694f5b2bb418e428235b62785a, type: 3}
+      propertyPath: 'objectsToDisableOnPressed.Array.data[0]'
       value: 
       objectReference: {fileID: 1722544422}
     - target: {fileID: 8994006026001905346, guid: 9b0544694f5b2bb418e428235b62785a, type: 3}

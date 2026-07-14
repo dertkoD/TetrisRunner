@@ -383,9 +383,49 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7375780760507850801, guid: 01b87838569656740856bd99b3edfc0a, type: 3}
+      propertyPath: blockDestroyClip
+      value: 
+      objectReference: {fileID: 8300000, guid: 2da633f6a8a17ec41be43d958d2cb5fc, type: 3}
+    - target: {fileID: 7375780760507850801, guid: 01b87838569656740856bd99b3edfc0a, type: 3}
       propertyPath: stopAmbientOnDefeat
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7375780760507850801, guid: 01b87838569656740856bd99b3edfc0a, type: 3}
+      propertyPath: blockStackClips.Array.size
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 7375780760507850801, guid: 01b87838569656740856bd99b3edfc0a, type: 3}
+      propertyPath: blockDestroyClips.Array.size
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 7375780760507850801, guid: 01b87838569656740856bd99b3edfc0a, type: 3}
+      propertyPath: 'blockStackClips.Array.data[0]'
+      value: 
+      objectReference: {fileID: 8300000, guid: 91a69217231b18340ac1ef354e314ff9, type: 3}
+    - target: {fileID: 7375780760507850801, guid: 01b87838569656740856bd99b3edfc0a, type: 3}
+      propertyPath: 'blockStackClips.Array.data[1]'
+      value: 
+      objectReference: {fileID: 8300000, guid: c1c5dbe5eb1023a43962b8ecffb19c51, type: 3}
+    - target: {fileID: 7375780760507850801, guid: 01b87838569656740856bd99b3edfc0a, type: 3}
+      propertyPath: 'blockStackClips.Array.data[2]'
+      value: 
+      objectReference: {fileID: 8300000, guid: de45d50cc059c0f40a48614445681c3d, type: 3}
+    - target: {fileID: 7375780760507850801, guid: 01b87838569656740856bd99b3edfc0a, type: 3}
+      propertyPath: 'blockDestroyClips.Array.data[0]'
+      value: 
+      objectReference: {fileID: 8300000, guid: a44f52a2ecb2f3f45a4f6b7e71ddc87e, type: 3}
+    - target: {fileID: 7375780760507850801, guid: 01b87838569656740856bd99b3edfc0a, type: 3}
+      propertyPath: 'blockDestroyClips.Array.data[1]'
+      value: 
+      objectReference: {fileID: 8300000, guid: 620cb121024ae7645ab9ae99e4bae5b9, type: 3}
+    - target: {fileID: 7375780760507850801, guid: 01b87838569656740856bd99b3edfc0a, type: 3}
+      propertyPath: 'blockDestroyClips.Array.data[2]'
+      value: 
+      objectReference: {fileID: 8300000, guid: 7fc84afe63a0c5443b95e06aa1112bc6, type: 3}
+    - target: {fileID: 7375780760507850801, guid: 01b87838569656740856bd99b3edfc0a, type: 3}
+      propertyPath: 'blockDestroyClips.Array.data[3]'
+      value: 
+      objectReference: {fileID: 8300000, guid: 2da633f6a8a17ec41be43d958d2cb5fc, type: 3}
     - target: {fileID: 7502408541157941024, guid: 01b87838569656740856bd99b3edfc0a, type: 3}
       propertyPath: m_Name
       value: GameAudioController

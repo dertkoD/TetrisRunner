@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.Serialization;
 
 /// <summary>
 /// «Кнопка» — статичный одноклеточный (или больше) объект в сетке тетриса,
@@ -74,17 +75,13 @@ public class GridButton : MonoBehaviour
     [Tooltip("Спрайт, на который заменится текущий спрайт кнопки после нажатия.")]
     [SerializeField] private Sprite pressedSprite;
 
-    [Tooltip("GameObject'ы, которые нужно включить после нажатия кнопки. Можно держать их выключенными в сцене.")]
-    [SerializeField] private GameObject[] objectsToEnableOnPressed;
+    [Tooltip("GameObject'ы, которые нужно выключить после нажатия кнопки.")]
+    [FormerlySerializedAs("objectsToEnableOnPressed")]
+    [SerializeField] private GameObject[] objectsToDisableOnPressed;
 
-    [Tooltip("SpriteRenderer'ы, которые нужно включить после нажатия кнопки. Удобно, если объект должен оставаться активным.")]
-    [SerializeField] private SpriteRenderer[] spriteRenderersToEnableOnPressed;
-
-    [Tooltip("На старте выключить все Objects To Enable On Pressed. Оставь включённым, если эти спрайты должны быть невидимы до нажатия.")]
-    [SerializeField] private bool hidePressedObjectsOnStart = true;
-
-    [Tooltip("На старте выключить все Sprite Renderers To Enable On Pressed.")]
-    [SerializeField] private bool hidePressedRenderersOnStart = true;
+    [Tooltip("SpriteRenderer'ы, которые нужно выключить после нажатия кнопки. Удобно, если объект должен оставаться активным.")]
+    [FormerlySerializedAs("spriteRenderersToEnableOnPressed")]
+    [SerializeField] private SpriteRenderer[] spriteRenderersToDisableOnPressed;
 
     [Header("Events")]
     [Tooltip("Вызывается один раз, когда кнопку нажал игрок.")]
@@ -249,21 +246,24 @@ public class GridButton : MonoBehaviour
     {
         ResolveButtonSpriteRenderer();
 
-        if (hidePressedObjectsOnStart && objectsToEnableOnPressed != null)
+        if (buttonSpriteRenderer != null)
+            buttonSpriteRenderer.enabled = true;
+
+        if (objectsToDisableOnPressed != null)
         {
-            for (int i = 0; i < objectsToEnableOnPressed.Length; i++)
+            for (int i = 0; i < objectsToDisableOnPressed.Length; i++)
             {
-                if (objectsToEnableOnPressed[i] != null)
-                    objectsToEnableOnPressed[i].SetActive(false);
+                if (objectsToDisableOnPressed[i] != null)
+                    objectsToDisableOnPressed[i].SetActive(true);
             }
         }
 
-        if (hidePressedRenderersOnStart && spriteRenderersToEnableOnPressed != null)
+        if (spriteRenderersToDisableOnPressed != null)
         {
-            for (int i = 0; i < spriteRenderersToEnableOnPressed.Length; i++)
+            for (int i = 0; i < spriteRenderersToDisableOnPressed.Length; i++)
             {
-                if (spriteRenderersToEnableOnPressed[i] != null)
-                    spriteRenderersToEnableOnPressed[i].enabled = false;
+                if (spriteRenderersToDisableOnPressed[i] != null)
+                    spriteRenderersToDisableOnPressed[i].enabled = true;
             }
         }
     }
@@ -275,21 +275,21 @@ public class GridButton : MonoBehaviour
         if (buttonSpriteRenderer != null && pressedSprite != null)
             buttonSpriteRenderer.sprite = pressedSprite;
 
-        if (objectsToEnableOnPressed != null)
+        if (objectsToDisableOnPressed != null)
         {
-            for (int i = 0; i < objectsToEnableOnPressed.Length; i++)
+            for (int i = 0; i < objectsToDisableOnPressed.Length; i++)
             {
-                if (objectsToEnableOnPressed[i] != null)
-                    objectsToEnableOnPressed[i].SetActive(true);
+                if (objectsToDisableOnPressed[i] != null)
+                    objectsToDisableOnPressed[i].SetActive(false);
             }
         }
 
-        if (spriteRenderersToEnableOnPressed != null)
+        if (spriteRenderersToDisableOnPressed != null)
         {
-            for (int i = 0; i < spriteRenderersToEnableOnPressed.Length; i++)
+            for (int i = 0; i < spriteRenderersToDisableOnPressed.Length; i++)
             {
-                if (spriteRenderersToEnableOnPressed[i] != null)
-                    spriteRenderersToEnableOnPressed[i].enabled = true;
+                if (spriteRenderersToDisableOnPressed[i] != null)
+                    spriteRenderersToDisableOnPressed[i].enabled = false;
             }
         }
     }

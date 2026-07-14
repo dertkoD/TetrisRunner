@@ -29,8 +29,10 @@ public class GameAudioController : MonoBehaviour
     [SerializeField, Range(0f, 1f)] private float blockWaterVolume = 1f;
 
     [Header("Block Destroy")]
-    [SerializeField] private AudioClip blockDestroyClip;
+    [Tooltip("Block destroy sounds. The next sound will not repeat the previous one when possible.")]
+    [SerializeField] private AudioClip[] blockDestroyClips = Array.Empty<AudioClip>();
     [SerializeField, Range(0f, 1f)] private float blockDestroyVolume = 1f;
+    [SerializeField, HideInInspector] private AudioClip blockDestroyClip;
 
     [Header("Ambient")]
     [SerializeField] private AudioClip ambientClip;
@@ -66,6 +68,7 @@ public class GameAudioController : MonoBehaviour
     [SerializeField] private bool stopAmbientOnDefeat = false;
 
     private int lastBlockStackIndex = -1;
+    private int lastBlockDestroyIndex = -1;
     private int lastFootstepIndex = -1;
     private bool defeatReloadPending;
 
@@ -141,7 +144,7 @@ public class GameAudioController : MonoBehaviour
     public static void PlayBlockDestroy()
     {
         if (Instance != null)
-            Instance.PlayOneShot(Instance.blockDestroyClip, Instance.sfxSource, Instance.blockDestroyVolume);
+            Instance.PlayBlockDestroyInternal();
     }
 
     public static void PlayUiClick()
@@ -231,6 +234,19 @@ public class GameAudioController : MonoBehaviour
 
         lastBlockStackIndex = index;
         PlayOneShot(blockStackClips[index], sfxSource, blockStackVolume);
+    }
+
+    private void PlayBlockDestroyInternal()
+    {
+        int index = PickRandomClipIndex(blockDestroyClips, lastBlockDestroyIndex);
+        if (index >= 0)
+        {
+            lastBlockDestroyIndex = index;
+            PlayOneShot(blockDestroyClips[index], sfxSource, blockDestroyVolume);
+            return;
+        }
+
+        PlayOneShot(blockDestroyClip, sfxSource, blockDestroyVolume);
     }
 
     private void PlayFootstepInternal()
