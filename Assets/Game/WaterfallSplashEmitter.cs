@@ -100,6 +100,9 @@ public class WaterfallSplashEmitter : MonoBehaviour
         new AnimationCurve(new Keyframe(0f, 0.7f), new Keyframe(0.35f, 1f), new Keyframe(1f, 0.15f));
 
     [Header("Look")]
+    [Tooltip("Optional sprite for the particles. Leave empty to use the default particle look.")]
+    [SerializeField] private Sprite particleSprite;
+
     [SerializeField] private Color splashColor = new Color(0.72f, 0.92f, 1f, 0.85f);
 
     [Tooltip("How much alpha fades by the end of lifetime.")]
@@ -248,6 +251,7 @@ public class WaterfallSplashEmitter : MonoBehaviour
         size.size = new ParticleSystem.MinMaxCurve(1f, sizeOverLifetime);
 
         ApplyParticleColor();
+        ApplyParticleSprite();
 
         ParticleSystemRenderer renderer = activeParticles.GetComponent<ParticleSystemRenderer>();
         if (renderer != null && autoCreatedParticles)
@@ -262,12 +266,37 @@ public class WaterfallSplashEmitter : MonoBehaviour
                 shader = Shader.Find("Standard");
 
             if (shader != null)
-                renderer.material = new Material(shader) { color = splashColor };
+            {
+                Material material = new Material(shader) { color = splashColor };
+                if (particleSprite != null)
+                    material.mainTexture = particleSprite.texture;
+
+                renderer.material = material;
+            }
 
             if (!string.IsNullOrEmpty(sortingLayerName))
                 renderer.sortingLayerName = sortingLayerName;
             renderer.sortingOrder = sortingOrder;
         }
+    }
+
+    private void ApplyParticleSprite()
+    {
+        if (activeParticles == null)
+            return;
+
+        var textureSheet = activeParticles.textureSheetAnimation;
+        textureSheet.enabled = particleSprite != null;
+
+        if (particleSprite == null)
+            return;
+
+        textureSheet.mode = ParticleSystemAnimationMode.Sprites;
+
+        while (textureSheet.spriteCount > 0)
+            textureSheet.RemoveSprite(0);
+
+        textureSheet.AddSprite(particleSprite);
     }
 
     private void ApplyParticleColor()

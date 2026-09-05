@@ -1740,7 +1740,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1d544e9129c047c45b74a3aaa3d826cf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MainMenuController
-  firstLevelSceneName: PrototypeScene_Lvl1
+  firstLevelSceneName: PrototypeScene_Tutorial
 --- !u!4 &1733541208
 Transform:
   m_ObjectHideFlags: 0

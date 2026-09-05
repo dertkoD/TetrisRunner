@@ -61,12 +61,21 @@ public class PlayerCrushDetector : MonoBehaviour
     private Collider2D ownCollider;
     private PlayerGroundChecker groundChecker;
     private bool groundCheckerResolved;
+    private PlayerFacade facade;
+    private PlayerStateMachine stateMachine;
+    private PlayerBlockFreeze blockFreeze;
+    private PlayerFootstepAudio footstepAudio;
+    private PlayerAnimation playerAnimation;
+    private Rigidbody2D body;
+    private SpriteRenderer[] playerRenderers;
+    private bool crushed;
     private readonly Collider2D[] groundProbeBuffer = new Collider2D[8];
 
     private void Awake()
     {
         ResolveOwnCollider();
         ResolveGroundChecker();
+        ResolvePlayerReferences();
     }
 
     private void OnCollisionEnter2D(Collision2D collision)
@@ -108,7 +117,7 @@ public class PlayerCrushDetector : MonoBehaviour
         if (!HasSupportUnderFeet())
             return;
 
-        LevelReloader.RequestReload();
+        HandleCrushed();
     }
 
     private void HandleTrigger(Collider2D other)
@@ -122,7 +131,73 @@ public class PlayerCrushDetector : MonoBehaviour
         if (!HasSupportUnderFeet())
             return;
 
+        HandleCrushed();
+    }
+
+    private void HandleCrushed()
+    {
+        if (crushed)
+            return;
+
+        crushed = true;
+        ResolvePlayerReferences();
+
+        // Сразу снимаем управление, пока звук поражения задерживает reload.
+        if (stateMachine != null)
+            stateMachine.enabled = false;
+
+        if (blockFreeze != null)
+            blockFreeze.enabled = false;
+
+        if (footstepAudio != null)
+            footstepAudio.enabled = false;
+
+        if (playerAnimation != null)
+            playerAnimation.enabled = false;
+
+        if (body != null)
+        {
+            body.linearVelocity = Vector2.zero;
+            body.angularVelocity = 0f;
+            body.simulated = false;
+        }
+
+        if (playerRenderers != null)
+        {
+            for (int i = 0; i < playerRenderers.Length; i++)
+            {
+                if (playerRenderers[i] != null)
+                    playerRenderers[i].enabled = false;
+            }
+        }
+
         LevelReloader.RequestReload();
+    }
+
+    private void ResolvePlayerReferences()
+    {
+        if (facade == null)
+            facade = GetComponent<PlayerFacade>() ?? GetComponentInParent<PlayerFacade>();
+
+        GameObject playerRoot = facade != null ? facade.gameObject : gameObject;
+
+        if (stateMachine == null)
+            stateMachine = playerRoot.GetComponent<PlayerStateMachine>();
+
+        if (blockFreeze == null)
+            blockFreeze = playerRoot.GetComponent<PlayerBlockFreeze>();
+
+        if (footstepAudio == null)
+            footstepAudio = playerRoot.GetComponent<PlayerFootstepAudio>();
+
+        if (playerAnimation == null)
+            playerAnimation = playerRoot.GetComponent<PlayerAnimation>();
+
+        if (body == null)
+            body = facade != null ? facade.Body : playerRoot.GetComponent<Rigidbody2D>();
+
+        if (playerRenderers == null || playerRenderers.Length == 0)
+            playerRenderers = playerRoot.GetComponentsInChildren<SpriteRenderer>(true);
     }
 
     /// <summary>

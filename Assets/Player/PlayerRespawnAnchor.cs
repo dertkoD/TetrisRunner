@@ -122,6 +122,12 @@ public class PlayerRespawnAnchor : MonoBehaviour
     /// </summary>
     public bool Respawn()
     {
+        // После смерти перезагрузка может ждать окончания defeat-звука.
+        // В это время опасные зоны ещё успевают вызвать Respawn(), но игрок
+        // должен оставаться на месте смерти до фактической загрузки сцены.
+        if (LevelReloader.IsReloadScheduled)
+            return false;
+
         Vector2 target;
 
         if (spawnPoint != null)

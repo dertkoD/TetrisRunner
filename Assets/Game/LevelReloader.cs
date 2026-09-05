@@ -11,6 +11,8 @@ public static class LevelReloader
     private static bool reloadScheduled;
     private static int subscribedFrame = -1;
 
+    public static bool IsReloadScheduled => reloadScheduled;
+
     /// <summary>
     /// Перезагружает активную сцену. Безопасно вызывать многократно за один
     /// кадр — повторные вызовы игнорируются до завершения предыдущего ребута.
