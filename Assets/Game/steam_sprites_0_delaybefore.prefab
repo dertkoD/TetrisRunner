@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 5206074724347079161}
   - component: {fileID: 3477104020874460116}
   m_Layer: 0
-  m_Name: steam_sprites_0
+  m_Name: steam_sprites_0_delaybefore
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
