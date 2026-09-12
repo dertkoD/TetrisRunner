@@ -1,0 +1,609 @@
+fileFormatVersion: 2
+guid: faf93f82a3b12ee4e9bd05fde04df217
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 4125179499446978928
+    second: UI_assets (2)_0
+  - first:
+      213: -6996679580867478598
+    second: UI_assets (2)_1
+  - first:
+      213: 6049407464285572849
+    second: UI_assets (2)_2
+  - first:
+      213: -6762612942366229203
+    second: UI_assets (2)_3
+  - first:
+      213: 2308747943290245247
+    second: UI_assets (2)_4
+  - first:
+      213: -5906557380055648362
+    second: UI_assets (2)_5
+  - first:
+      213: 5052141529430456720
+    second: UI_assets (2)_6
+  - first:
+      213: 2635206916996327024
+    second: UI_assets (2)_7
+  - first:
+      213: -3311995198050313950
+    second: UI_assets (2)_8
+  - first:
+      213: 6268232269904488221
+    second: UI_assets (2)_9
+  - first:
+      213: -2525479849658568993
+    second: UI_assets (2)_10
+  - first:
+      213: 2971704855124315396
+    second: UI_assets (2)_11
+  - first:
+      213: 5789815260417305805
+    second: UI_assets (2)_12
+  - first:
+      213: -5403116703718501508
+    second: UI_assets (2)_13
+  - first:
+      213: -257533477598399945
+    second: UI_assets (2)_14
+  - first:
+      213: -2803543146642659313
+    second: UI_assets (2)_15
+  - first:
+      213: -6711072721713909115
+    second: UI_assets (2)_16
+  - first:
+      213: -3854915517420294253
+    second: UI_assets (2)_17
+  - first:
+      213: 598474592414083608
+    second: UI_assets (2)_18
+  - first:
+      213: -306108024743578994
+    second: UI_assets (2)_19
+  - first:
+      213: 984425420632955950
+    second: UI_assets (2)_20
+  - first:
+      213: 6977566364239630056
+    second: UI_assets (2)_21
+  - first:
+      213: 2352315060196557415
+    second: UI_assets (2)_22
+  - first:
+      213: 2856464036239650246
+    second: UI_assets (2)_23
+  - first:
+      213: -6086037619601650502
+    second: UI_assets (2)_24
+  - first:
+      213: -864373448585855754
+    second: UI_assets (2)_25
+  - first:
+      213: -4881177303346539441
+    second: UI_assets (2)_26
+  - first:
+      213: -7506982671635337404
+    second: UI_assets (2)_27
+  - first:
+      213: -6523564236145533517
+    second: UI_assets (2)_28
+  - first:
+      213: 8960287946633146217
+    second: UI_assets (2)_29
+  - first:
+      213: 8958807082170705627
+    second: UI_assets (2)_30
+  - first:
+      213: -9149269746349656563
+    second: UI_assets (2)_31
+  - first:
+      213: 4976720353825898090
+    second: UI_assets (2)_32
+  - first:
+      213: 7571050172381735451
+    second: UI_assets (2)_33
+  - first:
+      213: -6433358494733540089
+    second: UI_assets (2)_34
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: Continue
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 325
+        width: 467
+        height: 65
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 079c24b06e49f3930800000000000000
+      internalID: 4125179499446978928
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Music
+      rect:
+        serializedVersion: 2
+        x: 495
+        y: 325
+        width: 292
+        height: 65
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 076e735aab2229420800000000000000
+      internalID: 2635206916996327024
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Main_Menu
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 228
+        width: 530
+        height: 65
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 40d0dfa22dd9d3920800000000000000
+      internalID: 2971704855124315396
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: SFX
+      rect:
+        serializedVersion: 2
+        x: 609
+        y: 228
+        width: 178
+        height: 65
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 39fa509d2c6908ac0800000000000000
+      internalID: -3854915517420294253
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: SoundOn
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 128
+        width: 58
+        height: 66
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e8233429f5c70cbf0800000000000000
+      internalID: -306108024743578994
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Sound_Off
+      rect:
+        serializedVersion: 2
+        x: 83
+        y: 128
+        width: 69
+        height: 66
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e2c11b054b169ad00800000000000000
+      internalID: 984425420632955950
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: SoundBar
+      rect:
+        serializedVersion: 2
+        x: 173
+        y: 156
+        width: 186
+        height: 17
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8ee8739b3ab45d060800000000000000
+      internalID: 6977566364239630056
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: SoundCtrl
+      rect:
+        serializedVersion: 2
+        x: 381
+        y: 144
+        width: 38
+        height: 40
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 76241da851a15a020800000000000000
+      internalID: 2352315060196557415
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Letter_Space
+      rect:
+        serializedVersion: 2
+        x: 463
+        y: 151
+        width: 103
+        height: 51
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6cd2eb128e234a720800000000000000
+      internalID: 2856464036239650246
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Wave
+      rect:
+        serializedVersion: 2
+        x: 622
+        y: 135
+        width: 119
+        height: 73
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: abccaf9b70d0a8ba0800000000000000
+      internalID: -6086037619601650502
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Arrow_Water
+      rect:
+        serializedVersion: 2
+        x: 576
+        y: 16
+        width: 74
+        height: 104
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f44945caa13924cb0800000000000000
+      internalID: -4881177303346539441
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Box_Space
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 194
+        height: 114
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3bd5a1bf3e4a775a0800000000000000
+      internalID: -6523564236145533517
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Box_Letter
+      rect:
+        serializedVersion: 2
+        x: 236
+        y: 0
+        width: 123
+        height: 108
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 96f6840f966595c70800000000000000
+      internalID: 8960287946633146217
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Letter_A
+      rect:
+        serializedVersion: 2
+        x: 401
+        y: 24
+        width: 67
+        height: 65
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d06b99ef3a3470180800000000000000
+      internalID: -9149269746349656563
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Letter_D
+      rect:
+        serializedVersion: 2
+        x: 495
+        y: 24
+        width: 61
+        height: 67
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a6ebf344bccd01540800000000000000
+      internalID: 4976720353825898090
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Arrow_Button
+      rect:
+        serializedVersion: 2
+        x: 677
+        y: 34
+        width: 77
+        height: 55
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7056aa0d88e18b6a0800000000000000
+      internalID: -6433358494733540089
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 429293a5a0ba8e348b7048b64f25708f
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      Arrow_Button: -6433358494733540089
+      Arrow_Water: -4881177303346539441
+      Box_Letter: 8960287946633146217
+      Box_Space: -6523564236145533517
+      Continue: 4125179499446978928
+      Letter_A: -9149269746349656563
+      Letter_D: 4976720353825898090
+      Letter_Space: 2856464036239650246
+      Main_Menu: 2971704855124315396
+      Music: 2635206916996327024
+      SFX: -3854915517420294253
+      SoundBar: 6977566364239630056
+      SoundCtrl: 2352315060196557415
+      SoundOn: -306108024743578994
+      Sound_Off: 984425420632955950
+      UI_assets (2)_1: -6996679580867478598
+      UI_assets (2)_10: -2525479849658568993
+      UI_assets (2)_12: 5789815260417305805
+      UI_assets (2)_13: -5403116703718501508
+      UI_assets (2)_14: -257533477598399945
+      UI_assets (2)_15: -2803543146642659313
+      UI_assets (2)_16: -6711072721713909115
+      UI_assets (2)_18: 598474592414083608
+      UI_assets (2)_2: 6049407464285572849
+      UI_assets (2)_25: -864373448585855754
+      UI_assets (2)_27: -7506982671635337404
+      UI_assets (2)_3: -6762612942366229203
+      UI_assets (2)_30: 8958807082170705627
+      UI_assets (2)_33: 7571050172381735451
+      UI_assets (2)_4: 2308747943290245247
+      UI_assets (2)_5: -5906557380055648362
+      UI_assets (2)_6: 5052141529430456720
+      UI_assets (2)_8: -3311995198050313950
+      UI_assets (2)_9: 6268232269904488221
+      Wave: -6086037619601650502
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
