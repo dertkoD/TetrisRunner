@@ -5065,6 +5065,7 @@ MonoBehaviour:
   zones:
   - name: Waterfall
     enabled: 1
+    disableWhenWaterReaches: {fileID: 0}
     localOffset: {x: -0.255, y: 0.66}
     width: 0.035
     height: 0.61
@@ -5073,6 +5074,7 @@ MonoBehaviour:
     horizontalSpeedMultiplier: 1
   - name: Waterfall
     enabled: 1
+    disableWhenWaterReaches: {fileID: 0}
     localOffset: {x: 0.196, y: 0.66}
     width: 0.035
     height: 0.61
@@ -5574,7 +5576,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7752794204888637120, guid: 64a8d15eb8d2ce14baa009ce38dd1ebf, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 39.34
+      value: 39.52
       objectReference: {fileID: 0}
     - target: {fileID: 7752794204888637120, guid: 64a8d15eb8d2ce14baa009ce38dd1ebf, type: 3}
       propertyPath: m_LocalPosition.y

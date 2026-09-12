@@ -123,6 +123,7 @@ public class TetrisBlockSpawnManager : MonoBehaviour
     private float spawnDelayTimer;
     private bool spawnPending;
     private bool externalFreeze;
+    private bool tutorialSpawnLocked;
 
     // Автостарт первого спавна: ждём initialSpawnDelay, затем запускаем игру.
     private bool autoStartPending;
@@ -130,6 +131,43 @@ public class TetrisBlockSpawnManager : MonoBehaviour
 
     /// <summary>True, если активирована внешняя заморозка (PlayerBlockFreeze).</summary>
     public bool IsExternallyFrozen => externalFreeze;
+
+    /// <summary>True while a tutorial keeps the preview visible but blocks activation.</summary>
+    public bool IsTutorialSpawnLocked => tutorialSpawnLocked;
+
+    /// <summary>True when there is a live block that can receive tutorial input.</summary>
+    public bool HasActiveBlock => isRunning && activeBlock != null && !activeBlock.IsLocked;
+
+    /// <summary>
+    /// Keeps the preview block visible while preventing auto-start and the regular
+    /// start/pause input from activating it. Intended for scene-specific tutorials.
+    /// </summary>
+    public void LockSpawningForTutorial()
+    {
+        tutorialSpawnLocked = true;
+        autoStartPending = false;
+        SetRunning(false);
+    }
+
+    /// <summary>Releases the tutorial lock and activates the preview block.</summary>
+    public void StartSpawningFromTutorial()
+    {
+        tutorialSpawnLocked = false;
+        SetRunning(true);
+    }
+
+    /// <summary>
+    /// Supplies a short horizontal input pulse during the paused block tutorial.
+    /// This guarantees that a quick key tap survives until the next physics tick.
+    /// </summary>
+    public bool SetTutorialHorizontalInput(float horizontal)
+    {
+        if (!HasActiveBlock)
+            return false;
+
+        activeBlock.SetHorizontalInput(Mathf.Clamp(horizontal, -1f, 1f));
+        return true;
+    }
 
     /// <summary>
     /// Включает/выключает внешнюю заморозку (используется PlayerBlockFreeze).
@@ -194,7 +232,7 @@ public class TetrisBlockSpawnManager : MonoBehaviour
 
         // Автостарт: через initialSpawnDelay секунд спавн запустится сам, без
         // нажатия кнопки. Всё это время предпоказ уже виден.
-        if (autoStart)
+        if (autoStart && !tutorialSpawnLocked)
         {
             autoStartPending = true;
             autoStartTimer = Mathf.Max(0f, initialSpawnDelay);
@@ -379,6 +417,9 @@ public class TetrisBlockSpawnManager : MonoBehaviour
 
     private void OnToggleSpawnPerformed(InputAction.CallbackContext context)
     {
+        if (tutorialSpawnLocked)
+            return;
+
         SetRunning(!isRunning);
     }
 
@@ -439,7 +480,7 @@ public class TetrisBlockSpawnManager : MonoBehaviour
     /// </summary>
     private void TickAutoStart()
     {
-        if (!autoStartPending)
+        if (!autoStartPending || tutorialSpawnLocked)
             return;
 
         autoStartTimer -= Time.fixedDeltaTime;
@@ -453,6 +494,9 @@ public class TetrisBlockSpawnManager : MonoBehaviour
 
     private void SetRunning(bool value)
     {
+        if (value && tutorialSpawnLocked)
+            return;
+
         // Любой явный запуск/остановка (в т.ч. по кнопке P) отменяет ожидание
         // автостарта — дальше состоянием рулит игрок.
         autoStartPending = false;

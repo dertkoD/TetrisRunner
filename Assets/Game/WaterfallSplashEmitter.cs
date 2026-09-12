@@ -19,6 +19,9 @@ public class WaterfallSplashEmitter : MonoBehaviour
         [Tooltip("Enable this splash zone.")]
         public bool enabled = true;
 
+        [Tooltip("Optional world-space point. This zone stops emitting when the water surface reaches its Y position.")]
+        public Transform disableWhenWaterReaches;
+
         [Tooltip("Center of the spawn zone in this object's local space.")]
         public Vector2 localOffset = Vector2.zero;
 
@@ -176,6 +179,12 @@ public class WaterfallSplashEmitter : MonoBehaviour
             if (zone == null || !zone.enabled || zone.particlesPerSecond <= 0f)
                 continue;
 
+            if (IsZoneFlooded(zone))
+            {
+                emissionAccumulators[i] = 0f;
+                continue;
+            }
+
             float rate = zone.particlesPerSecond * emissionMultiplier;
             if (rate <= 0f)
                 continue;
@@ -194,6 +203,15 @@ public class WaterfallSplashEmitter : MonoBehaviour
 
             EmitZone(zone, count);
         }
+    }
+
+    private static bool IsZoneFlooded(SplashZone zone)
+    {
+        if (zone.disableWhenWaterReaches == null)
+            return false;
+
+        DeathWaterController water = DeathWaterController.Instance;
+        return water != null && water.CurrentTopY >= zone.disableWhenWaterReaches.position.y;
     }
 
     private void EnsureParticleSystem()
