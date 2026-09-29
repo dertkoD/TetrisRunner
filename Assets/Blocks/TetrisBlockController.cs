@@ -43,6 +43,13 @@ public class TetrisBlockController : MonoBehaviour
     /// <summary>True, пока блок находится в режиме предпоказа (не активен).</summary>
     public bool IsPreview => isPreview;
 
+    /// <summary>Update a tutorial preview or controlled block using the same uniform palette as normal spawning.</summary>
+    public void SetTutorialColorIndex(int colorIndex)
+    {
+        if (initialized && !locked && blockCells != null && colorIndex >= 0)
+            blockCells.SetUniformColorIndex(colorIndex);
+    }
+
     public void Initialize(
         TetrisBlockConfigSO config,
         TetrisBlockFacade facade,
@@ -484,6 +491,7 @@ public class TetrisBlockController : MonoBehaviour
             ownCells.Add(pivot + ownOffsets[i]);
 
         bool hasSameColorNeighbor = false;
+        bool hasDifferentColorNeighbor = false;
 
         for (int i = 0; i < ownOffsets.Length && !hasSameColorNeighbor; i++)
         {
@@ -511,7 +519,10 @@ public class TetrisBlockController : MonoBehaviour
                     continue;
 
                 if (occupant.ColorIndex != placedBlock.ColorIndex)
+                {
+                    hasDifferentColorNeighbor = true;
                     continue;
+                }
 
                 hasSameColorNeighbor = true;
                 break;
@@ -520,6 +531,7 @@ public class TetrisBlockController : MonoBehaviour
 
         if (hasSameColorNeighbor)
         {
+            spawnManager.NotifyTutorialColoredLanding(true);
             // Сейчас ResolveMatches уберёт оба блока — это успех игрока,
             // и вода уходит вниз. По желанию (флаг в конфиге) из места
             // схлопывания тоже можно пустить ударную волну.
@@ -528,15 +540,18 @@ public class TetrisBlockController : MonoBehaviour
             if (juice != null && config != null && config.ShockWaveOnSameColor)
             {
                 Vector3 origin = ComputeBlockCenter(placedBlock);
-                juice.PlayShockWave(origin, dw.HandleBlockLandedOnSameColor);
+                int landedColor = placedBlock.ColorIndex;
+                juice.PlayShockWave(origin, () => dw.HandleColoredBlockLanding(true, landedColor));
             }
             else
             {
-                dw.HandleBlockLandedOnSameColor();
+                dw.HandleColoredBlockLanding(true, placedBlock.ColorIndex);
             }
         }
         else
         {
+            if (hasDifferentColorNeighbor)
+                spawnManager.NotifyTutorialColoredLanding(false);
             // Блок просто застрял в стопке: встал на блок другого цвета,
             // на статическую платформу или прямо на нижнюю клетку сетки —
             // во всех этих случаях ничего не схлопнется. Сначала из места
@@ -549,11 +564,21 @@ public class TetrisBlockController : MonoBehaviour
             if (juice != null && config != null && config.ShockWaveOnDifferentColor)
             {
                 Vector3 origin = ComputeBlockCenter(placedBlock);
-                juice.PlayShockWave(origin, dw.HandleBlockLandedOnDifferentColor);
+                int landedColor = placedBlock.ColorIndex;
+                juice.PlayShockWave(origin, () =>
+                {
+                    if (hasDifferentColorNeighbor)
+                        dw.HandleColoredBlockLanding(false, landedColor);
+                    else
+                        dw.HandleBlockLandedOnDifferentColor();
+                });
             }
             else
             {
-                dw.HandleBlockLandedOnDifferentColor();
+                if (hasDifferentColorNeighbor)
+                    dw.HandleColoredBlockLanding(false, placedBlock.ColorIndex);
+                else
+                    dw.HandleBlockLandedOnDifferentColor();
             }
         }
     }

@@ -25,6 +25,7 @@ public class PlayerStateMachine : MonoBehaviour
     private InputAction jumpAction;
 
     private float moveInputX;
+    private float? tutorialMoveInputX;
     private float coyoteTimer;
     private float jumpBufferTimer;
 
@@ -46,7 +47,19 @@ public class PlayerStateMachine : MonoBehaviour
 
     private void OnDisable()
     {
+        ClearTutorialHorizontalInput();
         DisableInput();
+    }
+
+    /// <summary>Preserves a tutorial key tap until the next physics tick.</summary>
+    public void SetTutorialHorizontalInput(float horizontal)
+    {
+        tutorialMoveInputX = Mathf.Clamp(horizontal, -1f, 1f);
+    }
+
+    public void ClearTutorialHorizontalInput()
+    {
+        tutorialMoveInputX = null;
     }
 
     private void Update()
@@ -67,6 +80,7 @@ public class PlayerStateMachine : MonoBehaviour
             return;
 
         DecideMovement();
+        ClearTutorialHorizontalInput();
         DecideFallLimit();
     }
 
@@ -281,7 +295,7 @@ public class PlayerStateMachine : MonoBehaviour
     {
         // Во время лок-аута wall-jump игнорируем горизонтальный инпут — иначе
         // игрок сразу прилипнет обратно к той же стене.
-        float effectiveInputX = moveInputX;
+        float effectiveInputX = tutorialMoveInputX ?? moveInputX;
 
         if (wallJump != null && wallJump.IsLockedOut)
             effectiveInputX = 0f;

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -86,6 +87,9 @@ public class DeathWaterController : MonoBehaviour
     /// <see cref="TetrisBlockController"/>, чтобы сообщить о приземлении блока.
     /// </summary>
     public static DeathWaterController Instance => instance;
+
+    /// <summary>Colored blocks made the water target change: same color, landed color index, target surface Y.</summary>
+    public event Action<bool, int, float> ColoredBlockLandingChangedWater;
 
     private Vector3 initialPosition;
     private Vector3 initialScale;
@@ -372,6 +376,18 @@ public class DeathWaterController : MonoBehaviour
     public void HandleBlockLandedOnSameColor()
     {
         Shrink(config != null ? config.DeathWaterShrinkOnSameColorLanding : 1);
+    }
+
+    /// <summary>Called after the landing's shock wave, separately from misses, platforms and water cheats.</summary>
+    public void HandleColoredBlockLanding(bool sameColor, int landedColorIndex)
+    {
+        int before = extraCellsAbove;
+        if (sameColor)
+            HandleBlockLandedOnSameColor();
+        else
+            HandleBlockLandedOnDifferentColor();
+        if (before != extraCellsAbove)
+            ColoredBlockLandingChangedWater?.Invoke(sameColor, landedColorIndex, TargetTopY);
     }
 
     /// <summary>Поднимает воду на <paramref name="cells"/> клеток вверх (целевую высоту).</summary>

@@ -124,6 +124,12 @@ public class TetrisBlockSpawnManager : MonoBehaviour
     private bool spawnPending;
     private bool externalFreeze;
     private bool tutorialSpawnLocked;
+    private bool tutorialStackingColors;
+    private bool tutorialMatchingColor;
+    private bool tutorialAwaitingMatchingPhase;
+    private bool tutorialHoldAfterContrast;
+    private bool tutorialContrastLanded;
+    private TetrisPlacedBlock tutorialReferenceBlock;
 
     // Автостарт первого спавна: ждём initialSpawnDelay, затем запускаем игру.
     private bool autoStartPending;
@@ -132,15 +138,108 @@ public class TetrisBlockSpawnManager : MonoBehaviour
     /// <summary>True, если активирована внешняя заморозка (PlayerBlockFreeze).</summary>
     public bool IsExternallyFrozen => externalFreeze;
 
-    /// <summary>True while a tutorial keeps the preview visible but blocks activation.</summary>
+    /// <summary>True while a tutorial prevents preview creation and block activation.</summary>
     public bool IsTutorialSpawnLocked => tutorialSpawnLocked;
 
     /// <summary>True when there is a live block that can receive tutorial input.</summary>
     public bool HasActiveBlock => isRunning && activeBlock != null && !activeBlock.IsLocked;
 
+    /// <summary>Make tutorial blocks contrast with the live level colors until the first example succeeds.</summary>
+    public void BeginTutorialStackingColors()
+    {
+        tutorialStackingColors = true;
+        tutorialMatchingColor = false;
+        tutorialAwaitingMatchingPhase = false;
+        tutorialHoldAfterContrast = false;
+        tutorialContrastLanded = false;
+        tutorialReferenceBlock = null;
+    }
+
+    /// <summary>Arm the between-example spawn hold after the arrow controls have been completed.</summary>
+    public void HoldTutorialAfterContrast()
+    {
+        tutorialHoldAfterContrast = true;
+        if (tutorialContrastLanded && !HasActiveBlock)
+        {
+            tutorialAwaitingMatchingPhase = true;
+            spawnPending = false;
+        }
+    }
+
+    /// <summary>Release the second example with the actual color of the original level block.</summary>
+    public bool BeginTutorialMatchingColor()
+    {
+        if (!tutorialStackingColors || board == null)
+            return false;
+
+        tutorialMatchingColor = true;
+        int colorIndex = PickTutorialColorIndex(ResolvePaletteLength());
+        if (colorIndex < 0)
+            return false;
+
+        // A preview may have been created before the first landing. Update it
+        // rather than letting its earlier random color bypass this example.
+        if (previewBlock != null)
+        {
+            previewBlock.SetTutorialColorIndex(colorIndex);
+            previewColorIndex = colorIndex;
+        }
+        tutorialAwaitingMatchingPhase = false;
+        if (isRunning && activeBlock == null)
+        {
+            spawnPending = false;
+            ActivateNextBlock();
+        }
+        else if (HasActiveBlock)
+        {
+            activeBlock.SetTutorialColorIndex(colorIndex);
+            if (recentColorIndices.Count > 0)
+                recentColorIndices[recentColorIndices.Count - 1] = colorIndex;
+        }
+        return true;
+    }
+
+    /// <summary>Hold further activations after the contrast example, including previews already on scene.</summary>
+    public void NotifyTutorialColoredLanding(bool sameColor)
+    {
+        if (!tutorialStackingColors)
+            return;
+        if (tutorialMatchingColor && sameColor)
+        {
+            // Do not let another fast drop reverse the water's descent before
+            // the tutorial observes it and dismisses the matching diagram.
+            tutorialAwaitingMatchingPhase = true;
+        }
+        else if (!tutorialMatchingColor && !sameColor)
+        {
+            tutorialContrastLanded = true;
+            if (tutorialHoldAfterContrast)
+                tutorialAwaitingMatchingPhase = true;
+        }
+    }
+
+    public void EndTutorialStackingColors()
+    {
+        bool wasWaiting = tutorialAwaitingMatchingPhase;
+        bool wasMatching = tutorialMatchingColor;
+        tutorialStackingColors = false;
+        tutorialMatchingColor = false;
+        tutorialAwaitingMatchingPhase = false;
+        tutorialHoldAfterContrast = false;
+        tutorialContrastLanded = false;
+        tutorialReferenceBlock = null;
+        if (wasMatching && previewBlock != null)
+        {
+            previewColorIndex = PickColorIndex(ResolvePaletteLength());
+            previewBlock.SetTutorialColorIndex(previewColorIndex);
+        }
+        if (wasWaiting && isRunning && activeBlock == null)
+            ScheduleNextSpawn();
+    }
+
     /// <summary>
-    /// Keeps the preview block visible while preventing auto-start and the regular
-    /// start/pause input from activating it. Intended for scene-specific tutorials.
+    /// Prevents spawning, including the initial preview, auto-start and start/pause input.
+    /// Intended for scene-specific tutorials and called before Start.
     /// </summary>
     public void LockSpawningForTutorial()
     {
@@ -289,6 +388,8 @@ public class TetrisBlockSpawnManager : MonoBehaviour
 
     private void Update()
     {
+        if (tutorialSpawnLocked)
+            return;
         TickCheatCodeInput();
     }
 
@@ -529,6 +630,9 @@ public class TetrisBlockSpawnManager : MonoBehaviour
 
     private void ScheduleNextSpawn()
     {
+        if (tutorialAwaitingMatchingPhase)
+            return;
+
         float delay = config != null ? Mathf.Max(0f, config.SpawnDelay) : 0f;
 
         if (delay <= 0f)
@@ -551,6 +655,8 @@ public class TetrisBlockSpawnManager : MonoBehaviour
     /// </summary>
     private void ActivateNextBlock()
     {
+        if (tutorialAwaitingMatchingPhase)
+            return;
         EnsurePreviewBlock();
         ActivatePreviewAsActive();
     }
@@ -565,6 +671,18 @@ public class TetrisBlockSpawnManager : MonoBehaviour
     {
         if (previewBlock == null)
             return;
+
+        // A contrast preview can become stale after an earlier tutorial block
+        // lands. Check the live board again before giving it to the player.
+        if (tutorialStackingColors && !tutorialMatchingColor &&
+            board.GetColoredBlocks().Exists(block => block.ColorIndex == previewColorIndex))
+        {
+            int colorIndex = PickTutorialColorIndex(ResolvePaletteLength());
+            if (colorIndex < 0)
+                return;
+            previewColorIndex = colorIndex;
+            previewBlock.SetTutorialColorIndex(colorIndex);
+        }
 
         activeBlock = previewBlock;
         previewBlock = null;
@@ -589,7 +707,7 @@ public class TetrisBlockSpawnManager : MonoBehaviour
     /// </summary>
     private void EnsurePreviewBlock()
     {
-        if (previewBlock != null)
+        if (tutorialSpawnLocked || previewBlock != null)
             return;
 
         TetrisBlockFacade[] prefabs = config != null ? config.BlockPrefabs : null;
@@ -604,7 +722,11 @@ public class TetrisBlockSpawnManager : MonoBehaviour
         if (shapeIndex < 0)
             shapeIndex = PickShapeIndex(prefabs.Length);
 
-        int colorIndex = PickColorIndex(ResolvePaletteLength());
+        int colorIndex = tutorialStackingColors
+            ? PickTutorialColorIndex(ResolvePaletteLength())
+            : PickColorIndex(ResolvePaletteLength());
+        if (colorIndex < 0)
+            return;
 
         // Подстраховка от выхода индекса за границы (например, если пул
         // префабов изменили в рантайме).
@@ -651,6 +773,36 @@ public class TetrisBlockSpawnManager : MonoBehaviour
         previewBlock = controller;
         previewShapeIndex = shapeIndex;
         previewColorIndex = colorIndex;
+    }
+
+    private int PickTutorialColorIndex(int paletteLength)
+    {
+        List<TetrisPlacedBlock> placed = board.GetColoredBlocks();
+        if (tutorialReferenceBlock == null)
+        {
+            tutorialReferenceBlock = placed.Find(block => block.IsAnchored);
+            if (tutorialReferenceBlock == null && placed.Count > 0)
+                tutorialReferenceBlock = placed[0];
+        }
+
+        if (tutorialMatchingColor)
+            return tutorialReferenceBlock != null ? tutorialReferenceBlock.ColorIndex : -1;
+
+        HashSet<int> usedColors = new HashSet<int>();
+        foreach (TetrisPlacedBlock block in placed)
+            usedColors.Add(block.ColorIndex);
+        List<int> allowed = new List<int>();
+        for (int i = 0; i < paletteLength; i++)
+        {
+            if (!usedColors.Contains(i))
+                allowed.Add(i);
+        }
+        if (allowed.Count == 0)
+        {
+            Debug.LogError("Tutorial: the palette needs a color not already used by the placed blocks.", this);
+            return -1;
+        }
+        return allowed[Random.Range(0, allowed.Count)];
     }
 
     /// <summary>

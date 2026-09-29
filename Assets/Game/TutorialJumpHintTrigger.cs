@@ -1,19 +1,17 @@
 using UnityEngine;
 
 /// <summary>
-/// Place this component on the Is Trigger collider that should introduce jumping.
-/// The trigger stays armed until the movement tutorial has been completed.
+/// Optional bridge when the sequence controller is on a different scene object.
+/// Its collider is disabled by the controller only after the full sequence.
 /// </summary>
 [DisallowMultipleComponent]
 [RequireComponent(typeof(Collider2D))]
-[AddComponentMenu("Game/Tutorial/Jump Hint Trigger")]
+[AddComponentMenu("Game/Tutorial/Tutorial Sequence Trigger")]
 public class TutorialJumpHintTrigger : MonoBehaviour
 {
     [SerializeField] private TutorialSequenceController tutorial;
-    [SerializeField] private bool disableAfterTrigger = true;
 
     private Collider2D triggerCollider;
-    private bool triggered;
 
     private void Awake()
     {
@@ -28,21 +26,16 @@ public class TutorialJumpHintTrigger : MonoBehaviour
         TryTrigger(other);
     }
 
+    private void OnTriggerStay2D(Collider2D other)
+    {
+        TryTrigger(other);
+    }
+
     private void TryTrigger(Collider2D other)
     {
-        if (triggered || tutorial == null || other == null)
+        if (tutorial == null)
             return;
-
-        if (other.GetComponentInParent<PlayerFacade>() == null)
-            return;
-
-        if (!tutorial.TryShowJumpHint())
-            return;
-
-        triggered = true;
-
-        if (disableAfterTrigger && triggerCollider != null)
-            triggerCollider.enabled = false;
+        tutorial.TryBeginTutorial(other, triggerCollider);
     }
 
 #if UNITY_EDITOR

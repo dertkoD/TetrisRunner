@@ -131,6 +131,20 @@ public class TetrisGridBoard : MonoBehaviour
         return block;
     }
 
+    /// <summary>Live colored blocks, including the randomly colored anchored level blocks.</summary>
+    public List<TetrisPlacedBlock> GetColoredBlocks()
+    {
+        HashSet<TetrisPlacedBlock> unique = new HashSet<TetrisPlacedBlock>();
+        foreach (TetrisPlacedBlock block in cellsToBlock.Values)
+        {
+            if (block != null && !block.IsStatic && block.ColorIndex >= 0)
+                unique.Add(block);
+        }
+        List<TetrisPlacedBlock> result = new List<TetrisPlacedBlock>(unique);
+        result.Sort((left, right) => left.BlockId.CompareTo(right.BlockId));
+        return result;
+    }
+
     /// <summary>
     /// Y самой верхней занятой клетки на доске. Возвращает -1, если ни одна
     /// клетка не занята. Используется, чтобы понять, не «доехала» ли стопка
