@@ -9,6 +9,13 @@ public class GameAudioController : MonoBehaviour
 {
     public static GameAudioController Instance { get; private set; }
 
+    private const string MusicVolumeKey = "GameAudio.MusicVolume";
+    private const string SfxVolumeKey = "GameAudio.SfxVolume";
+
+    public static float MusicVolume => Mathf.Clamp01(PlayerPrefs.GetFloat(MusicVolumeKey, 1f));
+    public static float SfxVolume => Mathf.Clamp01(PlayerPrefs.GetFloat(SfxVolumeKey, 1f));
+    public static event Action VolumeChanged;
+
     [Header("Lifetime")]
     [SerializeField] private bool makePersistentAcrossScenes = true;
     [SerializeField] private bool replaceExistingInstance = true;
@@ -129,6 +136,26 @@ public class GameAudioController : MonoBehaviour
         EnsureAmbientPlaying();
     }
 
+    public static void SetMusicVolume(float volume)
+    {
+        SetUserVolume(MusicVolumeKey, volume);
+    }
+
+    public static void SetSfxVolume(float volume)
+    {
+        SetUserVolume(SfxVolumeKey, volume);
+    }
+
+    private static void SetUserVolume(string key, float volume)
+    {
+        PlayerPrefs.SetFloat(key, Mathf.Clamp01(volume));
+
+        if (Instance != null)
+            Instance.ApplyUserVolumes();
+
+        VolumeChanged?.Invoke();
+    }
+
     public static void PlayBlockStack()
     {
         if (Instance != null)
@@ -203,7 +230,7 @@ public class GameAudioController : MonoBehaviour
             ambientSource.Stop();
 
         ambientSource.clip = ambientClip;
-        ambientSource.volume = ambientVolume;
+        ambientSource.volume = ambientVolume * MusicVolume;
         ambientSource.loop = true;
 
         if (!ambientSource.isPlaying)
@@ -394,6 +421,22 @@ public class GameAudioController : MonoBehaviour
         Configure2DSource(sfxSource);
         Configure2DSource(uiSource);
         Configure2DSource(footstepSource);
+
+        ApplyUserVolumes();
+    }
+
+    private void ApplyUserVolumes()
+    {
+        if (ambientSource != null)
+            ambientSource.volume = ambientVolume * MusicVolume;
+
+        float volume = SfxVolume;
+        if (sfxSource != null)
+            sfxSource.volume = volume;
+        if (uiSource != null)
+            uiSource.volume = volume;
+        if (footstepSource != null)
+            footstepSource.volume = volume;
     }
 
     private static void Configure2DSource(AudioSource source)
