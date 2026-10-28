@@ -73,6 +73,18 @@ public class TutorialSequenceController : MonoBehaviour
     [Header("Part 3: Stacking And Water")]
     [SerializeField] private bool enableStackingHints;
     [SerializeField] private DeathWaterController deathWater;
+
+    [Header("Tutorial Block Setup")]
+    [Tooltip("Блок из сцены для первого примера. Первая фигура всегда прямая палка, её цвет отличается от фактического цвета этого блока.")]
+    [SerializeField] private TetrisBlockCells differentColorReferenceBlock;
+
+    [Tooltip("Блок из сцены для второго примера. Форма выпадающей фигуры случайная, цвет точно такой же, как у этого блока после раскраски уровня.")]
+    [SerializeField] private TetrisBlockCells sameColorReferenceBlock;
+
+    [Tooltip("Индекс цвета первой палки в Cell Color Palette конфига, начиная с 0. -1 — выбрать автоматически. Если выбран цвет опорного блока, используется другой цвет, чтобы первый пример не схлопнулся.")]
+    [SerializeField, Min(-1)] private int firstBlockColorIndex = -1;
+
+    [Header("Stacking Hints")]
     [SerializeField] private TutorialHint differentColorHint = new TutorialHint
     {
         name = "Different colors raise water", animationState = "DiffColStack",
@@ -436,7 +448,8 @@ public class TutorialSequenceController : MonoBehaviour
     {
         if (!enableStackingHints || stackingColorsHeld)
             return;
-        blockSpawnManager.BeginTutorialStackingColors();
+        blockSpawnManager.BeginTutorialStackingColors(
+            differentColorReferenceBlock, sameColorReferenceBlock, firstBlockColorIndex);
         deathWater.ColoredBlockLandingChangedWater += OnColoredBlockLanding;
         stackingColorsHeld = true;
     }

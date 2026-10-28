@@ -130,6 +130,11 @@ public class TetrisBlockSpawnManager : MonoBehaviour
     private bool tutorialHoldAfterContrast;
     private bool tutorialContrastLanded;
     private TetrisPlacedBlock tutorialReferenceBlock;
+    private TetrisBlockCells tutorialDifferentColorReference;
+    private TetrisBlockCells tutorialSameColorReference;
+    private int tutorialFirstBlockColorIndex = -1;
+    private int tutorialMatchingColorIndex = -1;
+    private bool tutorialFirstBlockPending;
 
     // Автостарт первого спавна: ждём initialSpawnDelay, затем запускаем игру.
     private bool autoStartPending;
@@ -144,8 +149,9 @@ public class TetrisBlockSpawnManager : MonoBehaviour
     /// <summary>True when there is a live block that can receive tutorial input.</summary>
     public bool HasActiveBlock => isRunning && activeBlock != null && !activeBlock.IsLocked;
 
-    /// <summary>Make tutorial blocks contrast with the live level colors until the first example succeeds.</summary>
-    public void BeginTutorialStackingColors()
+    /// <summary>Start with a straight block, then use the assigned scene blocks for the two color examples.</summary>
+    public void BeginTutorialStackingColors(TetrisBlockCells differentColorReference = null,
+        TetrisBlockCells sameColorReference = null, int firstBlockColorIndex = -1)
     {
         tutorialStackingColors = true;
         tutorialMatchingColor = false;
@@ -153,6 +159,13 @@ public class TetrisBlockSpawnManager : MonoBehaviour
         tutorialHoldAfterContrast = false;
         tutorialContrastLanded = false;
         tutorialReferenceBlock = null;
+        tutorialDifferentColorReference = differentColorReference;
+        tutorialSameColorReference = sameColorReference;
+        tutorialFirstBlockColorIndex = firstBlockColorIndex;
+        tutorialMatchingColorIndex = -1;
+        // Tutorial setup normally precedes Start. If a block is already visible,
+        // keep its promised shape and color instead of replacing it.
+        tutorialFirstBlockPending = previewBlock == null && activeBlock == null;
     }
 
     /// <summary>Arm the between-example spawn hold after the arrow controls have been completed.</summary>
@@ -173,28 +186,17 @@ public class TetrisBlockSpawnManager : MonoBehaviour
             return false;
 
         tutorialMatchingColor = true;
-        int colorIndex = PickTutorialColorIndex(ResolvePaletteLength());
+        int colorIndex = PickTutorialColorIndex(ResolvePaletteLength(), matchingColor: true);
         if (colorIndex < 0)
             return false;
 
-        // A preview may have been created before the first landing. Update it
-        // rather than letting its earlier random color bypass this example.
-        if (previewBlock != null)
-        {
-            previewBlock.SetTutorialColorIndex(colorIndex);
-            previewColorIndex = colorIndex;
-        }
+        // The matching preview already received its final color when it was
+        // created after the contrast landing. Never recolor a visible block.
         tutorialAwaitingMatchingPhase = false;
         if (isRunning && activeBlock == null)
         {
             spawnPending = false;
             ActivateNextBlock();
-        }
-        else if (HasActiveBlock)
-        {
-            activeBlock.SetTutorialColorIndex(colorIndex);
-            if (recentColorIndices.Count > 0)
-                recentColorIndices[recentColorIndices.Count - 1] = colorIndex;
         }
         return true;
     }
@@ -221,18 +223,17 @@ public class TetrisBlockSpawnManager : MonoBehaviour
     public void EndTutorialStackingColors()
     {
         bool wasWaiting = tutorialAwaitingMatchingPhase;
-        bool wasMatching = tutorialMatchingColor;
         tutorialStackingColors = false;
         tutorialMatchingColor = false;
         tutorialAwaitingMatchingPhase = false;
         tutorialHoldAfterContrast = false;
         tutorialContrastLanded = false;
         tutorialReferenceBlock = null;
-        if (wasMatching && previewBlock != null)
-        {
-            previewColorIndex = PickColorIndex(ResolvePaletteLength());
-            previewBlock.SetTutorialColorIndex(previewColorIndex);
-        }
+        tutorialDifferentColorReference = null;
+        tutorialSameColorReference = null;
+        tutorialFirstBlockColorIndex = -1;
+        tutorialMatchingColorIndex = -1;
+        tutorialFirstBlockPending = false;
         if (wasWaiting && isRunning && activeBlock == null)
             ScheduleNextSpawn();
     }
@@ -630,6 +631,10 @@ public class TetrisBlockSpawnManager : MonoBehaviour
 
     private void ScheduleNextSpawn()
     {
+        // Decide the next tutorial example before showing its preview. A failed
+        // landing retries the current example; a contrast success previews the
+        // matching color even while the first diagram is still on screen.
+        EnsurePreviewBlock();
         if (tutorialAwaitingMatchingPhase)
             return;
 
@@ -672,20 +677,9 @@ public class TetrisBlockSpawnManager : MonoBehaviour
         if (previewBlock == null)
             return;
 
-        // A contrast preview can become stale after an earlier tutorial block
-        // lands. Check the live board again before giving it to the player.
-        if (tutorialStackingColors && !tutorialMatchingColor &&
-            board.GetColoredBlocks().Exists(block => block.ColorIndex == previewColorIndex))
-        {
-            int colorIndex = PickTutorialColorIndex(ResolvePaletteLength());
-            if (colorIndex < 0)
-                return;
-            previewColorIndex = colorIndex;
-            previewBlock.SetTutorialColorIndex(colorIndex);
-        }
-
         activeBlock = previewBlock;
         previewBlock = null;
+        tutorialFirstBlockPending = false;
 
         // История рандомизации обновляется в момент, когда блок реально входит
         // в игру (становится активным).
@@ -710,6 +704,13 @@ public class TetrisBlockSpawnManager : MonoBehaviour
         if (tutorialSpawnLocked || previewBlock != null)
             return;
 
+        // A tutorial landing determines whether the next block retries the
+        // current example or starts the next one. Do not show a speculative
+        // preview that would need to change color later.
+        if (tutorialStackingColors && (HasActiveBlock ||
+            (tutorialMatchingColor && tutorialAwaitingMatchingPhase)))
+            return;
+
         TetrisBlockFacade[] prefabs = config != null ? config.BlockPrefabs : null;
 
         if (prefabs == null || prefabs.Length == 0)
@@ -718,12 +719,27 @@ public class TetrisBlockSpawnManager : MonoBehaviour
             return;
         }
 
-        int shapeIndex = ConsumeQueuedShapeOverride(prefabs);
+        int shapeIndex;
+        if (tutorialStackingColors && tutorialFirstBlockPending)
+        {
+            shapeIndex = ResolveShapeCheatIndex(prefabs, ShapeCheatKind.IBlock);
+            if (shapeIndex < 0)
+            {
+                Debug.LogError("Tutorial: add the straight BlockStraight prefab to Block Prefabs in the config.", this);
+                return;
+            }
+        }
+        else
+        {
+            shapeIndex = ConsumeQueuedShapeOverride(prefabs);
+        }
         if (shapeIndex < 0)
             shapeIndex = PickShapeIndex(prefabs.Length);
 
+        bool previewMatchingColor = tutorialMatchingColor ||
+            (tutorialContrastLanded && tutorialHoldAfterContrast);
         int colorIndex = tutorialStackingColors
-            ? PickTutorialColorIndex(ResolvePaletteLength())
+            ? PickTutorialColorIndex(ResolvePaletteLength(), previewMatchingColor)
             : PickColorIndex(ResolvePaletteLength());
         if (colorIndex < 0)
             return;
@@ -775,18 +791,51 @@ public class TetrisBlockSpawnManager : MonoBehaviour
         previewColorIndex = colorIndex;
     }
 
-    private int PickTutorialColorIndex(int paletteLength)
+    private int PickTutorialColorIndex(int paletteLength, bool matchingColor)
     {
         List<TetrisPlacedBlock> placed = board.GetColoredBlocks();
-        if (tutorialReferenceBlock == null)
+        TetrisBlockCells referenceCells = matchingColor
+            ? tutorialSameColorReference : tutorialDifferentColorReference;
+        TetrisPlacedBlock reference;
+        if (referenceCells != null)
         {
-            tutorialReferenceBlock = placed.Find(block => block.IsAnchored);
-            if (tutorialReferenceBlock == null && placed.Count > 0)
-                tutorialReferenceBlock = placed[0];
+            // TetrisPlacedBlock is added by TetrisGridLevelBlocks.Start, so use
+            // the editor-visible TetrisBlockCells reference and wait until it
+            // actually belongs to this board before reading its runtime color.
+            reference = placed.Find(block => block.gameObject == referenceCells.gameObject);
+        }
+        else
+        {
+            if (tutorialReferenceBlock == null)
+            {
+                tutorialReferenceBlock = placed.Find(block => block.IsAnchored);
+                if (tutorialReferenceBlock == null && placed.Count > 0)
+                    tutorialReferenceBlock = placed[0];
+            }
+            reference = tutorialReferenceBlock;
         }
 
-        if (tutorialMatchingColor)
-            return tutorialReferenceBlock != null ? tutorialReferenceBlock.ColorIndex : -1;
+        if (matchingColor)
+        {
+            if (tutorialMatchingColorIndex < 0 && reference != null)
+                tutorialMatchingColorIndex = reference.ColorIndex;
+            return tutorialMatchingColorIndex;
+        }
+
+        if (referenceCells != null)
+        {
+            if (reference == null)
+                return -1;
+            if (paletteLength < 2)
+            {
+                Debug.LogError("Tutorial: the different-color example needs at least two palette colors.", this);
+                return -1;
+            }
+            if (tutorialFirstBlockColorIndex >= 0 && tutorialFirstBlockColorIndex < paletteLength &&
+                tutorialFirstBlockColorIndex != reference.ColorIndex)
+                return tutorialFirstBlockColorIndex;
+            return (reference.ColorIndex + 1) % paletteLength;
+        }
 
         HashSet<int> usedColors = new HashSet<int>();
         foreach (TetrisPlacedBlock block in placed)
@@ -802,6 +851,8 @@ public class TetrisBlockSpawnManager : MonoBehaviour
             Debug.LogError("Tutorial: the palette needs a color not already used by the placed blocks.", this);
             return -1;
         }
+        if (allowed.Contains(tutorialFirstBlockColorIndex))
+            return tutorialFirstBlockColorIndex;
         return allowed[Random.Range(0, allowed.Count)];
     }
 
@@ -977,32 +1028,8 @@ public class TetrisBlockSpawnManager : MonoBehaviour
             return;
         }
 
-        ApplyQueuedShapeOverrideToPreview();
-    }
-
-    private void ApplyQueuedShapeOverrideToPreview()
-    {
-        if (previewBlock == null || queuedShapeOverrideIndex < 0)
-            return;
-
-        if (previewShapeIndex == queuedShapeOverrideIndex)
-        {
-            queuedShapeOverrideIndex = -1;
-            return;
-        }
-
-        GameObject oldPreview = previewBlock.gameObject;
-        if (oldPreview != null)
-        {
-            oldPreview.SetActive(false);
-            Destroy(oldPreview);
-        }
-
-        previewBlock = null;
-        previewShapeIndex = -1;
-        previewColorIndex = -1;
-
-        EnsurePreviewBlock();
+        // Apply the override only to the next block that has not been shown.
+        // The existing preview keeps its identity, shape and color.
     }
 
     private int ConsumeQueuedShapeOverride(TetrisBlockFacade[] prefabs)
