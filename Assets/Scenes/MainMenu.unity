@@ -940,7 +940,7 @@ PrefabInstance:
     - target: {fileID: 7375780760507850801, guid: 01b87838569656740856bd99b3edfc0a, type: 3}
       propertyPath: ambientClip
       value: 
-      objectReference: {fileID: 8300000, guid: f0ae9e4c6e251c84ea0cc43e9696dab9, type: 3}
+      objectReference: {fileID: 8300000, guid: 618548b9807a2df4eb4da624dc554260, type: 3}
     - target: {fileID: 7375780760507850801, guid: 01b87838569656740856bd99b3edfc0a, type: 3}
       propertyPath: uiClickClip
       value: 

@@ -114,7 +114,8 @@ public class WaterfallSplashEmitter : MonoBehaviour
     [Tooltip("Sorting Layer for the auto-created system. Empty means Default.")]
     [SerializeField] private string sortingLayerName = "";
 
-    [SerializeField] private int sortingOrder = 3;
+    [Tooltip("Order in Layer for the splash particles.")]
+    [SerializeField] private int sortingOrder = -1;
 
     [Header("Gizmos")]
     [Tooltip("Draw zones even when this object is not selected.")]
